@@ -81,7 +81,7 @@ TaskToolsBuilder.builder()
 
 ```bash
 # From project root - run with interactive chat
-cd /path/to/spring-ai-alibaba
+cd /path/to/agentic-spring-ai
 AI_DASHSCOPE_API_KEY=your_key ./mvnw -f examples/multiagent-patterns/subagent/pom.xml spring-boot:run \
   -Dspring-boot.run.arguments="--subagent.run-interactive=true"
 ```

@@ -18,28 +18,28 @@ Spring AI Alibaba 从开源建设以来，受到了很多社区同学的关注�
 
 ### 从哪里入手？
 
-如果您是初次贡献，可以先从 [good first issue](https://github.com/alibaba/spring-ai-alibaba/labels/good%20first%20issue) 和 [help wanted](https://github.com/alibaba/spring-ai-alibaba/labels/help%20wanted) 中认领一个比较简单的任务。
+如果您是初次贡献，可以先从 [good first issue](https://github.com/alibaba/agentic-spring-ai/labels/good%20first%20issue) 和 [help wanted](https://github.com/alibaba/agentic-spring-ai/labels/help%20wanted) 中认领一个比较简单的任务。
 
 ### Fork 仓库，并将其 Clone 到本地
 
-- 点击 [本项目](https://github.com/alibaba/spring-ai-alibaba) 右上角的 `Fork` 图标 将 alibaba/spring-ai-alibaba  fork 到自己的空间。
-- 将自己账号下的 spring-ai-alibaba 仓库 clone 到本地，例如我的账号是 `chickenlj`，那就是执行 `git clone https://github.com/chickenlj/spring-ai-alibaba.git` 进行 clone 操作。
+- 点击 [本项目](https://github.com/alibaba/agentic-spring-ai) 右上角的 `Fork` 图标 将 alibaba/agentic-spring-ai  fork 到自己的空间。
+- 将自己账号下的 agentic-spring-ai 仓库 clone 到本地，例如我的账号是 `chickenlj`，那就是执行 `git clone https://github.com/chickenlj/agentic-spring-ai.git` 进行 clone 操作。
 
 ### 配置 Github 信息
 
 - 在自己的机器执行 `git config --list` ，查看 git 的全局用户名和邮箱。
 - 检查显示的 user.name 和 user.email 是不是与自己 github 的用户名和邮箱相匹配。
-- 如果公司内部有自己的 gitlab 或者使用了其他商业化的 gitlab，则可能会出现不匹配的情况。这时候，你需要为 spring-ai-alibaba 项目单独设置用户名和邮箱。
+- 如果公司内部有自己的 gitlab 或者使用了其他商业化的 gitlab，则可能会出现不匹配的情况。这时候，你需要为 agentic-spring-ai 项目单独设置用户名和邮箱。
 - 设置用户名和邮箱的方式请参考 github 官方文档，[设置用户名](https://help.github.com/articles/setting-your-username-in-git/#setting-your-git-username-for-a-single-repository)，[设置邮箱](https://help.github.com/articles/setting-your-commit-email-address-in-git/)。
 
 ### Merge 最新代码
 
 fork 出来的代码后，原仓库 main 分支可能出现了新的提交，这时候为了避免提交的 PR 和 Main 中的提交出现冲突，需要及时 merge main 分支。
 
-- 在你本机的 spring-ai-alibaba 目录下，执行 `git remote add upstream https://github.com/alibaba/spring-ai-alibaba` 将原始仓库地址配置为 upstream。
-- 在你本机的 spring-ai-alibaba 目录下，执行 `git fetch upstream` 从 upstream 拉取更新。
-- 在你本机的 spring-ai-alibaba 目录下，执行 `git checkout main` 切换到 main 分支。
-- 在你本机的 spring-ai-alibaba 目录下，执行 `git rebase upstream/main` rebase 最新代码。
+- 在你本机的 agentic-spring-ai 目录下，执行 `git remote add upstream https://github.com/alibaba/agentic-spring-ai` 将原始仓库地址配置为 upstream。
+- 在你本机的 agentic-spring-ai 目录下，执行 `git fetch upstream` 从 upstream 拉取更新。
+- 在你本机的 agentic-spring-ai 目录下，执行 `git checkout main` 切换到 main 分支。
+- 在你本机的 agentic-spring-ai 目录下，执行 `git rebase upstream/main` rebase 最新代码。
 
 ### 配置 Spring AI 标准的代码格式
 

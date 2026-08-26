@@ -12,7 +12,7 @@ This module collects runnable Graph Engineering examples for Spring AI Alibaba.
 
 | Startup class | Input | Output |
 | --- | --- | --- |
-| `com.alibaba.cloud.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample` | Local issue JSON file or GitHub issue URL plus `AI_DASHSCOPE_API_KEY` | API-backed RepoOps issue triage, plan, review, and audit |
+| `io.github.agentic.spring.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample` | Local issue JSON file or GitHub issue URL plus `AI_DASHSCOPE_API_KEY` | API-backed RepoOps issue triage, plan, review, and audit |
 
 ## Which One To Run
 
@@ -170,7 +170,7 @@ cd examples/graphengineering
 
 ```bash
 ../../mvnw -DskipTests \
-  -Dexec.mainClass=com.alibaba.cloud.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
+  -Dexec.mainClass=io.github.agentic.spring.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
   -Dexec.args=--validate-topology \
   org.codehaus.mojo:exec-maven-plugin:3.5.0:java
 ```
@@ -181,8 +181,8 @@ cd examples/graphengineering
 export AI_DASHSCOPE_API_KEY=your-api-key
 
 ../../mvnw -DskipTests \
-  -Dexec.mainClass=com.alibaba.cloud.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
-  -Dexec.args=https://github.com/alibaba/spring-ai-alibaba/issues/4830 \
+  -Dexec.mainClass=io.github.agentic.spring.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
+  -Dexec.args=https://github.com/alibaba/agentic-spring-ai/issues/4830 \
   org.codehaus.mojo:exec-maven-plugin:3.5.0:java
 ```
 
@@ -190,7 +190,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 
 ```bash
 ../../mvnw -DskipTests \
-  -Dexec.mainClass=com.alibaba.cloud.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
+  -Dexec.mainClass=io.github.agentic.spring.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
   -Dexec.args=src/main/resources/issues/bug_issue.json \
   org.codehaus.mojo:exec-maven-plugin:3.5.0:java
 ```

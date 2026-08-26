@@ -146,7 +146,7 @@ and optional A2A remote agents.
 ```yaml
 capabilities:
   repoops.triage_issue:
-    provider: spring-ai-alibaba
+    provider: agentic-spring-ai
     target:
       bean: triageReactAgent
     input_schema: IssueEvent
@@ -403,7 +403,7 @@ StateGraph graph = new StateGraph(keyStrategyFactory)
 The AgentScope issue example is the API-backed version of this lightweight
 design:
 
-- `examples/graphengineering/src/main/java/com/alibaba/cloud/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
 - `examples/graphengineering/src/main/resources/repoops-graph-topology.yaml`
 
 It reads a RepoOps issue JSON payload or a GitHub issue URL first, then routes
@@ -489,7 +489,7 @@ You can pass a different issue file or a public GitHub issue URL as the first
 argument:
 
 ```text
-https://github.com/alibaba/spring-ai-alibaba/issues/4830
+https://github.com/alibaba/agentic-spring-ai/issues/4830
 ```
 
 For GitHub URLs, the `read_issue` node fetches the issue through the public

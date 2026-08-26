@@ -95,11 +95,11 @@ examples/multiagent-patterns/agentscope/
 
 ### Build
 
-**Note:** This example depends on `spring-ai-alibaba-agent-framework` which includes AgentScope integration. If building from source, install the framework first:
+**Note:** This example depends on `agentic-spring-ai-agent-framework` which includes AgentScope integration. If building from source, install the framework first:
 
 ```bash
 # From repo root - install agent-framework to local Maven repo
-./mvnw -pl spring-ai-alibaba-agent-framework -am -B install -DskipTests
+./mvnw -pl agentic-spring-ai-agent-framework -am -B install -DskipTests
 ```
 
 Then build the example:

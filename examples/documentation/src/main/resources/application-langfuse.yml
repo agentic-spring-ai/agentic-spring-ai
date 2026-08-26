@@ -35,5 +35,5 @@ management:
 
 logging:
   level:
-    com.alibaba.cloud.ai: INFO
+    io.github.agentic.spring.ai: INFO
     org.springframework.ai: INFO

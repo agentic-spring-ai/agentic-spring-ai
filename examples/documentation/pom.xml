@@ -23,7 +23,7 @@
 		<version>4.1.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.alibaba.cloud.ai</groupId>
+	<groupId>io.github.agentic-spring-ai</groupId>
 	<artifactId>documentation</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Examples::Documentation</name>
@@ -32,8 +32,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-ai.version>2.0.0</spring-ai.version>
-		<spring-ai-alibaba.version>2.0.0.0-RC1</spring-ai-alibaba.version>
-		<spring-ai-alibaba-extensions.version>2.0.0.0-RC1</spring-ai-alibaba-extensions.version>
+		<agentic-spring-ai.version>2.0.0.0-RC1</agentic-spring-ai.version>
+		<agentic-spring-ai-extensions.version>2.0.0.0-RC1</agentic-spring-ai-extensions.version>
 
 		<redisson.version>3.22.0</redisson.version>
 	</properties>
@@ -48,16 +48,16 @@
 				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>com.alibaba.cloud.ai</groupId>
-				<artifactId>spring-ai-alibaba-extensions-bom</artifactId>
-				<version>${spring-ai-alibaba-extensions.version}</version>
+				<groupId>io.github.agentic-spring-ai</groupId>
+				<artifactId>agentic-spring-ai-extensions-bom</artifactId>
+				<version>${agentic-spring-ai-extensions.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
-				<groupId>com.alibaba.cloud.ai</groupId>
-				<artifactId>spring-ai-alibaba-bom</artifactId>
-				<version>${spring-ai-alibaba.version}</version>
+				<groupId>io.github.agentic-spring-ai</groupId>
+				<artifactId>agentic-spring-ai-bom</artifactId>
+				<version>${agentic-spring-ai.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -66,23 +66,23 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-studio</artifactId>
+			<groupId>io.github.agentic-spring-ai</groupId>
+			<artifactId>agentic-spring-ai-studio</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+			<groupId>io.github.agentic-spring-ai</groupId>
+			<artifactId>agentic-spring-ai-starter-dashscope</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-agent-framework</artifactId>
+			<groupId>io.github.agentic-spring-ai</groupId>
+			<artifactId>agentic-spring-ai-agent-framework</artifactId>
 		</dependency>
 
 		<dependency>
-			<groupId>com.alibaba.cloud.ai</groupId>
-			<artifactId>spring-ai-alibaba-starter-a2a-nacos</artifactId>
+			<groupId>io.github.agentic-spring-ai</groupId>
+			<artifactId>agentic-spring-ai-starter-a2a-nacos</artifactId>
 		</dependency>
 
 		<dependency>
@@ -180,8 +180,8 @@
 			<id>langfuse</id>
 			<dependencies>
 				<dependency>
-					<groupId>com.alibaba.cloud.ai</groupId>
-					<artifactId>spring-ai-alibaba-starter-graph-observation</artifactId>
+					<groupId>io.github.agentic-spring-ai</groupId>
+					<artifactId>agentic-spring-ai-starter-graph-observation</artifactId>
 				</dependency>
 				<dependency>
 					<groupId>org.springframework.boot</groupId>

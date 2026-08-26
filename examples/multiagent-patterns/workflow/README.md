@@ -18,7 +18,7 @@ Flow: **Query → Rewrite → Retrieve → Prepare → Agent → Response**
 - **Prepare**: Formats context and question into a prompt
 - **Agent**: ReactAgent with context; can use `get_latest_news` tool
 
-Requires: DashScope API key, EmbeddingModel (from spring-ai-alibaba-starter-dashscope).
+Requires: DashScope API key, EmbeddingModel (from agentic-spring-ai-starter-dashscope).
 
 ## SQL Agent
 

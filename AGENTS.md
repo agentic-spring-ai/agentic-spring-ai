@@ -18,17 +18,17 @@ Spring AI Alibaba is a production-ready framework for building Agentic, Workflow
 ## Repository Structure
 
 ```
-spring-ai-alibaba/
-├── spring-ai-alibaba-agent-framework/ # Multi-agent framework (Sequential, Parallel, Routing, etc.)
-├── spring-ai-alibaba-graph-core/      # Runtime providing persistence, workflow orchestration, state mgmt
-├── spring-ai-alibaba-studio/          # Embedded UI for debugging agents visually
-├── spring-ai-alibaba-admin/           # One-stop Agent platform (visual dev, observability, MCP mgmt)
-├── spring-ai-alibaba-bom/             # Bill of Materials for dependency management
+agentic-spring-ai/
+├── agentic-spring-ai-agent-framework/ # Multi-agent framework (Sequential, Parallel, Routing, etc.)
+├── agentic-spring-ai-graph-core/      # Runtime providing persistence, workflow orchestration, state mgmt
+├── agentic-spring-ai-studio/          # Embedded UI for debugging agents visually
+├── agentic-spring-ai-admin/           # One-stop Agent platform (visual dev, observability, MCP mgmt)
+├── agentic-spring-ai-bom/             # Bill of Materials for dependency management
 ├── spring-boot-starters/              # Spring Boot Starters
-│   ├── spring-ai-alibaba-starter-a2a-nacos/     # Nacos A2A communication
-│   ├── spring-ai-alibaba-starter-builtin-nodes/ # Built-in workflow nodes
-│   ├── spring-ai-alibaba-starter-config-nacos/  # Dynamic config with Nacos
-│   └── spring-ai-alibaba-starter-graph-observation/ # Observability
+│   ├── agentic-spring-ai-starter-a2a-nacos/     # Nacos A2A communication
+│   ├── agentic-spring-ai-starter-builtin-nodes/ # Built-in workflow nodes
+│   ├── agentic-spring-ai-starter-config-nacos/  # Dynamic config with Nacos
+│   └── agentic-spring-ai-starter-graph-observation/ # Observability
 ├── examples/                          # Example applications
 │   ├── chatbot/                       # Chatbot example
 │   ├── deepresearch/                  # Deep research agent example
@@ -52,7 +52,7 @@ spring-ai-alibaba/
 ./mvnw -B package -DskipTests=true
 
 # Build a specific module
-./mvnw -pl :spring-ai-alibaba-agent-framework -B package -DskipTests=true
+./mvnw -pl :agentic-spring-ai-agent-framework -B package -DskipTests=true
 
 # Clean project
 ./mvnw clean
@@ -139,12 +139,12 @@ The project uses `make` for linting tasks:
 
 1.  **JDK Version**: Project targets JDK 17. Use appropriate language features.
 2.  **Spring Boot**: Uses Spring Boot 3.x. Be aware of `jakarta.*` namespace vs `javax.*`.
-3.  **Dependencies**: Check `spring-ai-alibaba-bom` or parent pom for version management.
+3.  **Dependencies**: Check `agentic-spring-ai-bom` or parent pom for version management.
 4.  **Makefile**: Use the Makefile in the root for project maintenance tasks (linting, license checks).
-5.  **Structure**: When adding new features, prefer creating or updating modules within `spring-ai-alibaba-agent-framework` or `spring-boot-starters` depending on the scope.
+5.  **Structure**: When adding new features, prefer creating or updating modules within `agentic-spring-ai-agent-framework` or `spring-boot-starters` depending on the scope.
 
 ## Important Links
 
-- **Issues**: [https://github.com/alibaba/spring-ai-alibaba/issues](https://github.com/alibaba/spring-ai-alibaba/issues)
-- **Source**: [https://github.com/alibaba/spring-ai-alibaba](https://github.com/alibaba/spring-ai-alibaba)
+- **Issues**: [https://github.com/alibaba/agentic-spring-ai/issues](https://github.com/alibaba/agentic-spring-ai/issues)
+- **Source**: [https://github.com/alibaba/agentic-spring-ai](https://github.com/alibaba/agentic-spring-ai)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)

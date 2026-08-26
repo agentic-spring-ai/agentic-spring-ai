@@ -7,12 +7,12 @@ the right shape for the task.
 
 Spring AI Alibaba already treats this as a first-class application architecture:
 
-- `spring-ai-alibaba-graph-core` provides the stateful graph runtime.
-- `spring-ai-alibaba-agent-framework` turns agents into graph nodes and provides
+- `agentic-spring-ai-graph-core` provides the stateful graph runtime.
+- `agentic-spring-ai-agent-framework` turns agents into graph nodes and provides
   higher-level multi-agent patterns.
 - A2A and Nacos integrations let a graph call agents owned by other services.
 - AgentScope integration shows that Spring AI Alibaba can orchestrate agents
-  implemented by other frameworks through `spring-ai-alibaba-starter-agentscope`,
+  implemented by other frameworks through `agentic-spring-ai-starter-agentscope`,
   not only Spring AI `ReactAgent`.
 
 The positioning is simple: use `ReactAgent` for a single well-scoped loop, use
@@ -50,7 +50,7 @@ supports those layers together:
    limits, and dynamic tool selection inside graph nodes.
 4. **A2A and Nacos as distributed edges.** A graph can route to agents discovered
    through a registry rather than only local Java beans.
-5. **External-agent orchestration.** `spring-ai-alibaba-starter-agentscope`
+5. **External-agent orchestration.** `agentic-spring-ai-starter-agentscope`
    provides `AgentScopeAgent`, which adapts AgentScope `ReActAgent` into the
    same Spring AI Alibaba graph node model, so Graph Engineering can coordinate
    agents from multiple frameworks.
@@ -139,7 +139,7 @@ The example stores `graph_id`, `run_id`, `node_trace`, `route_history`, and
 The runnable examples live in:
 
 - `examples/graphengineering`
-- `examples/graphengineering/src/main/java/com/alibaba/cloud/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
 
 `AgentScopeRepoOpsIssueGraphExample` can read a local issue JSON file or a
 public GitHub issue URL, then invoke AgentScope Java workers through
@@ -170,7 +170,7 @@ loop-back, audit, and Evidence Bundle generation.
 
 - `examples/graphengineering` contains the runnable RepoOps startup class.
 - [Lightweight RepoOps Graph Engineering](./graph-engineering-repoops-lightweight.md)
-- `examples/graphengineering/src/main/java/com/alibaba/cloud/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
 
 In a real application each graph node can be implemented by:
 
@@ -182,7 +182,7 @@ In a real application each graph node can be implemented by:
 ## AgentScope as an External Agent Example
 
 Spring AI Alibaba is not limited to orchestrating its own `ReactAgent`
-implementation. `spring-ai-alibaba-starter-agentscope` provides
+implementation. `agentic-spring-ai-starter-agentscope` provides
 `AgentScopeAgent`, and the AgentScope handoff example shows the intended
 integration model:
 
@@ -206,7 +206,7 @@ plain deterministic nodes in one stateful graph.
 Reference example:
 
 - `examples/agentscope/handoffs`
-- `examples/graphengineering/src/main/java/com/alibaba/cloud/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
 
 The RepoOps issue example goes further than a single handoff: issue triage,
 planning, review, and audit are AgentScope Java nodes, while Spring AI Alibaba

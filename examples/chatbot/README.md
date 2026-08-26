@@ -18,8 +18,8 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 1. Download the code.
 
 ```shell
-git clone https://github.com/alibaba/spring-ai-alibaba.git
-cd spring-ai-alibaba
+git clone https://github.com/alibaba/agentic-spring-ai.git
+cd agentic-spring-ai
 ```
 
 2. Start the ChatBot.
@@ -37,4 +37,4 @@ Open the browser and visit [http://localhost:8080/chatui/index.html](http://loca
 </p>
 
 ## More Examples
-Check [spring-ai-alibaba-examples](https://github.com/spring-ai-alibaba/examples/tree/main/spring-ai-alibaba-agent-example) for more sophisticated examples.
+Check [agentic-spring-ai-examples](https://github.com/agentic-spring-ai/examples/tree/main/agentic-spring-ai-agent-example) for more sophisticated examples.
