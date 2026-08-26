@@ -1,0 +1,2 @@
+io.spring.initializr.generator.project.ProjectGenerationConfiguration=\
+  io.github.agentic.spring.ai.studio.admin.builder.generator.config.GraphProjectGenerationConfiguration

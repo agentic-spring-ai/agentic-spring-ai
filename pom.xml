@@ -16,20 +16,16 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.alibaba.cloud.ai</groupId>
-    <artifactId>spring-ai-alibaba</artifactId>
+    <groupId>io.github.agentic-spring-ai</groupId>
+    <artifactId>agentic-spring-ai</artifactId>
     <version>${revision}</version>
 
     <packaging>pom</packaging>
 
-    <name>Spring AI Alibaba</name>
+    <name>Agentic Spring AI</name>
     <description>Building AI applications with Spring Boot</description>
-    <url>https://github.com/alibaba/spring-ai-alibaba</url>
+    <url>https://github.com/agentic-for-spring-ai/agentic-spring-ai</url>
 
-    <organization>
-        <name>Alibaba Cloud Inc.</name>
-        <url>https://java2ai.com</url>
-    </organization>
     <licenses>
         <license>
             <name>Apache 2.0</name>
@@ -39,41 +35,44 @@
     </licenses>
     <developers>
         <developer>
-            <id>chickenlj</id>
-            <name>Jun Liu</name>
-            <email>ken.lj.hz@gmail.com</email>
-            <organization>Alibaba Cloud</organization>
-            <organizationUrl>https://aliyun.com</organizationUrl>
+            <id>yuluo-yx</id>
+            <name>yuluo-yx</name>
+            <url>https://github.com/yuluo-yx</url>
+        </developer>
+        <developer>
+            <id>Aias00</id>
+            <name>Aias00</name>
+            <url>https://github.com/Aias00</url>
         </developer>
     </developers>
 
     <modules>
-        <module>spring-ai-alibaba-bom</module>
-        <module>spring-ai-alibaba-graph-core</module>
-        <module>spring-ai-alibaba-agent-framework</module>
-        <module>spring-ai-alibaba-studio</module>
-        <module>spring-ai-alibaba-sandbox</module>
+        <module>agentic-spring-ai-bom</module>
+        <module>agentic-spring-ai-graph-core</module>
+        <module>agentic-spring-ai-agent-framework</module>
+        <module>agentic-spring-ai-studio</module>
+        <module>agentic-spring-ai-sandbox</module>
 
         <!-- Spring AI Alibaba Spring Boot Starters -->
-        <module>spring-boot-starters/spring-ai-alibaba-starter-a2a-nacos</module>
-        <module>spring-boot-starters/spring-ai-alibaba-starter-config-nacos</module>
-        <module>spring-boot-starters/spring-ai-alibaba-starter-graph-observation</module>
-        <module>spring-boot-starters/spring-ai-alibaba-starter-builtin-nodes</module>
-        <module>spring-boot-starters/spring-ai-alibaba-starter-agentscope</module>
+        <module>spring-boot-starters/agentic-spring-ai-starter-a2a-nacos</module>
+        <module>spring-boot-starters/agentic-spring-ai-starter-config-nacos</module>
+        <module>spring-boot-starters/agentic-spring-ai-starter-graph-observation</module>
+        <module>spring-boot-starters/agentic-spring-ai-starter-builtin-nodes</module>
+        <module>spring-boot-starters/agentic-spring-ai-starter-agentscope</module>
     </modules>
 
     <scm>
-        <connection>git://github.com/alibaba/spring-ai-alibaba.git</connection>
-        <developerConnection>git@github.com:alibaba/spring-ai-alibaba.git</developerConnection>
-        <url>https://github.com/alibaba/spring-ai-alibaba</url>
+        <connection>git://github.com/agentic-for-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-for-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-for-spring-ai/agentic-spring-ai</url>
     </scm>
     <issueManagement>
         <system>Github Issues</system>
-        <url>https://github.com/alibaba/spring-ai-alibaba/issues</url>
+        <url>https://github.com/agentic-for-spring-ai/agentic-spring-ai/issues</url>
     </issueManagement>
     <ciManagement>
         <system>Github Actions</system>
-        <url>https://github.com/alibaba/spring-ai-alibaba/actions</url>
+        <url>https://github.com/agentic-for-spring-ai/agentic-spring-ai/actions</url>
     </ciManagement>
 
     <distributionManagement>
@@ -97,7 +96,7 @@
 
         <!-- Spring version -->
         <spring-ai.version>1.1.2</spring-ai.version>
-        <spring-ai-alibaba-extensions.version>1.1.2.2</spring-ai-alibaba-extensions.version>
+        <agentic-spring-ai-extensions.version>1.1.2.2</agentic-spring-ai-extensions.version>
         <spring-boot.version>3.5.8</spring-boot.version>
         <springdoc-openapi.version>2.8.8</springdoc-openapi.version>
 
@@ -228,9 +227,9 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
-                <version>${spring-ai-alibaba-extensions.version}</version>
+                <groupId>io.github.agentic-spring-ai</groupId>
+                <artifactId>agentic-spring-ai-extensions-bom</artifactId>
+                <version>${agentic-spring-ai-extensions.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

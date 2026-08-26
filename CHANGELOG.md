@@ -6,7 +6,7 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > For full release notes and downloadable artifacts, see the
-> [GitHub Releases](https://github.com/alibaba/spring-ai-alibaba/releases) page.
+> [GitHub Releases](https://github.com/alibaba/agentic-spring-ai/releases) page.
 
 ## [Unreleased]
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **AgentScope integration** — `AgentScopeAgent` wraps [AgentScope ReActAgent](https://github.com/agentscope-ai/agentscope-java)
-  as a `BaseAgent` for use in graph workflows (`spring-ai-alibaba-starter-agentscope`).
+  as a `BaseAgent` for use in graph workflows (`agentic-spring-ai-starter-agentscope`).
 - **Multiagent patterns** under `examples/multiagent-patterns/`:
   Subagent, Supervisor, Skills, Routing (simple and graph variants),
   Handoffs (single- and multi-agent), and Workflow.
@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First stable release of the 1.1.x line, built on
   [Spring AI 1.1.0](https://github.com/spring-projects/spring-ai/releases/tag/v1.1.0)
-  and [Spring AI Alibaba Extensions 1.1.0.0](https://github.com/spring-ai-alibaba/spring-ai-extensions/releases/tag/v1.1.0.0).
+  and [Spring AI Alibaba Extensions 1.1.0.0](https://github.com/agentic-spring-ai/spring-ai-extensions/releases/tag/v1.1.0.0).
 - Production-ready Agent Graph runtime with comprehensive documentation
   available at <https://java2ai.com/docs/overview>.
 
@@ -74,14 +74,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Earlier releases
 
-See [GitHub Releases](https://github.com/alibaba/spring-ai-alibaba/releases)
+See [GitHub Releases](https://github.com/alibaba/agentic-spring-ai/releases)
 for the full history, including 1.1.0.0-RC1, 1.1.0.0-M5, 1.1.0.0-M4, 1.0.0.1, and 1.0.0.0.
 
-[Unreleased]: https://github.com/alibaba/spring-ai-alibaba/compare/v1.1.2.2...HEAD
-[1.1.2.2]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.1.2.2
-[1.1.2.1]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.1.2.1
-[1.1.2.0]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.1.2.0
-[1.1.0.0]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.1.0.0
-[1.0.0.4]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.0.0.4
-[1.0.0.3]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.0.0.3
-[1.0.0.2]: https://github.com/alibaba/spring-ai-alibaba/releases/tag/v1.0.0.2
+[Unreleased]: https://github.com/alibaba/agentic-spring-ai/compare/v1.1.2.2...HEAD
+[1.1.2.2]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.1.2.2
+[1.1.2.1]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.1.2.1
+[1.1.2.0]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.1.2.0
+[1.1.0.0]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.1.0.0
+[1.0.0.4]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.0.0.4
+[1.0.0.3]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.0.0.3
+[1.0.0.2]: https://github.com/alibaba/agentic-spring-ai/releases/tag/v1.0.0.2

@@ -36,34 +36,34 @@
 "area/jmanus":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-jmanus/**/*"
+          - "agentic-spring-ai-jmanus/**/*"
 "area/graph":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-graph-core/**/*"
+          - "agentic-spring-ai-graph-core/**/*"
 "area/core":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-core/**/*"
-          - "spring-ai-alibaba-bom/**/*"
+          - "agentic-spring-ai-core/**/*"
+          - "agentic-spring-ai-bom/**/*"
           - "auto-configurations/**/*"
-          - "spring-ai-alibaba-spring-boot-starter/**/*"
+          - "agentic-spring-ai-spring-boot-starter/**/*"
 "area/studio":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-studio/**/*"
+          - "agentic-spring-ai-studio/**/*"
 "area/mcp":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-mcp/**/*"
+          - "agentic-spring-ai-mcp/**/*"
 "area/deepresearch":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-deepresearch/**/*"
+          - "agentic-spring-ai-deepresearch/**/*"
 "area/nl2sql":
   - changed-files:
       - any-glob-to-any-file:
-          - "spring-ai-alibaba-nl2sql/**/*"
+          - "agentic-spring-ai-nl2sql/**/*"
 "area/community":
   - changed-files:
       - any-glob-to-any-file:

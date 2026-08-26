@@ -1,7 +1,7 @@
 .git
 .idea
-./spring-ai-alibaba-jmanus/src/main/resources/static
-./spring-ai-alibaba-jmanus/src/main/resources/static_legacy
+./agentic-spring-ai-jmanus/src/main/resources/static
+./agentic-spring-ai-jmanus/src/main/resources/static_legacy
 **/node_modules/**
 **/target/**
 **/build/**
@@ -12,4 +12,4 @@
 **/src/main/resources/static/**
 **/pnpm-lock.yaml
 **/package-lock.json
-**/spring-ai-alibaba-studio/**
+**/agentic-spring-ai-studio/**
