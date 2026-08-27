@@ -121,7 +121,7 @@
 
         <commons-lang3.version>3.20.0</commons-lang3.version>
 
-        <mcp.sdk.version>2.0.0</mcp.sdk.version>
+        <mcp.sdk.version>2.0.1</mcp.sdk.version>
         <a2a-sdk.version>0.2.5.Beta2</a2a-sdk.version>
 
         <!-- JSpecify Version -->
