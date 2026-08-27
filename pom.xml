@@ -85,7 +85,7 @@
     <properties>
 
         <!-- Spring AI Alibaba Version -->
-        <revision>2.0.0.0</revision>
+        <revision>2.1.0-dev</revision>
 
         <!-- Maven project basic config -->
         <java.version>17</java.version>
@@ -96,7 +96,7 @@
 
         <!-- Spring version -->
         <spring-ai.version>2.0.0</spring-ai.version>
-        <agentic-spring-ai-extensions.version>2.0.0.0</agentic-spring-ai-extensions.version>
+        <agentic-spring-ai-extensions.version>2.1.0-dev</agentic-spring-ai-extensions.version>
         <spring-boot.version>4.1.0</spring-boot.version>
         <springdoc-openapi.version>2.8.15</springdoc-openapi.version>
 
