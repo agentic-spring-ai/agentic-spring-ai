@@ -1,161 +1,63 @@
-# [Spring AI Alibaba](https://java2ai.com)
+# [Agentic Spring AI](https://agentic-spring-ai.github.io/website/en/)
 
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![CI Status](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agentic-spring-ai/agentic-spring-ai)
+[English](README.md) | [简体中文](README-zh.md)
+
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1.0--dev-blue)](https://github.com/agentic-spring-ai/agentic-spring-ai)
-[![gitleaks badge](https://img.shields.io/badge/protected%20by-gitleaks-blue)](https://github.com/gitleaks/gitleaks)
 
-<html>
-    <h3 align="center">
-      A production-ready framework for building Agentic, Workflow, and Multi-agent applications.
-    </h3>
-    <h3 align="center">
-      <a href="https://java2ai.com/docs/quick-start/" target="_blank">Agent Framework Docs</a>,
-      <a href="https://java2ai.com/docs/frameworks/graph-core/quick-start/" target="_blank">Graph Docs</a>,
-      <a href="https://java2ai.com/ecosystem/spring-ai/reference/concepts/" target="_blank">Spring AI</a>,
-      <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples" target="_blank">Examples</a>.
-    </h3>
-</html>
+Agentic Spring AI is a framework for Java developers building agents, workflows, and multi-agent applications. Built on Spring AI, it provides context engineering, human-in-the-loop, graph workflows, and distributed Agent-to-Agent (A2A) collaboration.
 
-## Architecture
+## Features
 
-**Spring AI Alibaba Agent Framework** is an agent development framework that can quickly develop agents with built-in **Context Engineering** and **Human In The Loop** support. For scenarios requiring more complex process control, Agent Framework offers built-in workflows like `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, `LoopAgent`.
+- **Agent orchestration**: `ReactAgent`, `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, and `LoopAgent`.
+- **Context engineering**: context compaction and editing, call limits, tool retries, planning, and dynamic tool selection.
+- **Graph workflows**: conditional routing, parallel execution, nested graphs, state persistence, and interruption recovery.
+- **Multimodal and voice**: image understanding, media generation, and real-time voice interaction over WebSocket.
+- **Open integrations**: DashScope, OpenAI, tool calling, MCP, A2A, and Nacos.
+- **Visual debugging**: an embeddable Agent Chat UI for Spring Boot applications.
 
-**Spring AI Alibaba Graph** serves as the underlying runtime of the Agent Framework, providing essential capabilities such as persistence, workflow orchestration, and streaming required for long-running stateful agents. Compared to the Agent Framework, users can build more flexible multi-agent workflows based on the Graph API.
+## Quick Start
 
-## Core Features
+Requirements: JDK 17 or later and Maven 3.9.1 or later. The commands below use the included Maven Wrapper.
 
-* **[Multi-Agent Orchestration](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/multiagent-patterns)**: Compose multiple agents with built-in patterns including `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, and `LoopAgent` for complex task execution.
+```shell
+git clone --depth=1 https://github.com/agentic-spring-ai/agentic-spring-ai.git
+cd agentic-spring-ai
 
-* **[Multimodal Support](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/multimodal)**: ReactAgent with text and media input (image understanding). ReactAgent with tool based image or audio generation.
+# Install the local development modules.
+./mvnw -DskipTests install
 
-* **[Voice Agent](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/voice-agent)**: WebSocket-based real-time voice agent that supports streaming audio or text input and responds with generated audio.
+# Configure the DashScope API key and run the chatbot example.
+export AI_DASHSCOPE_API_KEY=your-api-key
+./mvnw -f examples/chatbot/pom.xml spring-boot:run
+```
 
-* **[Context Engineering](https://java2ai.com/docs/frameworks/agent-framework/tutorials/hooks)**: Built-in best practices for context engineering policies to improve agent reliability and performance, including human-in-the-loop, context compaction, context editing, model & tool call limit, tool retry, planning, dynamic tool selection.
+Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/index.html). See the [Quick Start](https://agentic-spring-ai.github.io/website/en/docs/quick-start) for other model providers.
 
-* **[Graph-based Workflow](https://java2ai.com/docs/frameworks/graph-core/quick-start)**: Graph based workflow runtime and api for conditional routing, nested graphs, parallel execution, and state management. Export workflows to PlantUML and Mermaid formats.
+## Modules
 
-* **[Graph Engineering](./docs/graph-engineering.md)**: Compose specialized agents or deterministic steps into explicit nodes, edges, shared state, verifier nodes, and distributed A2A handoffs when a single `ReactAgent` loop is no longer enough.
+| Module | Description |
+| --- | --- |
+| [Agent Framework](agentic-spring-ai-agent-framework) | Agent development and multi-agent orchestration |
+| [Graph Core](agentic-spring-ai-graph-core) | State management, persistence, and workflow runtime |
+| [Studio](agentic-spring-ai-studio) | Visual debugging UI for agents |
+| [Sandbox](agentic-spring-ai-sandbox) | Isolated execution environment for tool calls |
+| [Spring Boot Starters](spring-boot-starters) | A2A, Nacos configuration, built-in nodes, and observability integrations |
+| [Examples](examples) | Chatbot, multi-agent, graph engineering, multimodal, and voice examples |
 
-* **[A2A Support](https://java2ai.com/docs/frameworks/agent-framework/advanced/a2a)**: Agent-to-Agent communication support with Nacos integration, enabling distributed agent coordination and collaboration across services.
+## Documentation
 
-* **[Rich Model, Tool and MCP Support](https://java2ai.com/integration/chatmodels/dashScope)**: Leveraging core concepts of Spring AI, supports multiple LLM providers (DashScope, OpenAI, etc.), tool calling, and Model Context Protocol (MCP).
+- [Overview](https://agentic-spring-ai.github.io/website/en/docs/overview)
+- [Quick Start](https://agentic-spring-ai.github.io/website/en/docs/quick-start)
+- [Agent Framework tutorials](https://agentic-spring-ai.github.io/website/en/docs/frameworks/agent-framework/tutorials/agents)
+- [Graph Core Quick Start](https://agentic-spring-ai.github.io/website/en/docs/frameworks/graph-core/quick-start)
+- [Graph Engineering guide](docs/graph-engineering.md)
+- [Examples](examples)
 
-## Getting Started
+## Contributing
 
-### Prerequisites
+Read the [contribution guide](CONTRIBUTING.md) before submitting changes. Report problems and suggestions through [GitHub Issues](https://github.com/agentic-spring-ai/agentic-spring-ai/issues).
 
-* Requires JDK 17+.
-* Choose your LLM provider and get the API-KEY.
+## License
 
-### Quickly Run a ChatBot
-
-There's a ChatBot example provided by the community at [examples/chatbot](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/chatbot).
-
-1. Download the code.
-
-	```shell
-	git clone --depth=1 https://github.com/agentic-spring-ai/agentic-spring-ai.git
-	cd agentic-spring-ai
-	```
-
-2. Start the ChatBot.
-
-	Before starting, set API-KEY first (visit <a href="https://bailian.console.aliyun.com/?apiKey=1&tab=api#/api" target="_blank">Aliyun Bailian</a> to get API-KEY):
-	```shell
-	# this example uses 'agentic-spring-ai-starter-dashscope', visit https://java2ai.com to learn how to use OpenAI/DeepSeek.
-	export AI_DASHSCOPE_API_KEY=your-api-key
-	```
-	
-	```shell
-	# Install the local development modules, then run the standalone example.
-	./mvnw -DskipTests install
-	./mvnw -f examples/chatbot/pom.xml spring-boot:run
-	```
-
-3. Chat with ChatBot.
-
-	Open the browser and visit [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/index.html) to chat with the ChatBot.
-	
-<p align="center">
-	<img src="./docs/imgs/chatbot-chat-ui.gif" alt="chatbot-ui" style="max-width: 740px; height: auto" />
-</p>
-
-## Chatbot Code Explained
-
-1. Add dependencies
-
-	```xml
-	<dependencies>
-	  <dependency>
-	    <groupId>io.github.agentic-spring-ai</groupId>
-	    <artifactId>agentic-spring-ai-agent-framework</artifactId>
-	    <version>2.1.0-dev</version>
-	  </dependency>
-	  <!-- Assume you are going to use DashScope Model. Refer to docs for how to choose model.-->
-	  <dependency>
-	    <groupId>io.github.agentic-spring-ai</groupId>
-	    <artifactId>agentic-spring-ai-starter-dashscope</artifactId>
-	    <version>2.1.0-dev</version>
-	  </dependency>
-	</dependencies>
-	```
-
-2. Define Chatbot
-   
-	For more details of how to write a Chatbot, please check the [Quick Start](https://java2ai.com/docs/quick-start) on our official website.
-
-## 📚 Documentation
-* [Overview](https://java2ai.com/docs/overview) - High level overview of the framework
-* [Quick Start](https://java2ai.com/docs/quick-start) - Get started with a simple agent
-* [Agent Framework Tutorials](https://java2ai.com/docs/frameworks/agent-framework/tutorials/agents) - Step by step tutorials
-* [Use Graph API to Build Complex Workflows](https://java2ai.com/docs/frameworks/agent-framework/advanced/context-engineering) - In-depth user guide for building multi-agent and workflows
-* [Graph Engineering with Spring AI Alibaba](./docs/graph-engineering.md) - Positioning guide for nodes, edges, shared state, verifier nodes, A2A, and external-agent orchestration
-* [Lightweight RepoOps Graph Engineering](./docs/graph-engineering-repoops-lightweight.md) - Single-application RepoOps lifecycle design using Spring AI Alibaba Graph, local agents, tools, and optional A2A
-* [Graph Engineering Examples](./examples/graphengineering) - Runnable RepoOps issue workflow using Spring AI Alibaba Graph with AgentScope Java nodes
-* [Spring AI Basics](https://java2ai.com/ecosystem/spring-ai/reference/concepts) - Ai Application basic concepts, including ChatModel, MCP, Tool, Messages, etc.
-* [Chat Memory](https://docs.spring.io/spring-ai/reference/api/chatclient.html#chat-memory) - Spring AI reference for chat memory repositories and usage
-
-## Project Structure
-
-This project consists of several core components:
-
-* agentic-spring-ai-agent-framework: A multi-agent framework designed for building intelligent agents with built-in context engineering best practices.
-* agentic-spring-ai-graph: The underlying runtime for Agent Framework. We recommend developers to use Agent Framework but it's totally fine to use the Graph API directly.
-* agentic-spring-ai-studio: The embedded ui for quickly debugging agent in a visualized way.
-* spring-boot-starters: Starters integrating Agent Framework with Nacos to provide A2A and dynamic config features.
-* examples/graphengineering: Runnable Graph Engineering examples. The current RepoOps issue workflow shows how Spring AI Alibaba Graph owns state and routing while AgentScope Java implements specialist nodes.
-
-## Spring AI Alibaba Ecosystem
- Repository | Description | ⭐
-  --- | --- | ---
-| [Spring AI Alibaba Graph](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core) | A low-level orchestration framework and runtime for building, managing, and deploying long-running, stateful agents. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai?style=for-the-badge&label=)
-| [Spring AI Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | Extended implementations for Spring AI core concepts, including DashScopeChatModel, MCP registry, etc. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai-extensions?style=for-the-badge&label=)
-| [Spring AI Alibaba Examples](https://github.com/agentic-spring-ai/examples) | Spring AI Alibaba Examples. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/examples?style=for-the-badge&label=)
-| [JManus](https://github.com/agentic-spring-ai/jmanus) | A Java implementation of Manus built with Spring AI Alibaba, currently used in many applications within Alibaba Group. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/jmanus?style=for-the-badge&label=)
-| [DataAgent](https://github.com/agentic-spring-ai/dataagent) | A natural language to SQL project based on Spring AI Alibaba, enabling you to query databases directly with natural language without writing complex SQL. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/dataagent?style=for-the-badge&label=)
-| [DeepResearch](https://github.com/agentic-spring-ai/deepresearch) |  Deep Research implemented based on agentic-spring-ai-graph. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/deepresearch?style=for-the-badge&label=)
-
-## Contact Us
-
-* Dingtalk Group (钉钉群), search `94405033092` and join.
-
-<img src="./docs/imgs/dingding-group.png" style="width: 260px; height: auto"/>
-
-* WeChat Group (微信公众号), scan the QR code below and follow us.
-
-<img src="./docs/imgs/wechat-account.jpg" style="width: 260px; height: auto"/>
-
-## Resources
-* [AI-Native Application Architecture White Paper](https://developer.aliyun.com/ebook/8479)：Co-authored by 40 frontline engineers and endorsed by 15 industry experts, this 200,000+ word white paper is the first comprehensive guide dedicated to the full DevOps lifecycle of AI-native applications. It systematically breaks down core concepts and key challenges, offering practical problem-solving approaches and architectural insights.
-
-
-## Star History
-
-[![Star History Chart](https://starchart.cc/agentic-spring-ai/agentic-spring-ai.svg?variant=adaptive)](https://starchart.cc/agentic-spring-ai/agentic-spring-ai)
-
----
-
-<p align="center">
-    Made with ❤️ by the Spring AI Alibaba Team
+Agentic Spring AI is available under the [Apache License 2.0](LICENSE).
