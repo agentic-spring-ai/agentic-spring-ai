@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 class AppendStrategyMutationRegressionTest {
 
-    // https://github.com/alibaba/agentic-spring-ai/issues/4757
+    // https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4757
     @Test
     void issue4757_singleValueAppend_doesNotMutateExistingList() {
         AppendStrategy strategy = new AppendStrategy();

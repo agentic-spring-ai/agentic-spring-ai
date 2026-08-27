@@ -32,8 +32,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-ai.version>2.0.0</spring-ai.version>
-		<agentic-spring-ai.version>2.0.0.0-RC1</agentic-spring-ai.version>
-		<agentic-spring-ai-extensions.version>2.0.0.0-RC1</agentic-spring-ai-extensions.version>
+		<agentic-spring-ai.version>2.0.0.0</agentic-spring-ai.version>
+		<agentic-spring-ai-extensions.version>2.0.0.0</agentic-spring-ai-extensions.version>
 
 		<redisson.version>3.22.0</redisson.version>
 	</properties>

@@ -28,11 +28,11 @@
     <packaging>jar</packaging>
     <name>Agentic Spring AI Graph Core</name>
     <description>A library for building stateful, multi-agents applications with LLMs</description>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     <scm>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     </scm>
 
     <dependencies>

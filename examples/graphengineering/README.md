@@ -182,7 +182,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 
 ../../mvnw -DskipTests \
   -Dexec.mainClass=io.github.agentic.spring.ai.examples.graphengineering.AgentScopeRepoOpsIssueGraphExample \
-  -Dexec.args=https://github.com/alibaba/agentic-spring-ai/issues/4830 \
+  -Dexec.args=https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4830 \
   org.codehaus.mojo:exec-maven-plugin:3.5.0:java
 ```
 

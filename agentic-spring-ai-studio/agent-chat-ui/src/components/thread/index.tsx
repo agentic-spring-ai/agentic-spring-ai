@@ -95,7 +95,7 @@ function OpenGitHubRepo() {
       <Tooltip>
         <TooltipTrigger asChild>
           <a
-            href="https://github.com/alibaba/agentic-spring-ai/"
+            href="https://github.com/agentic-spring-ai/agentic-spring-ai/"
             target="_blank"
             className="flex items-center justify-center"
           >

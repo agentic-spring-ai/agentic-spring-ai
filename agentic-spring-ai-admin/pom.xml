@@ -23,7 +23,7 @@
     <packaging>pom</packaging>
     <name>Agentic Spring AI Admin</name>
     <description>Server implementation of admin</description>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
 
     <modules>
         <module>agentic-spring-ai-admin-server-start</module>
@@ -33,9 +33,9 @@
     </modules>
 
     <scm>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     </scm>
 
     <properties>

@@ -27,7 +27,7 @@
 
     <name>Agentic Spring AI AgentScope Integration</name>
     <description>Spring AI Alibaba AgentScope Integration</description>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     <licenses>
         <license>
             <name>Apache 2.0</name>
@@ -48,9 +48,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     </scm>
 
     <properties>

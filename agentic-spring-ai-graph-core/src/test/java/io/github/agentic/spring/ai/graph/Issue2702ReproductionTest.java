@@ -60,7 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * - Added defensive null checks in NodeExecutor for response.getResult() and lastResponse.getResult()
  * - Added filter(Objects::nonNull) to remove null responses from the stream
  * 
- * @see <a href="https://github.com/alibaba/agentic-spring-ai/issues/2702">Issue #2702</a>
+ * @see <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/2702">Issue #2702</a>
  */
 public class Issue2702ReproductionTest {
 

@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * disabled via {@code ReactAgent.builder().assistantMessageSanitizerEnabled(false)} for users
  * who require a literal {@code "content": null} once upstream provides it.</p>
  *
- * @see <a href="https://github.com/alibaba/agentic-spring-ai/issues/4561">Issue #4561</a>
+ * @see <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4561">Issue #4561</a>
  */
 public class AssistantMessageSanitizerInterceptor extends ModelInterceptor {
 

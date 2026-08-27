@@ -1,6 +1,6 @@
 # Spring AI Alibaba Admin
 
-> Spring AI Alibaba Repo: https://github.com/alibaba/agentic-spring-ai
+> Spring AI Alibaba Repo: https://github.com/agentic-spring-ai/agentic-spring-ai
 >
 > Spring AI Alibaba Website: https://java2ai.com
 >

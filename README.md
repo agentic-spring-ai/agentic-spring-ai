@@ -1,8 +1,8 @@
 # [Spring AI Alibaba](https://java2ai.com)
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![CI Status](https://github.com/alibaba/agentic-spring-ai/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/alibaba/agentic-spring-ai/actions/workflows/build-and-test.yml)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/alibaba/agentic-spring-ai)
+[![CI Status](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agentic-spring-ai/agentic-spring-ai)
 [![Maven Central](https://img.shields.io/badge/Maven%20Central-v1.1.2.2-blue)](https://central.sonatype.com/artifact/io.github.agentic.spring.ai/agentic-spring-ai/1.1.2.2)
 [![gitleaks badge](https://img.shields.io/badge/protected%20by-gitleaks-blue)](https://github.com/gitleaks/gitleaks)
 
@@ -14,7 +14,7 @@
       <a href="https://java2ai.com/docs/quick-start/" target="_blank">Agent Framework Docs</a>,
       <a href="https://java2ai.com/docs/frameworks/graph-core/quick-start/" target="_blank">Graph Docs</a>,
       <a href="https://java2ai.com/ecosystem/spring-ai/reference/concepts/" target="_blank">Spring AI</a>,
-      <a href="https://github.com/alibaba/agentic-spring-ai/tree/main/examples" target="_blank">Examples</a>.
+      <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples" target="_blank">Examples</a>.
     </h3>
 </html>
 
@@ -32,11 +32,11 @@
 
 ## Core Features
 
-* **[Multi-Agent Orchestration](https://github.com/alibaba/agentic-spring-ai/tree/main/examples/multiagent-patterns)**: Compose multiple agents with built-in patterns including `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, and `LoopAgent` for complex task execution.
+* **[Multi-Agent Orchestration](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/multiagent-patterns)**: Compose multiple agents with built-in patterns including `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, and `LoopAgent` for complex task execution.
 
-* **[Multimodal Support](https://github.com/alibaba/agentic-spring-ai/tree/main/examples/multimodal)**: ReactAgent with text and media input (image understanding). ReactAgent with tool based image or audio generation.
+* **[Multimodal Support](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/multimodal)**: ReactAgent with text and media input (image understanding). ReactAgent with tool based image or audio generation.
 
-* **[Voice Agent](https://github.com/alibaba/agentic-spring-ai/tree/main/examples/voice-agent)**: WebSocket-based real-time voice agent that supports streaming audio or text input and responds with generated audio.
+* **[Voice Agent](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/voice-agent)**: WebSocket-based real-time voice agent that supports streaming audio or text input and responds with generated audio.
 
 * **[Context Engineering](https://java2ai.com/docs/frameworks/agent-framework/tutorials/hooks)**: Built-in best practices for context engineering policies to improve agent reliability and performance, including human-in-the-loop, context compaction, context editing, model & tool call limit, tool retry, planning, dynamic tool selection.
 
@@ -63,12 +63,12 @@
 
 ### Quickly Run a ChatBot
 
-There's a ChatBot example provided by the community at [examples/chatbot](https://github.com/alibaba/agentic-spring-ai/tree/main/examples/chatbot).
+There's a ChatBot example provided by the community at [examples/chatbot](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/examples/chatbot).
 
 1. Download the code.
 
 	```shell
-	git clone --depth=1 https://github.com/alibaba/agentic-spring-ai.git
+	git clone --depth=1 https://github.com/agentic-spring-ai/agentic-spring-ai.git
 	cd agentic-spring-ai
 	```
 
@@ -142,9 +142,9 @@ This project consists of several core components:
 ## Spring AI Alibaba Ecosystem
  Repository | Description | ⭐
   --- | --- | ---
-| [Spring AI Alibaba Graph](https://github.com/alibaba/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core) | A low-level orchestration framework and runtime for building, managing, and deploying long-running, stateful agents. | ![GitHub Repo stars](https://img.shields.io/github/stars/alibaba/agentic-spring-ai?style=for-the-badge&label=)
+| [Spring AI Alibaba Graph](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core) | A low-level orchestration framework and runtime for building, managing, and deploying long-running, stateful agents. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai?style=for-the-badge&label=)
 | [Spring AI Alibaba Admin](https://github.com/agentic-spring-ai/agentic-spring-ai-admin) |  Local visualization toolkit for the development of agent applications, supporting project management, runtime visualization, tracing, and agent evaluation. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai-admin?style=for-the-badge&label=)
-| [Spring AI Extensions](https://github.com/agentic-spring-ai/spring-ai-extensions) | Extended implementations for Spring AI core concepts, including DashScopeChatModel, MCP registry, etc. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/spring-ai-extensions?style=for-the-badge&label=)
+| [Spring AI Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | Extended implementations for Spring AI core concepts, including DashScopeChatModel, MCP registry, etc. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai-extensions?style=for-the-badge&label=)
 | [Spring AI Alibaba Examples](https://github.com/agentic-spring-ai/examples) | Spring AI Alibaba Examples. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/examples?style=for-the-badge&label=)
 | [JManus](https://github.com/agentic-spring-ai/jmanus) | A Java implementation of Manus built with Spring AI Alibaba, currently used in many applications within Alibaba Group. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/jmanus?style=for-the-badge&label=)
 | [DataAgent](https://github.com/agentic-spring-ai/dataagent) | A natural language to SQL project based on Spring AI Alibaba, enabling you to query databases directly with natural language without writing complex SQL. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/dataagent?style=for-the-badge&label=)
@@ -166,7 +166,7 @@ This project consists of several core components:
 
 ## Star History
 
-[![Star History Chart](https://starchart.cc/alibaba/agentic-spring-ai.svg?variant=adaptive)](https://starchart.cc/alibaba/agentic-spring-ai)
+[![Star History Chart](https://starchart.cc/agentic-spring-ai/agentic-spring-ai.svg?variant=adaptive)](https://starchart.cc/agentic-spring-ai/agentic-spring-ai)
 
 ---
 

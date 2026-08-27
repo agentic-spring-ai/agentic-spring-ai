@@ -15,6 +15,6 @@ Spring AI Alibaba Agent Framework is created for Java developers to quickly and 
 ## Related Projects
 Spring AI Alibaba Agent Framework depends on the following projects:
 
-* agentic-spring-ai-graph: [https://github.com/alibaba/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core](https://github.com/alibaba/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core)
-* spring-ai-extensions: [https://github.com/agentic-spring-ai/spring-ai-extensions](https://github.com/agentic-spring-ai/spring-ai-extensions)
+* agentic-spring-ai-graph: [https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core)
+* spring-ai-extensions: [https://github.com/agentic-spring-ai/agentic-spring-ai-extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions)
 * spring-ai: [https://github.com/spring-projects/spring-ai](https://github.com/spring-projects/spring-ai)

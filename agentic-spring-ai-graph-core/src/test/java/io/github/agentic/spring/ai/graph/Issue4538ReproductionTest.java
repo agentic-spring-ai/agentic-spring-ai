@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   two internal contracts conflict</li>
  * </ul>
  *
- * @see <a href="https://github.com/alibaba/agentic-spring-ai/issues/4538">Issue #4538</a>
+ * @see <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4538">Issue #4538</a>
  */
 public class Issue4538ReproductionTest {
 

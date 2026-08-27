@@ -20,7 +20,7 @@ on:
       - created
 jobs:
   actbot:
-    if: (github.repository == 'alibaba/agentic-spring-ai')
+    if: (github.repository == 'agentic-spring-ai/agentic-spring-ai')
     runs-on: ubuntu-22.04
     permissions:
       pull-requests: write

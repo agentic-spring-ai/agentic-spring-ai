@@ -11,11 +11,11 @@
     <artifactId>agentic-spring-ai-admin-server-runtime</artifactId>
     <name>Agentic Spring AI Admin Server Runtime</name>
     <description>Runtime for running apps developed on admin server admin.</description>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     <scm>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     </scm>
 
     <properties>

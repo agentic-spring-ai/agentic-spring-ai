@@ -87,7 +87,7 @@ function SelectionPageContent(): React.ReactNode {
             <span className="text-green-600 italic">Spring AI Alibaba</span> Studio
           </span>
           <a
-            href="https://github.com/alibaba/agentic-spring-ai/"
+            href="https://github.com/agentic-spring-ai/agentic-spring-ai/"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center text-muted-foreground hover:text-foreground"

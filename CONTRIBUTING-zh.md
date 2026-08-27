@@ -18,11 +18,11 @@ Spring AI Alibaba 从开源建设以来，受到了很多社区同学的关注�
 
 ### 从哪里入手？
 
-如果您是初次贡献，可以先从 [good first issue](https://github.com/alibaba/agentic-spring-ai/labels/good%20first%20issue) 和 [help wanted](https://github.com/alibaba/agentic-spring-ai/labels/help%20wanted) 中认领一个比较简单的任务。
+如果您是初次贡献，可以先从 [good first issue](https://github.com/agentic-spring-ai/agentic-spring-ai/labels/good%20first%20issue) 和 [help wanted](https://github.com/agentic-spring-ai/agentic-spring-ai/labels/help%20wanted) 中认领一个比较简单的任务。
 
 ### Fork 仓库，并将其 Clone 到本地
 
-- 点击 [本项目](https://github.com/alibaba/agentic-spring-ai) 右上角的 `Fork` 图标 将 alibaba/agentic-spring-ai  fork 到自己的空间。
+- 点击 [本项目](https://github.com/agentic-spring-ai/agentic-spring-ai) 右上角的 `Fork` 图标 将 agentic-spring-ai/agentic-spring-ai  fork 到自己的空间。
 - 将自己账号下的 agentic-spring-ai 仓库 clone 到本地，例如我的账号是 `chickenlj`，那就是执行 `git clone https://github.com/chickenlj/agentic-spring-ai.git` 进行 clone 操作。
 
 ### 配置 Github 信息
@@ -36,7 +36,7 @@ Spring AI Alibaba 从开源建设以来，受到了很多社区同学的关注�
 
 fork 出来的代码后，原仓库 main 分支可能出现了新的提交，这时候为了避免提交的 PR 和 Main 中的提交出现冲突，需要及时 merge main 分支。
 
-- 在你本机的 agentic-spring-ai 目录下，执行 `git remote add upstream https://github.com/alibaba/agentic-spring-ai` 将原始仓库地址配置为 upstream。
+- 在你本机的 agentic-spring-ai 目录下，执行 `git remote add upstream https://github.com/agentic-spring-ai/agentic-spring-ai` 将原始仓库地址配置为 upstream。
 - 在你本机的 agentic-spring-ai 目录下，执行 `git fetch upstream` 从 upstream 拉取更新。
 - 在你本机的 agentic-spring-ai 目录下，执行 `git checkout main` 切换到 main 分支。
 - 在你本机的 agentic-spring-ai 目录下，执行 `git rebase upstream/main` rebase 最新代码。

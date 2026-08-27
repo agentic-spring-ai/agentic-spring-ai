@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * Reproduction tests for Issue #3608:
- * https://github.com/alibaba/agentic-spring-ai/issues/3608
+ * https://github.com/agentic-spring-ai/agentic-spring-ai/issues/3608
  *
  * Issue Summary:
  * 1. shareState parameter not working - always defaults to false

@@ -489,7 +489,7 @@ You can pass a different issue file or a public GitHub issue URL as the first
 argument:
 
 ```text
-https://github.com/alibaba/agentic-spring-ai/issues/4830
+https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4830
 ```
 
 For GitHub URLs, the `read_issue` node fetches the issue through the public

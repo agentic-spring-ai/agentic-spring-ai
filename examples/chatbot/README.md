@@ -18,7 +18,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 1. Download the code.
 
 ```shell
-git clone https://github.com/alibaba/agentic-spring-ai.git
+git clone https://github.com/agentic-spring-ai/agentic-spring-ai.git
 cd agentic-spring-ai
 ```
 

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * chain grows linearly with the number of executed nodes and long-running
  * loops (e.g. many-turn conversations) blow the stack.
  *
- * @see <a href="https://github.com/alibaba/agentic-spring-ai/issues/4594">Issue #4594</a>
+ * @see <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4594">Issue #4594</a>
  */
 public class DeepLoopStackDepthTest {
 

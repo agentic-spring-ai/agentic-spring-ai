@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
  * </p>
  *
  * @author Spring AI Alibaba
- * @see <a href="https://github.com/alibaba/agentic-spring-ai/issues/2877">Issue #2877</a>
+ * @see <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/2877">Issue #2877</a>
  * @since 1.0.0.5
  */
 public class SerializationUtilsCustomMapTypeTest {
