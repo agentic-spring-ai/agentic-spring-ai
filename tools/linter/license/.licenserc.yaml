@@ -13,8 +13,8 @@
 # limitations under the License.
 header:
   license:
-    copyright-owner: Spring AI Alibaba Community
-    software-name: Spring AI Alibaba
+    copyright-owner: Agentic for Spring AI Community
+    software-name: Agentic for Spring AI
     copyright-year: '2024-2026'
     content: |
       Copyright 2024-2026 the original author or authors.
@@ -48,6 +48,7 @@ header:
     - '.github/ISSUE_TEMPLATE'
     - '.github/PULL_REQUEST_TEMPLATE'
     - '.mvn'
+    - '.codex'
     - 'LICENSE'
     - 'docker/.env'
     - '**/.gitignore'
@@ -55,6 +56,7 @@ header:
     - 'licenses'
     - '**/*.md'
     - '**/*.json'
+    - '**/*.svg'
     - '**/*.ftl'
     - '**/target/**'
     - '**/*.iml'
@@ -80,5 +82,4 @@ header:
     - 'tools/linter/codespell/.codespell.ignorewords'
     - 'tools/linter/codespell/.codespell.skip'
     - 'agentic-spring-ai-studio/agent-chat-ui'
-    - 'agentic-spring-ai-admin'
   comment: never

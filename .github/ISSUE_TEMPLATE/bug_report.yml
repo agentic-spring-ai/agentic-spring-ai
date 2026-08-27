@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 name: 🐛 Bug Report
-description: Problems and issues with code of Spring AI Alibaba 🤔.
+description: Problems and issues with Agentic for Spring AI.
 title: "[BUG] "
 labels: ["needs-triage", "kind/bug"]
 body:
@@ -53,8 +53,8 @@ body:
       label: Environment
       description: |
         examples:
-          - **Spring AI Alibaba(s)**: 1.0.0.2?
-      value: "Spring AI Alibaba version(s):"
+          - **Agentic for Spring AI version(s)**: 1.1.2.2
+      value: "Agentic for Spring AI version(s):"
       render: markdown
     validations:
       required: false

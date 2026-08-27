@@ -13,7 +13,7 @@ Spring AI Alibaba is a production-ready framework for building Agentic, Workflow
 - Graph-based workflow with conditional routing, nested graphs, parallel execution
 - A2A (Agent-to-Agent) support with Nacos integration
 - Rich model support (DashScope, OpenAI, DeepSeek) and MCP (Model Context Protocol)
-- One-stop visual agent platform
+- Embedded visual debugging studio
 
 ## Repository Structure
 
@@ -22,7 +22,6 @@ agentic-spring-ai/
 ├── agentic-spring-ai-agent-framework/ # Multi-agent framework (Sequential, Parallel, Routing, etc.)
 ├── agentic-spring-ai-graph-core/      # Runtime providing persistence, workflow orchestration, state mgmt
 ├── agentic-spring-ai-studio/          # Embedded UI for debugging agents visually
-├── agentic-spring-ai-admin/           # One-stop Agent platform (visual dev, observability, MCP mgmt)
 ├── agentic-spring-ai-bom/             # Bill of Materials for dependency management
 ├── spring-boot-starters/              # Spring Boot Starters
 │   ├── agentic-spring-ai-starter-a2a-nacos/     # Nacos A2A communication
@@ -72,11 +71,11 @@ make licenses-check
 - **Agent Framework**: Built-in agents like `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, `LoopAgent`.
 - **Graph Core**: Underlying engine for stateful agents, supporting persistence (PostgreSQL, MySQL, Oracle, MongoDB, Redis, File).
 - **A2A (Agent-to-Agent)**: Enables agents to seek and communicate with each other using Nacos as a registry.
-- **Admin & Studio**: Provides visual tools for developing and debugging agent workflows.
+- **Studio**: Provides embedded visual tools for debugging agent workflows.
 
 ### Technology Stack
 
-- **Framework**: Spring Boot 3.5.x, Spring AI 1.1.x
+- **Framework**: Spring Boot 4.1.x, Spring AI 2.0.x
 - **Cloud Integration**: Alibaba Cloud DashScope, Nacos (Service Discovery & Config)
 - **Observability**: Spring Cloud Observation (Micrometer/OpenTelemetry)
 

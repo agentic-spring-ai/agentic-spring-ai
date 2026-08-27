@@ -26,7 +26,12 @@ public final class StoreConstant {
 	/**
 	 * Default Redis key prefix for Store items.
 	 */
-	public static final String REDIS_KEY_PREFIX = "spring:ai:alibaba:store:";
+	public static final String REDIS_KEY_PREFIX = "agentic:spring:ai:store:";
+
+	/**
+	 * Legacy Redis key prefix retained for reading data created before the project rename.
+	 */
+	public static final String LEGACY_REDIS_KEY_PREFIX = "spring:ai:alibaba:store:";
 
 	/**
 	 * Default namespace separator.

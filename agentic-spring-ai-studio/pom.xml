@@ -35,13 +35,6 @@
     </scm>
 
     <properties>
-
-        <!-- Jakarta -->
-        <jakarta.version>5.0.0</jakarta.version>
-
-        <!-- Node -->
-        <npm.version>9.5.1</npm.version>
-        <node.version>v18.16.0</node.version>
         <maven.deploy.skip>false</maven.deploy.skip>
     </properties>
 
@@ -144,16 +137,16 @@
                 <version>3.2.0</version>
                 <executions>
                     <execution>
-                        <id>copy-react-build</id>
+                        <id>copy-agent-chat-ui</id>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <phase>process-resources</phase>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/chatui</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>ui/build</directory>
+                                    <directory>agent-chat-ui/out</directory>
                                     <filtering>false</filtering>
                                 </resource>
                             </resources>

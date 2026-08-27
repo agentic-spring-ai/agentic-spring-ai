@@ -23,10 +23,13 @@ ignore_dirs = [
     ".idea",
     ".git",
     ".vscode",
+    ".next",
+    ".omx",
     "target",
     "static",
     "static_legacy",
     "frontend",
+    "out",
     ".husky",
     "docs",
     "docker"

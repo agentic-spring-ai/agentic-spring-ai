@@ -34,11 +34,19 @@ Just add the following dependency to your agent project:
 <dependency>
 	<groupId>io.github.agentic.spring.ai</groupId>
 	<artifactId>agentic-spring-ai-studio</artifactId>
-	<version>1.1.2.1</version>
+	<version>1.1.2.3-SNAPSHOT</version>
 </dependency>
 ```
 
 Run your agent, visit `http:localhost:{your-port}/chatui/index.html`, and now you can chat with you agent.
+
+Build the static UI before packaging the Maven project:
+
+```shell
+cd agent-chat-ui
+pnpm install --frozen-lockfile
+pnpm run build:static
+```
 
 ### Standalone mode
 

@@ -20,12 +20,6 @@
 
 ## Architecture
 
-<p align="center">
-    <img src="./docs/imgs/architecture-new.png" alt="architecture" style="max-width: 740px; height: auto" />
-</p>
-
-**Spring AI Alibaba Admin** is a one-stop Agent platform that supports visualized Agent development, observability, evaluation, and MCP management, etc. It also integrates with open-source low-code platforms like Dify, enabling rapid migration from DSL to Spring AI Alibaba project.
-
 **Spring AI Alibaba Agent Framework** is an agent development framework that can quickly develop agents with built-in **Context Engineering** and **Human In The Loop** support. For scenarios requiring more complex process control, Agent Framework offers built-in workflows like `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, `LoopAgent`.
 
 **Spring AI Alibaba Graph** serves as the underlying runtime of the Agent Framework, providing essential capabilities such as persistence, workflow orchestration, and streaming required for long-running stateful agents. Compared to the Agent Framework, users can build more flexible multi-agent workflows based on the Graph API.
@@ -47,12 +41,6 @@
 * **[A2A Support](https://java2ai.com/docs/frameworks/agent-framework/advanced/a2a)**: Agent-to-Agent communication support with Nacos integration, enabling distributed agent coordination and collaboration across services.
 
 * **[Rich Model, Tool and MCP Support](https://java2ai.com/integration/chatmodels/dashScope)**: Leveraging core concepts of Spring AI, supports multiple LLM providers (DashScope, OpenAI, etc.), tool calling, and Model Context Protocol (MCP).
-
-* **[One-stop Agent Platform](https://java2ai.com/ecosystem/admin/quick-start)**: Build agent in a visualized way, deploy agent without code or export as a standalone java project.
-
-<p align="center">
-    <img src="./docs/imgs/saa-admin.png" alt="architecture" style="max-width: 740px; height: auto" />
-</p>
 
 ## Getting Started
 
@@ -134,7 +122,6 @@ This project consists of several core components:
 
 * agentic-spring-ai-agent-framework: A multi-agent framework designed for building intelligent agents with built-in context engineering best practices.
 * agentic-spring-ai-graph: The underlying runtime for Agent Framework. We recommend developers to use Agent Framework but it's totally fine to use the Graph API directly.
-* agentic-spring-ai-admin: A one-stop Agent platform that supports visualized Agent development, observability, evaluation, and MCP management, etc.
 * agentic-spring-ai-studio: The embedded ui for quickly debugging agent in a visualized way.
 * spring-boot-starters: Starters integrating Agent Framework with Nacos to provide A2A and dynamic config features.
 * examples/graphengineering: Runnable Graph Engineering examples. The current RepoOps issue workflow shows how Spring AI Alibaba Graph owns state and routing while AgentScope Java implements specialist nodes.
@@ -143,7 +130,6 @@ This project consists of several core components:
  Repository | Description | ⭐
   --- | --- | ---
 | [Spring AI Alibaba Graph](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core) | A low-level orchestration framework and runtime for building, managing, and deploying long-running, stateful agents. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai?style=for-the-badge&label=)
-| [Spring AI Alibaba Admin](https://github.com/agentic-spring-ai/agentic-spring-ai-admin) |  Local visualization toolkit for the development of agent applications, supporting project management, runtime visualization, tracing, and agent evaluation. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai-admin?style=for-the-badge&label=)
 | [Spring AI Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | Extended implementations for Spring AI core concepts, including DashScopeChatModel, MCP registry, etc. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/agentic-spring-ai-extensions?style=for-the-badge&label=)
 | [Spring AI Alibaba Examples](https://github.com/agentic-spring-ai/examples) | Spring AI Alibaba Examples. |  ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/examples?style=for-the-badge&label=)
 | [JManus](https://github.com/agentic-spring-ai/jmanus) | A Java implementation of Manus built with Spring AI Alibaba, currently used in many applications within Alibaba Group. | ![GitHub Repo stars](https://img.shields.io/github/stars/agentic-spring-ai/jmanus?style=for-the-badge&label=)

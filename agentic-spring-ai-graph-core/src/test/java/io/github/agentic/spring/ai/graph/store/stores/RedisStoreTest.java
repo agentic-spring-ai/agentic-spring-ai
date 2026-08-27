@@ -19,7 +19,9 @@ import io.github.agentic.spring.ai.graph.store.NamespaceListRequest;
 import io.github.agentic.spring.ai.graph.store.StoreItem;
 import io.github.agentic.spring.ai.graph.store.StoreSearchRequest;
 import io.github.agentic.spring.ai.graph.store.StoreSearchResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,6 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * @author Spring AI Alibaba
  */
 class RedisStoreTest {
+
+	private static final String LEGACY_PREFIX = "spring:ai:alibaba:store:";
 
 	private RedisStore redisStore;
 
@@ -61,6 +65,53 @@ class RedisStoreTest {
 		assertThat(retrieved.get().getNamespace()).isEqualTo(namespace);
 		assertThat(retrieved.get().getKey()).isEqualTo(key);
 		assertThat(retrieved.get().getValue()).isEqualTo(value);
+	}
+
+	@Test
+	void defaultStoreWritesItemsWithAgenticPrefix() throws Exception {
+		redisStore.putItem(StoreItem.of(List.of("users", "user123"), "preferences", Map.of("theme", "dark")));
+
+		assertThat(storage().keySet()).allMatch(key -> key.startsWith("agentic:spring:ai:store:"));
+	}
+
+	@Test
+	void defaultStoreReadsLegacyPrefixedItems() throws Exception {
+		StoreItem legacyItem = StoreItem.of(List.of("users", "legacy"), "preferences", Map.of("theme", "dark"));
+		putRawItem(LEGACY_PREFIX, legacyItem);
+
+		assertThat(redisStore.getItem(legacyItem.getNamespace(), legacyItem.getKey())).isPresent();
+		assertThat(redisStore.searchItems(StoreSearchRequest.builder().build()).getItems()).hasSize(1);
+		assertThat(redisStore.listNamespaces(NamespaceListRequest.builder().build())).contains("users", "users/legacy");
+		assertThat(redisStore.size()).isEqualTo(1);
+	}
+
+	@Test
+	void updatingLegacyItemMigratesItToAgenticPrefix() throws Exception {
+		List<String> namespace = List.of("users", "legacy");
+		String key = "preferences";
+		putRawItem(LEGACY_PREFIX, StoreItem.of(namespace, key, Map.of("theme", "light")));
+
+		redisStore.putItem(StoreItem.of(namespace, key, Map.of("theme", "dark")));
+
+		assertThat(redisStore.getItem(namespace, key)).get().extracting(StoreItem::getValue)
+				.isEqualTo(Map.of("theme", "dark"));
+		assertThat(storage().keySet()).noneMatch(redisKey -> redisKey.startsWith(LEGACY_PREFIX));
+		assertThat(redisStore.size()).isEqualTo(1);
+	}
+
+	@Test
+	void deleteAndClearRemoveLegacyPrefixedItems() throws Exception {
+		StoreItem deletedItem = StoreItem.of(List.of("users", "legacy"), "deleted", Map.of("value", 1));
+		StoreItem clearedItem = StoreItem.of(List.of("users", "legacy"), "cleared", Map.of("value", 2));
+		putRawItem(LEGACY_PREFIX, deletedItem);
+		putRawItem(LEGACY_PREFIX, clearedItem);
+
+		assertThat(redisStore.deleteItem(deletedItem.getNamespace(), deletedItem.getKey())).isTrue();
+		assertThat(redisStore.getItem(deletedItem.getNamespace(), deletedItem.getKey())).isEmpty();
+
+		redisStore.clear();
+		assertThat(redisStore.isEmpty()).isTrue();
+		assertThat(storage()).isEmpty();
 	}
 
 	@Test
@@ -248,6 +299,19 @@ class RedisStoreTest {
 		// User2 preferences
 		redisStore.putItem(StoreItem.of(List.of("users", "user2", "preferences"), "ui_settings",
 				Map.of("theme", "light", "language", "zh-CN")));
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, String> storage() throws Exception {
+		Field storageField = RedisStore.class.getDeclaredField("redisLikeStorage");
+		storageField.setAccessible(true);
+		return (Map<String, String>) storageField.get(redisStore);
+	}
+
+	private void putRawItem(String prefix, StoreItem item) throws Exception {
+		ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+		storage().put(prefix + redisStore.createStoreKey(item.getNamespace(), item.getKey()),
+				objectMapper.writeValueAsString(item));
 	}
 
 }

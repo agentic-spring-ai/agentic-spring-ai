@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,13 +54,15 @@ public class RedisStore extends BaseStore {
 
 	private final String keyPrefix;
 
+	private final List<String> readableKeyPrefixes;
+
 	private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
 	/**
 	 * Constructor with default key prefix.
 	 */
 	public RedisStore() {
-		this(StoreConstant.REDIS_KEY_PREFIX);
+		this(StoreConstant.REDIS_KEY_PREFIX, List.of(StoreConstant.LEGACY_REDIS_KEY_PREFIX));
 	}
 
 	/**
@@ -67,8 +70,16 @@ public class RedisStore extends BaseStore {
 	 * @param keyPrefix Redis key prefix
 	 */
 	public RedisStore(String keyPrefix) {
+		this(keyPrefix, List.of());
+	}
+
+	private RedisStore(String keyPrefix, List<String> fallbackKeyPrefixes) {
 		this.redisLikeStorage = new HashMap<>();
 		this.keyPrefix = keyPrefix;
+		List<String> prefixes = new ArrayList<>();
+		prefixes.add(keyPrefix);
+		fallbackKeyPrefixes.stream().filter(prefix -> !prefix.equals(keyPrefix)).forEach(prefixes::add);
+		this.readableKeyPrefixes = List.copyOf(prefixes);
 		this.objectMapper = new ObjectMapper();
 		this.objectMapper.findAndRegisterModules();
 	}
@@ -79,9 +90,13 @@ public class RedisStore extends BaseStore {
 
 		lock.writeLock().lock();
 		try {
-			String redisKey = createRedisKey(item.getNamespace(), item.getKey());
+			String storeKey = createStoreKey(item.getNamespace(), item.getKey());
+			String redisKey = keyPrefix + storeKey;
 			String itemJson = objectMapper.writeValueAsString(item);
 			redisLikeStorage.put(redisKey, itemJson);
+			readableKeyPrefixes.stream()
+				.filter(prefix -> !prefix.equals(keyPrefix))
+				.forEach(prefix -> redisLikeStorage.remove(prefix + storeKey));
 		}
 		catch (Exception e) {
 			throw new RuntimeException("Failed to store item in Redis-like storage", e);
@@ -97,8 +112,12 @@ public class RedisStore extends BaseStore {
 
 		lock.readLock().lock();
 		try {
-			String redisKey = createRedisKey(namespace, key);
-			String value = redisLikeStorage.get(redisKey);
+			String storeKey = createStoreKey(namespace, key);
+			String value = readableKeyPrefixes.stream()
+				.map(prefix -> redisLikeStorage.get(prefix + storeKey))
+				.filter(java.util.Objects::nonNull)
+				.findFirst()
+				.orElse(null);
 
 			if (value == null) {
 				return Optional.empty();
@@ -121,8 +140,12 @@ public class RedisStore extends BaseStore {
 
 		lock.writeLock().lock();
 		try {
-			String redisKey = createRedisKey(namespace, key);
-			return redisLikeStorage.remove(redisKey) != null;
+			String storeKey = createStoreKey(namespace, key);
+			boolean deleted = false;
+			for (String prefix : readableKeyPrefixes) {
+				deleted |= redisLikeStorage.remove(prefix + storeKey) != null;
+			}
+			return deleted;
 		}
 		finally {
 			lock.writeLock().unlock();
@@ -219,9 +242,7 @@ public class RedisStore extends BaseStore {
 	public void clear() {
 		lock.writeLock().lock();
 		try {
-			Set<String> keysToRemove = redisLikeStorage.keySet()
-				.stream()
-				.filter(key -> key.startsWith(keyPrefix))
+			Set<String> keysToRemove = redisLikeStorage.keySet().stream().filter(this::hasReadablePrefix)
 				.collect(Collectors.toSet());
 			keysToRemove.forEach(redisLikeStorage::remove);
 		}
@@ -234,7 +255,7 @@ public class RedisStore extends BaseStore {
 	public long size() {
 		lock.readLock().lock();
 		try {
-			return redisLikeStorage.keySet().stream().filter(key -> key.startsWith(keyPrefix)).count();
+			return redisLikeStorage.keySet().stream().map(this::logicalKey).flatMap(Optional::stream).distinct().count();
 		}
 		finally {
 			lock.readLock().unlock();
@@ -247,36 +268,38 @@ public class RedisStore extends BaseStore {
 	}
 
 	/**
-	 * Create Redis key from namespace and key.
-	 * @param namespace namespace
-	 * @param key key
-	 * @return Redis key
-	 */
-	private String createRedisKey(List<String> namespace, String key) {
-		String storeKey = createStoreKey(namespace, key);
-		return keyPrefix + storeKey;
-	}
-
-	/**
-	 * Get all items from Redis-like storage.
+	 * Get all items from the primary and fallback key prefixes.
 	 * @return list of all items
 	 */
 	private List<StoreItem> getAllItems() {
-		List<StoreItem> items = new ArrayList<>();
+		Map<String, StoreItem> items = new LinkedHashMap<>();
 
-		for (Map.Entry<String, String> entry : redisLikeStorage.entrySet()) {
-			if (entry.getKey().startsWith(keyPrefix)) {
-				try {
-					StoreItem item = objectMapper.readValue(entry.getValue(), StoreItem.class);
-					items.add(item);
-				}
-				catch (Exception e) {
-					// Skip invalid items
+		for (String prefix : readableKeyPrefixes) {
+			for (Map.Entry<String, String> entry : redisLikeStorage.entrySet()) {
+				if (entry.getKey().startsWith(prefix)) {
+					try {
+						String storeKey = entry.getKey().substring(prefix.length());
+						items.putIfAbsent(storeKey, objectMapper.readValue(entry.getValue(), StoreItem.class));
+					}
+					catch (Exception e) {
+						// Skip invalid items
+					}
 				}
 			}
 		}
 
-		return items;
+		return new ArrayList<>(items.values());
+	}
+
+	private boolean hasReadablePrefix(String redisKey) {
+		return readableKeyPrefixes.stream().anyMatch(redisKey::startsWith);
+	}
+
+	private Optional<String> logicalKey(String redisKey) {
+		return readableKeyPrefixes.stream()
+			.filter(redisKey::startsWith)
+			.findFirst()
+			.map(prefix -> redisKey.substring(prefix.length()));
 	}
 
 }
