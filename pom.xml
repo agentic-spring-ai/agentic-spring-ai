@@ -120,7 +120,7 @@
 
         <ojdbc-provider-oson.version>1.0.6</ojdbc-provider-oson.version>
 
-        <commons-io.version>2.21.0</commons-io.version>
+        <commons-io.version>2.22.0</commons-io.version>
 
         <commons-lang3.version>3.20.0</commons-lang3.version>
 
