@@ -17,6 +17,8 @@ package io.github.agentic.spring.ai.graph.checkpoint;
 
 import io.github.agentic.spring.ai.graph.RunnableConfig;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,6 +55,28 @@ public interface BaseCheckpointSaver {
 		});
 	}
 
+	default String checkpointThreadId(RunnableConfig config) {
+		String threadId = config.threadId().orElse(THREAD_ID_DEFAULT);
+		String appName = metadataText(config, RunnableConfig.APP_NAME_METADATA_KEY).orElse(null);
+		String userId = metadataText(config, RunnableConfig.USER_ID_METADATA_KEY).orElse(null);
+		if (appName == null && userId == null) {
+			return threadId;
+		}
+		return "ns-%s.%s.%s".formatted(namespaceSegment(appName), namespaceSegment(userId), namespaceSegment(threadId));
+	}
+
+	private String namespaceSegment(String value) {
+		String normalized = value != null ? value : THREAD_ID_DEFAULT;
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(normalized.getBytes(StandardCharsets.UTF_8));
+	}
+
+	private Optional<String> metadataText(RunnableConfig config, String key) {
+		return config.metadata(key)
+				.map(String::valueOf)
+				.map(String::trim)
+				.filter(value -> !value.isEmpty());
+	}
+
 	Collection<Checkpoint> list(RunnableConfig config);
 
 	Optional<Checkpoint> get(RunnableConfig config);
@@ -60,6 +84,36 @@ public interface BaseCheckpointSaver {
 	RunnableConfig put(RunnableConfig config, Checkpoint checkpoint) throws Exception;
 
 	Tag release(RunnableConfig config) throws Exception;
+
+	/**
+	 * Explicitly moves checkpoints from an unscoped legacy thread key into a scoped
+	 * app/user namespace. Runtime reads deliberately do not fall back to the legacy key,
+	 * because doing so would reintroduce cross-user checkpoint access.
+	 * @return the number of migrated checkpoints
+	 */
+	default int migrateLegacyThread(RunnableConfig legacyConfig, RunnableConfig namespacedConfig) throws Exception {
+		String legacyThreadId = legacyConfig.threadId().orElse(THREAD_ID_DEFAULT);
+		if (!checkpointThreadId(legacyConfig).equals(legacyThreadId)) {
+			throw new IllegalArgumentException("Legacy config must not contain checkpoint namespace metadata");
+		}
+		if (checkpointThreadId(namespacedConfig).equals(legacyThreadId)) {
+			throw new IllegalArgumentException("Target config must contain app or user namespace metadata");
+		}
+
+		List<Checkpoint> legacyCheckpoints = List.copyOf(list(legacyConfig));
+		if (legacyCheckpoints.isEmpty()) {
+			return 0;
+		}
+		if (!list(namespacedConfig).isEmpty()) {
+			throw new IllegalStateException("Target checkpoint namespace is not empty");
+		}
+
+		for (int index = legacyCheckpoints.size() - 1; index >= 0; index--) {
+			put(namespacedConfig, legacyCheckpoints.get(index));
+		}
+		release(legacyConfig);
+		return legacyCheckpoints.size();
+	}
 
 	record Tag(String threadId, Collection<Checkpoint> checkpoints) {
 		public Tag(String threadId, Collection<Checkpoint> checkpoints) {

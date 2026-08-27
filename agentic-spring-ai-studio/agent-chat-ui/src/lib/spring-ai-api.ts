@@ -1,5 +1,36 @@
 // Spring AI Alibaba Studio API Client
 
+export const STUDIO_EXECUTION_AUTH_HEADER = 'X-Agentic-Studio-Token';
+export const STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY = 'agentic:studio:executionAuthToken';
+
+export function getStudioExecutionAuthToken(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return window.sessionStorage.getItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY) || '';
+}
+
+export function setStudioExecutionAuthToken(token: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  const trimmedToken = token.trim();
+  if (trimmedToken) {
+    window.sessionStorage.setItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY, trimmedToken);
+  } else {
+    window.sessionStorage.removeItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY);
+  }
+}
+
+function withStudioExecutionAuth(headers: HeadersInit = {}): Headers {
+  const authHeaders = new Headers(headers);
+  const token = getStudioExecutionAuthToken();
+  if (token) {
+    authHeaders.set(STUDIO_EXECUTION_AUTH_HEADER, token);
+  }
+  return authHeaders;
+}
+
 export interface Session {
   thread_id: string;
   appName: string;
@@ -285,7 +316,7 @@ class SpringAIApiClient {
 
     const response = await fetch(`${this.baseUrl}/graph_run_sse`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      headers: withStudioExecutionAuth({ 'Content-Type': 'application/json', Accept: 'text/event-stream' }),
       body: JSON.stringify(request),
       signal,
     });
@@ -421,9 +452,9 @@ class SpringAIApiClient {
   async runAgent(request: AgentRunRequest): Promise<NodeOutput> {
     const response = await fetch(`${this.baseUrl}/run`, {
       method: 'POST',
-      headers: {
+      headers: withStudioExecutionAuth({
         'Content-Type': 'application/json',
-      },
+      }),
       body: JSON.stringify(request),
     });
     if (!response.ok) {
@@ -455,10 +486,10 @@ class SpringAIApiClient {
 
     const response = await fetch(`${this.baseUrl}/run_sse`, {
       method: 'POST',
-      headers: {
+      headers: withStudioExecutionAuth({
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-      },
+      }),
       body: JSON.stringify(request),
       signal,
     });
@@ -488,10 +519,10 @@ class SpringAIApiClient {
 
     const response = await fetch(`${this.baseUrl}/resume_sse`, {
       method: 'POST',
-      headers: {
+      headers: withStudioExecutionAuth({
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
-      },
+      }),
       body: JSON.stringify(request),
       signal,
     });

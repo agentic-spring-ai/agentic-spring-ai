@@ -772,8 +772,6 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 	 */
 	private String sendMessageToServer(AgentCardWrapper agentCard, String requestPayload) throws Exception {
 		String baseUrl = resolveAgentBaseUrl(agentCard);
-		System.out.println(baseUrl);
-		System.out.println(requestPayload);
 		if (baseUrl == null || baseUrl.isBlank()) {
 			throw new IllegalStateException("AgentCard.url is empty");
 		}

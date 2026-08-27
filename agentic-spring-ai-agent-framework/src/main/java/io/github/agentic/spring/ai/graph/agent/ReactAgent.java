@@ -41,6 +41,7 @@ import io.github.agentic.spring.ai.graph.agent.hook.ToolInjection;
 import io.github.agentic.spring.ai.graph.agent.hook.hip.HumanInTheLoopHook;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.MessagesAgentHook;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.MessagesModelHook;
+import io.github.agentic.spring.ai.graph.agent.hook.returndirect.ReturnDirectModelHook;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelInterceptor;
 import io.github.agentic.spring.ai.graph.agent.interceptor.StreamingModelInterceptor;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ToolInterceptor;
@@ -317,6 +318,9 @@ public class ReactAgent extends BaseAgent {
 		// Always inject default InstructionAgentHook so instruction is handled in beforeAgent
 		List<Hook> effectiveHooks = new ArrayList<>();
 		effectiveHooks.add(InstructionAgentHook.create());
+		if (shouldInjectReturnDirectHook(hooks)) {
+			effectiveHooks.add(new ReturnDirectModelHook());
+		}
 		effectiveHooks.addAll(hooks);
 
 		// Validate hook uniqueness
@@ -403,6 +407,13 @@ public class ReactAgent extends BaseAgent {
 		setupHookEdges(graph, beforeAgentHooks, afterAgentHooks, beforeModelHooks, afterModelHooks,
 				entryNode, loopEntryNode, loopExitNode, exitNode, this);
 		return graph;
+	}
+
+	private boolean shouldInjectReturnDirectHook(List<? extends Hook> hooks) {
+		String returnDirectHookName = new ReturnDirectModelHook().getName();
+		return hooks.stream()
+				.noneMatch(hook -> hook instanceof ReturnDirectModelHook
+						|| Objects.equals(hook.getName(), returnDirectHookName));
 	}
 
 	/**
@@ -834,22 +845,9 @@ public class ReactAgent extends BaseAgent {
 
 	private EdgeAction makeToolsToModelEdge(String modelDestination, String endDestination) {
 		return state -> {
-			// 1. Extract last AI message and corresponding tool messages
-			ToolResponseMessage toolResponseMessage = fetchLastToolResponseMessage(state);
-			// 2. Exit condition: All executed tools have return_direct=True
-			if (toolResponseMessage != null && !toolResponseMessage.getResponses().isEmpty()) {
-				boolean allReturnDirect = toolResponseMessage.getResponses().stream().allMatch(toolResponse -> {
-					String toolName = toolResponse.name();
-					return false; // FIXME
-				});
-				if (allReturnDirect) {
-					return endDestination;
-				}
-			}
-
-			// 3. Default: Continue the loop
-			//    Tool execution completed successfully, route back to the model
-			//    so it can process the tool results and decide the next action.
+			// Tool execution completed successfully, route back to the loop entry. The
+			// default ReturnDirectModelHook handles direct tool responses before the next
+			// model call.
 			return modelDestination;
 		};
 	}

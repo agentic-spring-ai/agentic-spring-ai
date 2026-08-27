@@ -113,26 +113,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-maven-plugin</artifactId>
-                <version>${springdoc-openapi-maven-plugin.version}</version>
-                <configuration>
-                    <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
-                    <outputFileName>openapi.yaml</outputFileName>
-                    <outputDir>${project.basedir}/src/main/resources</outputDir>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <phase>compile</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <artifactId>maven-resources-plugin</artifactId>
                 <version>3.2.0</version>
                 <executions>
@@ -161,5 +141,37 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>generate-openapi</id>
+            <properties>
+                <studio.openapi.api-docs-url>http://localhost:8080/v3/api-docs.yaml</studio.openapi.api-docs-url>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springdoc</groupId>
+                        <artifactId>springdoc-openapi-maven-plugin</artifactId>
+                        <version>${springdoc-openapi-maven-plugin.version}</version>
+                        <configuration>
+                            <apiDocsUrl>${studio.openapi.api-docs-url}</apiDocsUrl>
+                            <outputFileName>openapi.yaml</outputFileName>
+                            <outputDir>${project.basedir}/src/main/resources</outputDir>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>generate-openapi</id>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

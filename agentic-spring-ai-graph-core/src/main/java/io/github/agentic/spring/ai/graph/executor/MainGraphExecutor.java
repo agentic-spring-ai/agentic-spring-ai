@@ -21,6 +21,7 @@ import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.action.Command;
 import io.github.agentic.spring.ai.graph.action.InterruptionMetadata;
 import io.github.agentic.spring.ai.graph.checkpoint.Checkpoint;
+import io.github.agentic.spring.ai.graph.exception.RunnableErrors;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
 import reactor.core.publisher.Flux;
 
@@ -56,8 +57,15 @@ public class MainGraphExecutor extends BaseGraphExecutor {
 	@Override
 	public Flux<GraphResponse<NodeOutput>> execute(GraphRunnerContext context, AtomicReference<Object> resultValue) {
 		try {
-			if (context.shouldStop() || context.isMaxIterationsReached()) {
+			if (context.shouldStop()) {
 				return handleCompletion(context, resultValue);
+			}
+			if (context.isMaxIterationsReached()) {
+				var error = RunnableErrors.executionError.exception(
+						"recursion limit " + context.getCompiledGraph().getMaxIterations()
+								+ " reached before graph reached END");
+				context.doListeners(ERROR, error);
+				return Flux.just(GraphResponse.error(error));
 			}
 
 			final var returnFromEmbed = context.getReturnFromEmbedAndReset();

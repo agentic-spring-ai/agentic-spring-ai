@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![CI Status](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/agentic-spring-ai/agentic-spring-ai/actions/workflows/build-and-test.yml)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/agentic-spring-ai/agentic-spring-ai)
-[![Maven Central](https://img.shields.io/badge/Maven%20Central-v1.1.2.2-blue)](https://central.sonatype.com/artifact/io.github.agentic.spring.ai/agentic-spring-ai/1.1.2.2)
+[![Version](https://img.shields.io/badge/version-2.1.0--dev-blue)](https://github.com/agentic-spring-ai/agentic-spring-ai)
 [![gitleaks badge](https://img.shields.io/badge/protected%20by-gitleaks-blue)](https://github.com/gitleaks/gitleaks)
 
 <html>
@@ -69,8 +69,9 @@ There's a ChatBot example provided by the community at [examples/chatbot](https:
 	```
 	
 	```shell
-	# Maven installation is optional when using mvnw.
-	./mvnw -pl examples/chatbot spring-boot:run
+	# Install the local development modules, then run the standalone example.
+	./mvnw -DskipTests install
+	./mvnw -f examples/chatbot/pom.xml spring-boot:run
 	```
 
 3. Chat with ChatBot.
@@ -88,15 +89,15 @@ There's a ChatBot example provided by the community at [examples/chatbot](https:
 	```xml
 	<dependencies>
 	  <dependency>
-	    <groupId>io.github.agentic.spring.ai</groupId>
+	    <groupId>io.github.agentic-spring-ai</groupId>
 	    <artifactId>agentic-spring-ai-agent-framework</artifactId>
-	    <version>2.0.0.0-RC1</version>
+	    <version>2.1.0-dev</version>
 	  </dependency>
 	  <!-- Assume you are going to use DashScope Model. Refer to docs for how to choose model.-->
 	  <dependency>
-	    <groupId>io.github.agentic.spring.ai</groupId>
+	    <groupId>io.github.agentic-spring-ai</groupId>
 	    <artifactId>agentic-spring-ai-starter-dashscope</artifactId>
-	    <version>2.0.0.0-RC1</version>
+	    <version>2.1.0-dev</version>
 	  </dependency>
 	</dependencies>
 	```

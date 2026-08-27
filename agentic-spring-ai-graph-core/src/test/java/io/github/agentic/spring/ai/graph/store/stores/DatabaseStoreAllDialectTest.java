@@ -262,6 +262,8 @@ class DatabaseStoreAllDialectTest {
 		String jdbcUrl = DatabaseStore.buildJdbcUrl("mysql", "localhost", 3306, "ai_db");
 		assertThat(jdbcUrl).contains("jdbc:mysql://localhost:3306/ai_db");
 		assertThat(jdbcUrl).contains("createDatabaseIfNotExist=true");
+		assertThat(jdbcUrl).contains("sslMode=VERIFY_IDENTITY");
+		assertThat(jdbcUrl).doesNotContain("useSSL=false", "allowPublicKeyRetrieval=true");
 	}
 
 	@Test

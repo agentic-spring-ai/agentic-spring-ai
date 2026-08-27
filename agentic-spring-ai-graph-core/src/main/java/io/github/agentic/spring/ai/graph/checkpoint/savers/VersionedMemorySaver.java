@@ -206,7 +206,7 @@ public class VersionedMemorySaver implements BaseCheckpointSaver, HasVersions {
 		_lock.lock();
 		try {
 
-			var threadId = config.threadId().orElse(THREAD_ID_DEFAULT);
+			var threadId = checkpointThreadId(config);
 
 			var tag = noVersionSaver.release(config);
 

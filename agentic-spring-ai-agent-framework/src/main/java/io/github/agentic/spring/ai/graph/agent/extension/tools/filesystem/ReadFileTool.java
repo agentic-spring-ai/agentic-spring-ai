@@ -15,6 +15,8 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
@@ -38,6 +40,10 @@ public class ReadFileTool implements BiFunction<ReadFileTool.ReadFileRequest, To
 	private static final String EMPTY_CONTENT_WARNING = "System reminder: File exists but has empty contents";
 	private static final int MAX_LINE_LENGTH = 10000;
 	private static final int LINE_NUMBER_WIDTH = 6;
+	private static final int DEFAULT_READ_OFFSET = 0;
+	private static final int DEFAULT_READ_LIMIT = 500;
+
+	private final FilesystemBackend backend;
 
 	public static final String DESCRIPTION = """
 Reads a file from the filesystem. You can access any file directly by using this tool.
@@ -59,11 +65,21 @@ Usage:
 			""";
 
 	public ReadFileTool() {
+		this(null);
+	}
+
+	public ReadFileTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
 	public String apply(ReadFileRequest request, ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				int offset = request.offset != null ? request.offset : DEFAULT_READ_OFFSET;
+				int limit = request.limit != null ? request.limit : DEFAULT_READ_LIMIT;
+				return this.backend.read(request.filePath, offset, limit);
+			}
 			Path path = Paths.get(request.filePath);
 			return readFileContent(path, request.offset, request.limit, true);
 		}
@@ -166,7 +182,11 @@ Usage:
 	}
 
 	public static ToolCallback createReadFileToolCallback(String description) {
-		return FunctionToolCallback.builder("read_file", new ReadFileTool())
+		return createReadFileToolCallback(description, null);
+	}
+
+	public static ToolCallback createReadFileToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("read_file", new ReadFileTool(backend))
 				.description(description)
 				.inputType(ReadFileRequest.class)
 				.build();

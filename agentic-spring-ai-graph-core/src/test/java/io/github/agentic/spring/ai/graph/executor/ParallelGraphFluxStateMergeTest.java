@@ -16,10 +16,17 @@
 package io.github.agentic.spring.ai.graph.executor;
 
 import io.github.agentic.spring.ai.graph.CompiledGraph;
+import io.github.agentic.spring.ai.graph.CompileConfig;
 import io.github.agentic.spring.ai.graph.GraphResponse;
 import io.github.agentic.spring.ai.graph.KeyStrategy;
 import io.github.agentic.spring.ai.graph.OverAllState;
+import io.github.agentic.spring.ai.graph.NodeOutput;
+import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.StateGraph;
+import io.github.agentic.spring.ai.graph.exception.GraphRunnerException;
+import io.github.agentic.spring.ai.graph.streaming.GraphFlux;
+import io.github.agentic.spring.ai.graph.streaming.ParallelGraphFlux;
+import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
 import io.github.agentic.spring.ai.graph.state.strategy.AppendStrategy;
 import io.github.agentic.spring.ai.graph.state.strategy.ReplaceStrategy;
 import reactor.core.publisher.Flux;
@@ -33,8 +40,10 @@ import org.junit.jupiter.api.Test;
 import static io.github.agentic.spring.ai.graph.StateGraph.END;
 import static io.github.agentic.spring.ai.graph.StateGraph.START;
 import static io.github.agentic.spring.ai.graph.action.AsyncNodeAction.node_async;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies that parallel streaming branches merge their {@link GraphResponse#done(Object)}
@@ -61,6 +70,94 @@ public class ParallelGraphFluxStateMergeTest {
 
 		assertEquals("left-token", finalState.value("join_left_payload", ""));
 		assertEquals("right", finalState.value("join_right", ""));
+	}
+
+	@Test
+	void recursionLimitEmitsErrorInsteadOfSuccessfulPartialState() throws Exception {
+		StateGraph stateGraph = new StateGraph()
+			.addNode("loop", node_async(state -> Map.of("count", state.value("count", 0) + 1)))
+			.addEdge(START, "loop")
+			.addEdge("loop", "loop");
+		CompiledGraph graph = stateGraph.compile(CompileConfig.builder().recursionLimit(2).build());
+
+		List<GraphResponse<NodeOutput>> responses = graph.graphResponseStream(Map.of(), RunnableConfig.builder().build())
+			.collectList()
+			.block();
+
+		GraphResponse<NodeOutput> lastResponse = responses.get(responses.size() - 1);
+		assertAll(
+				() -> assertTrue(lastResponse.isError(), "recursion limit should produce an error response"),
+				() -> assertTrue(lastResponse.getOutput().isCompletedExceptionally()),
+				() -> assertTrue(completionFailure(lastResponse) instanceof GraphRunnerException),
+				() -> assertTrue(completionFailure(lastResponse).getMessage().contains("recursion limit")));
+	}
+
+	@Test
+	void graphFluxAppliesChunkAndResultCallbacks() throws Exception {
+		StateGraph stateGraph = new StateGraph(() -> {
+			Map<String, KeyStrategy> strategies = new HashMap<>();
+			strategies.put("mapped_result", new ReplaceStrategy());
+			strategies.put("seen_chunk", new ReplaceStrategy());
+			return strategies;
+		}).addNode("stream", node_async(state -> Map.of("stream",
+					GraphFlux.of("stream", "mapped_result", Flux.just("first", "last"),
+							value -> Map.of("mapped_result", "mapped-" + value),
+							value -> "chunk-" + value))))
+			.addNode("join", node_async(state -> Map.of("seen_chunk", state.value("mapped_result", ""))))
+			.addEdge(START, "stream")
+			.addEdge("stream", "join")
+			.addEdge("join", END);
+		CompiledGraph graph = stateGraph.compile();
+
+		List<GraphResponse<NodeOutput>> responses = graph.graphResponseStream(Map.of(), RunnableConfig.builder().build())
+			.collectList()
+			.block();
+		OverAllState finalState = graph.invoke(Map.of()).orElseThrow();
+
+		List<String> chunkValues = responses.stream()
+			.filter(response -> response.getOutput() != null && !response.getOutput().isCompletedExceptionally())
+			.map(response -> response.getOutput().join())
+			.filter(StreamingOutput.class::isInstance)
+			.map(StreamingOutput.class::cast)
+			.filter(output -> output.getOriginData() != null)
+			.map(output -> String.valueOf(output.getOriginData()))
+			.toList();
+
+		assertAll(
+				() -> assertEquals(List.of("chunk-first", "chunk-last"), chunkValues),
+				() -> assertEquals("mapped-last", finalState.value("mapped_result", "")),
+				() -> assertEquals("mapped-last", finalState.value("seen_chunk", "")));
+	}
+
+	@Test
+	void emptyParallelGraphFluxPreservesOrdinaryStateBeforeJoinNode() throws Exception {
+		StateGraph stateGraph = new StateGraph(() -> {
+			Map<String, KeyStrategy> strategies = new HashMap<>();
+			strategies.put("ordinary", new ReplaceStrategy());
+			strategies.put("join_ordinary", new ReplaceStrategy());
+			return strategies;
+		}).addNode("empty", node_async(state -> Map.of(
+				"parallel", ParallelGraphFlux.empty(),
+				"ordinary", "kept")))
+			.addNode("join", node_async(state -> Map.of("join_ordinary", state.value("ordinary", ""))))
+			.addEdge(START, "empty")
+			.addEdge("empty", "join")
+			.addEdge("join", END);
+		CompiledGraph graph = stateGraph.compile();
+
+		OverAllState finalState = graph.invoke(Map.of()).orElseThrow();
+
+		assertEquals("kept", finalState.value("join_ordinary", ""));
+	}
+
+	private static Throwable completionFailure(GraphResponse<NodeOutput> response) {
+		try {
+			response.getOutput().join();
+			throw new AssertionError("Expected response output to fail");
+		}
+		catch (java.util.concurrent.CompletionException ex) {
+			return ex.getCause();
+		}
 	}
 
 	private static CompiledGraph buildGraph() throws Exception {

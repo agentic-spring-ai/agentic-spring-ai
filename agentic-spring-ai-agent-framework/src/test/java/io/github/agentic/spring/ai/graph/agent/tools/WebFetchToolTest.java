@@ -16,8 +16,13 @@
 package io.github.agentic.spring.ai.graph.agent.tools;
 
 import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,8 +33,10 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -86,6 +93,90 @@ class WebFetchToolTest {
 	}
 
 	@Test
+	void rejectsLoopbackUrlBeforeFetching() {
+		String result = webFetchTool.apply(new WebFetchTool.Request("http://127.0.0.1/status", "Summarize"),
+				new ToolContext(Collections.emptyMap()));
+
+		assertTrue(result.startsWith("Error"));
+		assertTrue(result.contains("not allowed"));
+	}
+
+	@Test
+	void rejectsRedirectToLoopbackUrl() throws Exception {
+		ChatModel chatModel = mock(ChatModel.class);
+		ChatClient chatClient = ChatClient.builder(chatModel).build();
+		FakeAddressResolver resolver = new FakeAddressResolver(Map.of(
+				"93.184.216.34", new InetAddress[] { InetAddress.getByName("93.184.216.34") },
+				"127.0.0.1", new InetAddress[] { InetAddress.getByName("127.0.0.1") }));
+		CapturingTransport transport = new CapturingTransport(WebFetchTool.FetchResponse.of(302,
+				URI.create("https://93.184.216.34"), Map.of("Location", List.of("https://127.0.0.1/admin")), ""));
+		WebFetchTool tool = WebFetchTool.builder(chatClient)
+			.addressResolver(resolver)
+			.httpTransport(transport)
+			.maxRetries(0)
+			.buildWebFetchTool();
+
+		String result = tool.apply(new WebFetchTool.Request("https://93.184.216.34", "Summarize"),
+				new ToolContext(Collections.emptyMap()));
+
+		assertTrue(result.startsWith("Error"));
+		assertTrue(result.contains("not allowed"));
+		assertEquals(1, transport.requestedUris.size());
+	}
+
+	@Test
+	void pinsFetchToValidatedAddressWhileKeepingOriginalHost() throws Exception {
+		ChatClient chatClient = chatClient("Pinned summary");
+		FakeAddressResolver resolver = new FakeAddressResolver(Map.of("example.com",
+				new InetAddress[] { InetAddress.getByName("93.184.216.34") }));
+		CapturingTransport transport = new CapturingTransport(WebFetchTool.FetchResponse.of(200,
+				URI.create("https://example.com/article"), Map.of(), "<html>ok</html>"));
+
+		WebFetchTool tool = WebFetchTool.builder(chatClient)
+			.addressResolver(resolver)
+			.httpTransport(transport)
+			.maxRetries(0)
+			.buildWebFetchTool();
+
+		String result = tool.apply(new WebFetchTool.Request("https://example.com/article", "Summarize"),
+				new ToolContext(Collections.emptyMap()));
+
+		assertEquals("Pinned summary", result);
+		assertEquals(1, resolver.resolveCount);
+		assertEquals("example.com", transport.requestedUris.get(0).getHost());
+		assertEquals(InetAddress.getByName("93.184.216.34"), transport.pinnedAddresses.get(0)[0]);
+	}
+
+	@Test
+	void resolvesAndPinsEachRedirectHop() throws Exception {
+		ChatClient chatClient = chatClient("Redirect summary");
+		FakeAddressResolver resolver = new FakeAddressResolver(Map.of(
+				"example.com", new InetAddress[] { InetAddress.getByName("93.184.216.34") },
+				"example.org", new InetAddress[] { InetAddress.getByName("93.184.216.35") }));
+		CapturingTransport transport = new CapturingTransport(
+				WebFetchTool.FetchResponse.of(302, URI.create("https://example.com/start"),
+						Map.of("Location", List.of("https://example.org/final")), ""),
+				WebFetchTool.FetchResponse.of(200, URI.create("https://example.org/final"), Map.of(),
+						"<html>ok</html>"));
+
+		WebFetchTool tool = WebFetchTool.builder(chatClient)
+			.addressResolver(resolver)
+			.httpTransport(transport)
+			.maxRetries(0)
+			.buildWebFetchTool();
+
+		String result = tool.apply(new WebFetchTool.Request("https://example.com/start", "Summarize"),
+				new ToolContext(Collections.emptyMap()));
+
+		assertEquals("Redirect summary", result);
+		assertEquals(2, resolver.resolveCount);
+		assertEquals("example.com", transport.requestedUris.get(0).getHost());
+		assertEquals("example.org", transport.requestedUris.get(1).getHost());
+		assertEquals(InetAddress.getByName("93.184.216.34"), transport.pinnedAddresses.get(0)[0]);
+		assertEquals(InetAddress.getByName("93.184.216.35"), transport.pinnedAddresses.get(1)[0]);
+	}
+
+	@Test
 	@SuppressWarnings("unchecked")
 	void testCacheRespectsMaxCacheSize() throws Exception {
 		int maxCacheSize = 10;
@@ -112,6 +203,56 @@ class WebFetchToolTest {
 		ChatClient chatClient = ChatClient.builder(chatModel).build();
 		var toolCallback = WebFetchTool.builder(chatClient).build();
 		assertNotNull(toolCallback);
+	}
+
+	private static ChatClient chatClient(String responseContent) {
+		ChatModel chatModel = mock(ChatModel.class);
+		ChatResponse mockResponse = new ChatResponse(
+				List.of(new Generation(new AssistantMessage(responseContent))));
+		when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
+		when(chatModel.call(any(Prompt.class))).thenReturn(mockResponse);
+		return ChatClient.builder(chatModel).build();
+	}
+
+	private static class FakeAddressResolver implements WebFetchTool.AddressResolver {
+
+		private final Map<String, InetAddress[]> addressesByHost;
+
+		private int resolveCount;
+
+		FakeAddressResolver(Map<String, InetAddress[]> addressesByHost) {
+			this.addressesByHost = addressesByHost;
+		}
+
+		@Override
+		public InetAddress[] resolve(String host) throws UnknownHostException {
+			this.resolveCount++;
+			InetAddress[] addresses = this.addressesByHost.get(host);
+			if (addresses == null) {
+				throw new UnknownHostException(host);
+			}
+			return addresses;
+		}
+	}
+
+	private static class CapturingTransport implements WebFetchTool.HttpTransport {
+
+		private final List<WebFetchTool.FetchResponse> responses;
+
+		private final List<URI> requestedUris = new ArrayList<>();
+
+		private final List<InetAddress[]> pinnedAddresses = new ArrayList<>();
+
+		CapturingTransport(WebFetchTool.FetchResponse... responses) {
+			this.responses = List.of(responses);
+		}
+
+		@Override
+		public WebFetchTool.FetchResponse get(URI uri, InetAddress[] pinnedAddresses) {
+			this.requestedUris.add(uri);
+			this.pinnedAddresses.add(pinnedAddresses);
+			return this.responses.get(this.requestedUris.size() - 1);
+		}
 	}
 
 }

@@ -15,6 +15,9 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+import io.github.agentic.spring.ai.graph.agent.extension.file.WriteResult;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
@@ -35,6 +38,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
  */
 public class WriteFileTool implements BiFunction<WriteFileTool.WriteFileRequest, ToolContext, String> {
 
+	private final FilesystemBackend backend;
+
 	public static final String DESCRIPTION = """
 			Writes to a new file in the filesystem.
 			
@@ -46,11 +51,23 @@ public class WriteFileTool implements BiFunction<WriteFileTool.WriteFileRequest,
 			""";
 
 	public WriteFileTool() {
+		this(null);
+	}
+
+	public WriteFileTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
 	public String apply(WriteFileRequest request, ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				WriteResult result = this.backend.write(request.filePath, request.content);
+				if (result.getError() != null) {
+					return result.getError();
+				}
+				return "Successfully created file: " + result.getPath();
+			}
 			Path path = Paths.get(request.filePath);
 			return writeFileContent(path, request.content);
 		}
@@ -93,7 +110,11 @@ public class WriteFileTool implements BiFunction<WriteFileTool.WriteFileRequest,
 	}
 
 	public static ToolCallback createWriteFileToolCallback(String description) {
-		return FunctionToolCallback.builder("write_file", new WriteFileTool())
+		return createWriteFileToolCallback(description, null);
+	}
+
+	public static ToolCallback createWriteFileToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("write_file", new WriteFileTool(backend))
 				.description(description)
 				.inputType(WriteFileRequest.class)
 				.build();

@@ -16,8 +16,6 @@
 
 package io.github.agentic.spring.ai.agent.studio.dto;
 
-import io.github.agentic.spring.ai.agent.studio.dto.messages.MessageDTO;
-
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -32,13 +30,13 @@ public final class Thread {
 	private final String userId;
 
 
-	private final Map<String, MessageDTO> values;
+	private final Map<String, Object> values;
 
 	private Thread(
 			String threadId,
 			String appName,
 			String userId,
-			Map<String, MessageDTO> values) {
+			Map<String, Object> values) {
 		this.threadId = threadId;
 		this.appName = appName;
 		this.userId = userId;
@@ -65,7 +63,7 @@ public final class Thread {
 	}
 
 	@JsonProperty("values")
-	public Map<String, MessageDTO> values() {
+	public Map<String, Object> values() {
 		return values;
 	}
 
@@ -79,7 +77,7 @@ public final class Thread {
 		private String threadId;
 		private String appName;
 		private String userId;
-		private Map<String, MessageDTO> values;
+		private Map<String, Object> values;
 
 		public Builder(String threadId) {
 			this.threadId = threadId;
@@ -112,7 +110,7 @@ public final class Thread {
 
 		@CanIgnoreReturnValue
 		@JsonProperty("values")
-		public Builder values(Map<String, MessageDTO> values) {
+		public Builder values(Map<String, Object> values) {
 			this.values = values;
 			return this;
 		}

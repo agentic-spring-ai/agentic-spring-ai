@@ -686,14 +686,18 @@ public class NodeExecutor extends BaseGraphExecutor {
 	 */
 	private Flux<GraphResponse<NodeOutput>> transformGraphFluxToFlux(GraphRunnerContext context,
 			GraphFlux<?> graphFlux, Map<String, Object> partialState,
-			AtomicReference<Object> resultValue) {
+			AtomicReference<Object> resultValue, AtomicReference<Object> rawResultValue) {
 		// Use nodeId from GraphFlux instead of context to preserve real node identity
 		String effectiveNodeId = graphFlux.getNodeId();
 		String key = graphFlux.getKey() != null ? graphFlux.getKey() : "result";
+		Flux<?> rawFlux = graphFlux.getFlux().doOnNext(rawResultValue::set);
+		if (graphFlux.hasChunkResult()) {
+			rawFlux = rawFlux.map(element -> graphFlux.getChunkResult().apply(element));
+		}
 
 		// Step 1: Apply getEmbedFlux transformation logic to graphFlux.getFlux()
 		Flux<GraphResponse<NodeOutput>> transformedFlux = transformFluxToGraphResponse(
-				context, graphFlux.getFlux(), key, effectiveNodeId);
+				context, rawFlux, key, effectiveNodeId);
 
 		// Step 2: Apply handleEmbeddedFlux processing logic (directly implemented)
 
@@ -731,9 +735,11 @@ public class NodeExecutor extends BaseGraphExecutor {
 		// Use nodeId from GraphFlux instead of context to preserve real node identity
 		String effectiveNodeId = graphFlux.getNodeId();
 		AtomicReference<Object> lastDataRef = new AtomicReference<>();
+		AtomicReference<Object> rawResultRef = new AtomicReference<>();
 
 		// Process the GraphFlux stream with preserved node ID
-		Flux<GraphResponse<NodeOutput>> processedFlux = transformGraphFluxToFlux(context, graphFlux, partialState, lastDataRef);
+		Flux<GraphResponse<NodeOutput>> processedFlux = transformGraphFluxToFlux(context, graphFlux, partialState,
+				lastDataRef, rawResultRef);
 
 		// Handle completion and result mapping
 		Mono<Void> updateContextMono = Mono.fromRunnable(() -> {
@@ -746,7 +752,7 @@ public class NodeExecutor extends BaseGraphExecutor {
 			}
 
 			// Resolve the final GraphFlux result into a graph state update.
-			Map<String, Object> resultMap = graphFluxResultState(graphFlux, lastData);
+			Map<String, Object> resultMap = graphFluxResultState(graphFlux, lastData, rawResultRef.get());
 
 			// Merge non-GraphFlux state
 			Map<String, Object> partialStateWithoutGraphFlux = partialState.entrySet()
@@ -783,7 +789,18 @@ public class NodeExecutor extends BaseGraphExecutor {
 					.just(GraphResponse.continueWith(() -> mainGraphExecutor.execute(context, resultValue)))));
 	}
 
-	private Map<String, Object> graphFluxResultState(GraphFlux<?> graphFlux, Object lastData) {
+	private Map<String, Object> graphFluxResultState(GraphFlux<?> graphFlux, Object lastData, Object rawResult) {
+		if (graphFlux.hasMapResult()) {
+			Object mappedResult = graphFlux.getMapResult().apply(rawResult);
+			if (mappedResult instanceof Map<?, ?> resultMap) {
+				return copyStateMap(resultMap);
+			}
+
+			Map<String, Object> state = new HashMap<>();
+			state.put(graphFluxStateKey(graphFlux), mappedResult);
+			return state;
+		}
+
 		if (lastData instanceof GraphResponse<?> graphResponse) {
 			Optional<Object> resultValue = graphResponse.resultValue();
 			if (resultValue.isPresent()) {
@@ -858,10 +875,15 @@ public class NodeExecutor extends BaseGraphExecutor {
 
 		if (parallelGraphFlux.isEmpty()) {
 			// Handle empty ParallelGraphFlux
-			return handleNonStreamingResult(context, partialState, resultValue);
+			Map<String, Object> partialStateWithoutParallelGraphFlux = partialState.entrySet()
+				.stream()
+				.filter(e -> !(e.getValue() instanceof ParallelGraphFlux))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+			return handleNonStreamingResult(context, partialStateWithoutParallelGraphFlux, resultValue);
 		}
 
 		Map<String, AtomicReference<Object>> nodeDataRefs = new HashMap<>();
+		Map<String, AtomicReference<Object>> rawResultRefs = new HashMap<>();
 
 		// Get executor from context, fallback to Schedulers.parallel() if not available
 		// Note: DEFAULT_EXECUTOR from ParallelNode is private, so we use Schedulers.parallel() as fallback
@@ -877,9 +899,11 @@ public class NodeExecutor extends BaseGraphExecutor {
 				.map(graphFlux -> {
 					String nodeId = graphFlux.getNodeId();
 					AtomicReference<Object> nodeDataRef = new AtomicReference<>();
+					AtomicReference<Object> rawResultRef = new AtomicReference<>();
 					nodeDataRefs.put(nodeId, nodeDataRef);
+					rawResultRefs.put(nodeId, rawResultRef);
 
-					return transformGraphFluxToFlux(context, graphFlux, partialState, nodeDataRef)
+					return transformGraphFluxToFlux(context, graphFlux, partialState, nodeDataRef, rawResultRef)
 							.subscribeOn(scheduler);
 				}).collect(Collectors.toList());
 		
@@ -895,9 +919,11 @@ public class NodeExecutor extends BaseGraphExecutor {
 			for (GraphFlux<?> graphFlux : parallelGraphFlux.getGraphFluxes()) {
 				String nodeId = graphFlux.getNodeId();
 				Object nodeData = nodeDataRefs.get(nodeId).get();
+				Object rawResult = rawResultRefs.get(nodeId).get();
 
 				combinedResultMap = OverAllState.updateState(
-						combinedResultMap, graphFluxResultState(graphFlux, nodeData), context.getKeyStrategyMap());
+						combinedResultMap, graphFluxResultState(graphFlux, nodeData, rawResult),
+						context.getKeyStrategyMap());
 			}
 
 			// Merge non-ParallelGraphFlux state
@@ -945,6 +971,7 @@ public class NodeExecutor extends BaseGraphExecutor {
 	 */
 	private Flux<GraphResponse<NodeOutput>> handleNonStreamingResult(GraphRunnerContext context,
 																	 Map<String, Object> partialState, AtomicReference<Object> resultValue) throws Exception {
+		context.mergeIntoCurrentState(partialState);
 		if (context.getCompiledGraph().compileConfig.interruptBeforeEdge()
 				&& context.getCompiledGraph().compileConfig.interruptsAfter()
 				.contains(context.getCurrentNodeId())) {

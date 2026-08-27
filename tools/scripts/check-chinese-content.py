@@ -15,7 +15,7 @@
 #
 
 """
-Spring AI Alibaba Chinese Content Checker
+Agentic for Spring AI Chinese Content Checker
 Tool for checking Chinese content in Java and frontend code for GitHub Actions
 """
 
@@ -259,8 +259,11 @@ def main():
     parser = argparse.ArgumentParser(description='Check Chinese content in Java and frontend code')
     parser.add_argument('--dirs', '-d',
                        nargs='+',
-                       default=['agentic-spring-ai-jmanus/src/main/java',
-                               'agentic-spring-ai-jmanus/ui-vue3/src'],
+                       default=['agentic-spring-ai-agent-framework/src/main/java',
+                               'agentic-spring-ai-graph-core/src/main/java',
+                               'agentic-spring-ai-studio/src/main/java',
+                               'spring-boot-starters',
+                               'agentic-spring-ai-studio/agent-chat-ui/src'],
                        help='Directory paths to check (relative to current directory)')
     parser.add_argument('--patterns', '-p',
                        nargs='+',

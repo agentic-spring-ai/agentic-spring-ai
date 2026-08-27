@@ -12,9 +12,9 @@ Just add the following dependency to your agent project:
 
 ```xml
 <dependency>
-	<groupId>io.github.agentic.spring.ai</groupId>
+	<groupId>io.github.agentic-spring-ai</groupId>
 	<artifactId>agentic-spring-ai-studio</artifactId>
-	<version>1.1.2.2</version>
+	<version>2.1.0-dev</version>
 </dependency>
 ```
 

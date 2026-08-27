@@ -284,7 +284,7 @@ public abstract class AbstractJdbcCheckpointSaver implements BaseCheckpointSaver
 	 * @return configured thread id or {@link BaseCheckpointSaver#THREAD_ID_DEFAULT}
 	 */
 	private String threadId(RunnableConfig config) {
-		return config.threadId().orElse(THREAD_ID_DEFAULT);
+		return checkpointThreadId(config);
 	}
 
 }

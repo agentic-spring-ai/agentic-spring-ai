@@ -16,13 +16,18 @@
 package io.github.agentic.spring.ai.graph.agent.tools;
 
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +39,17 @@ import com.fasterxml.jackson.annotation.JsonClassDescription;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -71,6 +87,8 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 	private static final Duration CACHE_TTL = Duration.ofMinutes(15);
 
 	private static final Pattern CHARSET_PATTERN = Pattern.compile("charset=([^;\\s]+)", Pattern.CASE_INSENSITIVE);
+
+	private static final int MAX_REDIRECTS = 5;
 
 	private static final String FETCH_SUMMARIZE_PROMPT = """
 			Web page content:
@@ -114,7 +132,9 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 
 	private final ChatClient chatClient;
 
-	private final HttpClient httpClient;
+	private final AddressResolver addressResolver;
+
+	private final HttpTransport httpTransport;
 
 	private final int maxContentLength;
 
@@ -125,13 +145,16 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 	private final int maxRetries;
 
 	private WebFetchTool(ChatClient chatClient, int maxContentLength, int maxCacheSize, int maxRetries) {
+		this(chatClient, maxContentLength, maxCacheSize, maxRetries, null, null);
+	}
+
+	private WebFetchTool(ChatClient chatClient, int maxContentLength, int maxCacheSize, int maxRetries,
+			AddressResolver addressResolver, HttpTransport httpTransport) {
 		this.chatClient = chatClient;
 		this.maxContentLength = maxContentLength;
 		this.maxRetries = maxRetries;
-		this.httpClient = HttpClient.newBuilder()
-			.followRedirects(HttpClient.Redirect.ALWAYS)
-			.connectTimeout(DEFAULT_CONNECT_TIMEOUT)
-			.build();
+		this.addressResolver = addressResolver != null ? addressResolver : InetAddress::getAllByName;
+		this.httpTransport = httpTransport != null ? httpTransport : new ApachePinnedHttpTransport();
 		this.htmlToMarkdownConverter = FlexmarkHtmlConverter.builder().build();
 		this.urlCache = Caffeine.newBuilder()
 			.maximumSize(maxCacheSize)
@@ -164,18 +187,10 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 
 		// Validate URL format
 		try {
-			URI uri = URI.create(url);
-			if (uri.getScheme() == null || uri.getHost() == null) {
-				return "Error: Invalid URL format. Please provide a fully-formed URL (e.g., https://example.com)";
-			}
+			url = normalizeAndValidateUrl(URI.create(url)).toString();
 		}
-		catch (IllegalArgumentException e) {
+		catch (IllegalArgumentException | WebFetchException e) {
 			return "Error: Invalid URL format: " + e.getMessage();
-		}
-
-		// Upgrade HTTP to HTTPS if needed
-		if (url.startsWith("http://")) {
-			url = "https://" + url.substring(7);
 		}
 
 		// Check cache first
@@ -192,7 +207,7 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		// Fetch HTML content with retry logic
 		String htmlContent;
 		try {
-			HttpResponse<String> response = fetchHtmlWithRetry(url);
+			FetchResponse response = fetchHtmlWithRetry(url);
 			if (response.statusCode() >= 400) {
 				return "Error: Failed to fetch URL. HTTP status code: " + response.statusCode();
 			}
@@ -202,7 +217,12 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 			}
 		}
 		catch (WebFetchException e) {
-			logger.error("Failed to fetch URL: {}", url, e);
+			if (isPermanentFetchFailure(e)) {
+				logger.warn("Blocked URL fetch for {}: {}", url, e.getMessage());
+			}
+			else {
+				logger.error("Failed to fetch URL: {}", url, e);
+			}
 			return "Error fetching URL: " + e.getMessage();
 		}
 
@@ -223,7 +243,7 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		return url + "::prompt::" + prompt.hashCode();
 	}
 
-	private HttpResponse<String> fetchHtmlWithRetry(String url) {
+	private FetchResponse fetchHtmlWithRetry(String url) {
 		int attempt = 0;
 		Exception lastException = null;
 
@@ -236,7 +256,7 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 					Thread.sleep(backoffMs);
 				}
 
-				HttpResponse<String> response = fetchHtml(url);
+				FetchResponse response = fetchHtml(url);
 
 				if (response.statusCode() >= 500 && response.statusCode() < 600) {
 					lastException = new WebFetchException("Server error: HTTP " + response.statusCode(), null);
@@ -250,6 +270,9 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 			}
 			catch (WebFetchException e) {
 				lastException = e;
+				if (isPermanentFetchFailure(e)) {
+					throw e;
+				}
 				if (e.getCause() instanceof InterruptedException) {
 					throw e;
 				}
@@ -275,77 +298,121 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		}
 	}
 
-	private HttpResponse<String> fetchHtml(String url) {
-		HttpRequest request = HttpRequest.newBuilder()
-			.uri(URI.create(url))
-			.timeout(DEFAULT_REQUEST_TIMEOUT)
-			.header("User-Agent", USER_AGENT)
-			.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-			.header("Accept-Language", "en-US,en;q=0.5")
-			.GET()
-			.build();
+	private FetchResponse fetchHtml(String url) {
+		URI uri = URI.create(url);
+		for (int redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+			InetAddress[] pinnedAddresses = resolveAndValidateUrl(uri);
 
+			FetchResponse response = sendGet(uri, pinnedAddresses);
+			if (!isRedirect(response.statusCode())) {
+				return response;
+			}
+
+			Optional<String> location = response.firstHeader("Location");
+			if (location.isEmpty()) {
+				return response;
+			}
+
+			uri = normalizeAndValidateUrl(uri.resolve(location.get()));
+		}
+		throw new WebFetchException("Too many redirects", null);
+	}
+
+	private boolean isPermanentFetchFailure(WebFetchException e) {
+		String message = e.getMessage();
+		return message != null && (message.contains("not allowed") || message.contains("Unable to resolve URL host"));
+	}
+
+	private FetchResponse sendGet(URI uri, InetAddress[] pinnedAddresses) {
 		try {
-			HttpResponse<byte[]> byteResponse = this.httpClient.send(request,
-					HttpResponse.BodyHandlers.ofByteArray());
-
-			Charset charset = extractCharset(byteResponse).orElse(StandardCharsets.UTF_8);
-			String body = new String(byteResponse.body(), charset);
-
-			return new HttpResponse<>() {
-				@Override
-				public int statusCode() {
-					return byteResponse.statusCode();
-				}
-
-				@Override
-				public HttpRequest request() {
-					return byteResponse.request();
-				}
-
-				@Override
-				public Optional<HttpResponse<String>> previousResponse() {
-					return Optional.empty();
-				}
-
-				@Override
-				public java.net.http.HttpHeaders headers() {
-					return byteResponse.headers();
-				}
-
-				@Override
-				public String body() {
-					return body;
-				}
-
-				@Override
-				public Optional<javax.net.ssl.SSLSession> sslSession() {
-					return byteResponse.sslSession();
-				}
-
-				@Override
-				public URI uri() {
-					return byteResponse.uri();
-				}
-
-				@Override
-				public java.net.http.HttpClient.Version version() {
-					return byteResponse.version();
-				}
-			};
+			return this.httpTransport.get(uri, pinnedAddresses);
 		}
 		catch (IOException e) {
 			throw new WebFetchException("Network error while fetching URL: " + e.getMessage(), e);
 		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new WebFetchException("Request was interrupted", e);
+	}
+
+	private URI normalizeAndValidateUrl(URI uri) {
+		if (uri.getScheme() == null || uri.getHost() == null) {
+			throw new WebFetchException("Please provide a fully-formed URL (e.g., https://example.com)", null);
+		}
+
+		String scheme = uri.getScheme().toLowerCase();
+		if (!scheme.equals("http") && !scheme.equals("https")) {
+			throw new WebFetchException("Only HTTP and HTTPS URLs are supported", null);
+		}
+
+		return scheme.equals("http") ? uri.resolve("https://" + uri.getRawAuthority() + rawPathQueryFragment(uri)) : uri;
+	}
+
+	private String rawPathQueryFragment(URI uri) {
+		StringBuilder result = new StringBuilder();
+		if (uri.getRawPath() != null && !uri.getRawPath().isEmpty()) {
+			result.append(uri.getRawPath());
+		}
+		if (uri.getRawQuery() != null) {
+			result.append('?').append(uri.getRawQuery());
+		}
+		if (uri.getRawFragment() != null) {
+			result.append('#').append(uri.getRawFragment());
+		}
+		return result.toString();
+	}
+
+	private boolean isRedirect(int statusCode) {
+		return List.of(301, 302, 303, 307, 308).contains(statusCode);
+	}
+
+	private InetAddress[] resolveAndValidateUrl(URI uri) {
+		String host = uri.getHost();
+		if (host == null) {
+			throw new WebFetchException("URL host is required", null);
+		}
+		String normalizedHost = host.toLowerCase();
+		if (normalizedHost.equals("localhost") || normalizedHost.endsWith(".localhost")) {
+			throw new WebFetchException("URL host is not allowed", null);
+		}
+		try {
+			InetAddress[] addresses = this.addressResolver.resolve(normalizedHost);
+			if (addresses.length == 0) {
+				throw new WebFetchException("Unable to resolve URL host", null);
+			}
+			for (InetAddress address : addresses) {
+				if (isPrivateAddress(address)) {
+					throw new WebFetchException("URL host is not allowed", null);
+				}
+			}
+			return addresses;
+		}
+		catch (UnknownHostException e) {
+			throw new WebFetchException("Unable to resolve URL host", e);
 		}
 	}
 
-	private Optional<Charset> extractCharset(HttpResponse<?> response) {
-		return response.headers()
-			.firstValue("Content-Type")
+	private boolean isPrivateAddress(InetAddress address) {
+		if (address.isAnyLocalAddress() || address.isLoopbackAddress() || address.isLinkLocalAddress()
+				|| address.isSiteLocalAddress() || address.isMulticastAddress()) {
+			return true;
+		}
+		byte[] bytes = address.getAddress();
+		if (address instanceof Inet4Address) {
+			int first = bytes[0] & 0xff;
+			int second = bytes[1] & 0xff;
+			return first == 0 || first == 10 || first == 127 || (first == 100 && second >= 64 && second <= 127)
+					|| (first == 169 && second == 254) || (first == 172 && second >= 16 && second <= 31)
+					|| (first == 192 && second == 168) || (first == 198 && (second == 18 || second == 19))
+					|| (first == 203 && second == 0 && (bytes[2] & 0xff) == 113) || first >= 224;
+		}
+		if (address instanceof Inet6Address) {
+			int first = bytes[0] & 0xff;
+			int second = bytes[1] & 0xff;
+			return first == 0 || first == 0xfc || first == 0xfd || (first == 0xfe && (second & 0xc0) == 0x80);
+		}
+		return true;
+	}
+
+	private static Optional<Charset> extractCharset(FetchResponse response) {
+		return response.firstHeader("Content-Type")
 			.flatMap(contentType -> {
 				Matcher matcher = CHARSET_PATTERN.matcher(contentType);
 				if (matcher.find()) {
@@ -388,6 +455,104 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		return content;
 	}
 
+	interface AddressResolver {
+
+		InetAddress[] resolve(String host) throws UnknownHostException;
+
+	}
+
+	interface HttpTransport {
+
+		FetchResponse get(URI uri, InetAddress[] pinnedAddresses) throws IOException;
+
+	}
+
+	record FetchResponse(int statusCode, URI uri, Map<String, List<String>> headers, String body) {
+
+		static FetchResponse of(int statusCode, URI uri, Map<String, List<String>> headers, String body) {
+			return new FetchResponse(statusCode, uri, headers, body);
+		}
+
+		Optional<String> firstHeader(String name) {
+			for (Map.Entry<String, List<String>> entry : this.headers.entrySet()) {
+				if (entry.getKey().equalsIgnoreCase(name) && !entry.getValue().isEmpty()) {
+					return Optional.ofNullable(entry.getValue().get(0));
+				}
+			}
+			return Optional.empty();
+		}
+
+	}
+
+	private static class ApachePinnedHttpTransport implements HttpTransport {
+
+		@Override
+		public FetchResponse get(URI uri, InetAddress[] pinnedAddresses) throws IOException {
+			RequestConfig requestConfig = RequestConfig.custom()
+				.setRedirectsEnabled(false)
+				.setConnectTimeout(Timeout.ofMilliseconds(DEFAULT_CONNECT_TIMEOUT.toMillis()))
+				.setResponseTimeout(Timeout.ofMilliseconds(DEFAULT_REQUEST_TIMEOUT.toMillis()))
+				.build();
+			try (PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+				.setDnsResolver(new PinnedDnsResolver(uri.getHost(), pinnedAddresses))
+				.build();
+					CloseableHttpClient client = HttpClients.custom()
+						.setConnectionManager(connectionManager)
+						.setDefaultRequestConfig(requestConfig)
+						.disableRedirectHandling()
+						.build()) {
+				HttpGet request = new HttpGet(uri);
+				request.setHeader("User-Agent", USER_AGENT);
+				request.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+				request.setHeader("Accept-Language", "en-US,en;q=0.5");
+				return client.execute(request, response -> toFetchResponse(uri, response));
+			}
+		}
+
+		private FetchResponse toFetchResponse(URI uri, org.apache.hc.core5.http.ClassicHttpResponse response)
+				throws IOException {
+			Map<String, List<String>> headers = new HashMap<>();
+			for (Header header : response.getHeaders()) {
+				headers.computeIfAbsent(header.getName(), key -> new ArrayList<>()).add(header.getValue());
+			}
+			HttpEntity entity = response.getEntity();
+			byte[] bodyBytes = entity != null ? EntityUtils.toByteArray(entity) : new byte[0];
+			FetchResponse metadata = FetchResponse.of(response.getCode(), uri, headers, "");
+			Charset charset = extractCharset(metadata).orElse(StandardCharsets.UTF_8);
+			return FetchResponse.of(response.getCode(), uri, headers, new String(bodyBytes, charset));
+		}
+
+	}
+
+	private static class PinnedDnsResolver implements DnsResolver {
+
+		private final String host;
+
+		private final InetAddress[] pinnedAddresses;
+
+		PinnedDnsResolver(String host, InetAddress[] pinnedAddresses) {
+			this.host = host;
+			this.pinnedAddresses = pinnedAddresses.clone();
+		}
+
+		@Override
+		public InetAddress[] resolve(String host) throws UnknownHostException {
+			if (this.host.equalsIgnoreCase(host)) {
+				return this.pinnedAddresses.clone();
+			}
+			throw new UnknownHostException(host);
+		}
+
+		@Override
+		public String resolveCanonicalHostname(String host) throws UnknownHostException {
+			if (this.host.equalsIgnoreCase(host)) {
+				return this.host;
+			}
+			throw new UnknownHostException(host);
+		}
+
+	}
+
 	/**
 	 * Custom exception for web fetch errors.
 	 */
@@ -412,6 +577,10 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		private int maxCacheSize = 100;
 
 		private int maxRetries = 2;
+
+		private AddressResolver addressResolver;
+
+		private HttpTransport httpTransport;
 
 		private String name = "web_fetch";
 
@@ -448,6 +617,16 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 			return this;
 		}
 
+		Builder addressResolver(AddressResolver addressResolver) {
+			this.addressResolver = addressResolver;
+			return this;
+		}
+
+		Builder httpTransport(HttpTransport httpTransport) {
+			this.httpTransport = httpTransport;
+			return this;
+		}
+
 		public Builder withName(String name) {
 			this.name = name;
 			return this;
@@ -469,7 +648,8 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		 * Builds the WebFetchTool instance directly (for testing).
 		 */
 		WebFetchTool buildWebFetchTool() {
-			return new WebFetchTool(this.chatClient, this.maxContentLength, this.maxCacheSize, this.maxRetries);
+			return new WebFetchTool(this.chatClient, this.maxContentLength, this.maxCacheSize, this.maxRetries,
+					this.addressResolver, this.httpTransport);
 		}
 
 	}

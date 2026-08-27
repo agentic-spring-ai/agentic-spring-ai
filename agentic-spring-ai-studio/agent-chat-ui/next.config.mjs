@@ -1,6 +1,12 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: __dirname,
   // 如果设置了 STATIC_EXPORT=true，则启用静态导出
   ...(process.env.STATIC_EXPORT === 'true' && {
     output: 'export',

@@ -140,9 +140,13 @@ public class DockerCodeExecutor implements CodeExecutor {
 					dockerClient.startContainerCmd(container.getId()).exec();
 
 					// Wait for container execution to complete
-					dockerClient.waitContainerCmd(container.getId())
+					boolean completed = dockerClient.waitContainerCmd(container.getId())
 						.start()
 						.awaitCompletion(codeExecutionConfig.getTimeout(), TimeUnit.SECONDS);
+					if (!completed) {
+						throw new RuntimeException(
+								"Container execution timed out after " + codeExecutionConfig.getTimeout() + " seconds");
+					}
 
 					// Get container logs
 					String logs = dockerClient.logContainerCmd(container.getId())

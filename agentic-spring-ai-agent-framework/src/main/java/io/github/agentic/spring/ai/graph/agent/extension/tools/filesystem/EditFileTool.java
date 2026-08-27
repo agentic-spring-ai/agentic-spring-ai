@@ -15,6 +15,9 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.EditResult;
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
@@ -35,6 +38,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
  */
 public class EditFileTool implements BiFunction<EditFileTool.EditFileRequest, ToolContext, String> {
 
+	private final FilesystemBackend backend;
+
 	public static final String DESCRIPTION = """
 			Performs exact string replacements in files.
 			
@@ -47,11 +52,25 @@ public class EditFileTool implements BiFunction<EditFileTool.EditFileRequest, To
 			""";
 
 	public EditFileTool() {
+		this(null);
+	}
+
+	public EditFileTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
 	public String apply(EditFileRequest request, ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				EditResult result = this.backend.edit(request.filePath, request.oldString, request.newString,
+						request.replaceAll);
+				if (result.getError() != null) {
+					return result.getError();
+				}
+				return String.format("Successfully edited file: %s (replaced %d occurrence(s))", result.getPath(),
+						result.getOccurrences());
+			}
 			Path path = Paths.get(request.filePath);
 			return editFileContent(path, request.oldString, request.newString, request.replaceAll);
 		}
@@ -137,7 +156,11 @@ public class EditFileTool implements BiFunction<EditFileTool.EditFileRequest, To
 	}
 
 	public static ToolCallback createEditFileToolCallback(String description) {
-		return FunctionToolCallback.builder("edit_file", new EditFileTool())
+		return createEditFileToolCallback(description, null);
+	}
+
+	public static ToolCallback createEditFileToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("edit_file", new EditFileTool(backend))
 				.description(description)
 				.inputType(EditFileRequest.class)
 				.build();

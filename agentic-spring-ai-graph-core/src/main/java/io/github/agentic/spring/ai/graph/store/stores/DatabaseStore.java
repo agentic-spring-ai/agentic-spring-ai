@@ -185,7 +185,7 @@ public class DatabaseStore extends BaseStore {
         return switch (normalized) {
             // MySQL supports optional auto database creation via URL parameters.
             case "mysql" -> "jdbc:mysql://" + host + ":" + port + "/" + database
-                    + "?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+                    + "?createDatabaseIfNotExist=true&sslMode=VERIFY_IDENTITY&serverTimezone=UTC";
             case "postgresql", "postgres", "pgsql" -> "jdbc:postgresql://" + host + ":" + port + "/" + database;
             case "oracle" -> "jdbc:oracle:thin:@" + host + ":" + port + ":" + database;
             case "h2" -> "jdbc:h2:mem:" + database + ";DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE";

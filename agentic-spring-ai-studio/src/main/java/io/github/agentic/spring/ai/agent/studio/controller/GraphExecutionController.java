@@ -37,6 +37,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -65,9 +66,16 @@ public class GraphExecutionController {
 
 	private final GraphLoader graphLoader;
 
+	private final StudioExecutionAccess executionAccess;
+
 	@Autowired
-	public GraphExecutionController(GraphLoader graphLoader) {
+	public GraphExecutionController(GraphLoader graphLoader, StudioExecutionAccess executionAccess) {
 		this.graphLoader = graphLoader;
+		this.executionAccess = executionAccess;
+	}
+
+	public GraphExecutionController(GraphLoader graphLoader) {
+		this(graphLoader, new StudioExecutionAccess(""));
 	}
 
 	/**
@@ -77,7 +85,9 @@ public class GraphExecutionController {
 	 * @return A Flux that streams events to the client in standard SSE format.
 	 */
 	@PostMapping(value = "/graph_run_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public Flux<ServerSentEvent<String>> graphRunSse(@RequestBody GraphRunRequest request) {
+	public Flux<ServerSentEvent<String>> graphRunSse(@RequestBody GraphRunRequest request,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		if (request.graphName == null || request.graphName.trim().isEmpty()) {
 			return Flux.error(new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
 					"graphName cannot be null or empty"));
@@ -102,6 +112,7 @@ public class GraphExecutionController {
 
 			RunnableConfig runnableConfig = RunnableConfig.builder()
 					.threadId(request.threadId)
+					.addMetadata(RunnableConfig.APP_NAME_METADATA_KEY, "graph:" + request.graphName)
 					.addMetadata("user_id", request.userId != null ? request.userId : "user-001")
 					.build();
 

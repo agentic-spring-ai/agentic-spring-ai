@@ -42,6 +42,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -57,10 +58,16 @@ public class ExecutionController {
 	private static final Logger log = LoggerFactory.getLogger(ExecutionController.class);
 	final ObjectMapper mapper = new ObjectMapper();
 	private final AgentLoader agentLoader;
+	private final StudioExecutionAccess executionAccess;
 
 	@Autowired
-	public ExecutionController(AgentLoader agentLoader) {
+	public ExecutionController(AgentLoader agentLoader, StudioExecutionAccess executionAccess) {
 		this.agentLoader = agentLoader;
+		this.executionAccess = executionAccess;
+	}
+
+	public ExecutionController(AgentLoader agentLoader) {
+		this(agentLoader, new StudioExecutionAccess(""));
 	}
 
 	/**
@@ -153,7 +160,9 @@ public class ExecutionController {
 	 * @return A Flux that will stream events to the client in standard SSE format.
 	 */
 	@PostMapping(value = "/run_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public Flux<ServerSentEvent<String>> agentRunSse(@RequestBody AgentRunRequest request) {
+	public Flux<ServerSentEvent<String>> agentRunSse(@RequestBody AgentRunRequest request,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		if (request.appName == null || request.appName.trim().isEmpty()) {
 			log.warn(
 					"appName cannot be null or empty in SSE request for appName: {}, session: {}",
@@ -175,6 +184,7 @@ public class ExecutionController {
 			Agent agent = agentLoader.loadAgent(request.appName);
 			RunnableConfig runnableConfig = RunnableConfig.builder()
 					.threadId(request.threadId)
+					.addMetadata(RunnableConfig.APP_NAME_METADATA_KEY, request.appName)
 					.addMetadata("user_id", request.userId)
 					.build();
 
@@ -187,7 +197,9 @@ public class ExecutionController {
 	}
 
 	@PostMapping(value = "/resume_sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public Flux<ServerSentEvent<String>> agentResumeSse(@RequestBody AgentResumeRequest request) {
+	public Flux<ServerSentEvent<String>> agentResumeSse(@RequestBody AgentResumeRequest request,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		if (request.appName == null || request.appName.trim().isEmpty()) {
 			log.warn(
 					"appName cannot be null or empty in SSE request for appName: {}, session: {}",
@@ -235,6 +247,7 @@ public class ExecutionController {
 
 			RunnableConfig runnableConfig = RunnableConfig.builder()
 					.threadId(request.threadId)
+					.addMetadata(RunnableConfig.APP_NAME_METADATA_KEY, request.appName)
 					.addMetadata("user_id", request.userId)
 					.addHumanFeedback(metadataBuilder.build())
 					.build();

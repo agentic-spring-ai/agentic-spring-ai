@@ -70,7 +70,7 @@ public class MemorySaver implements BaseCheckpointSaver {
 			TryFunction<LinkedList<Checkpoint>, T, Exception> transformer) throws Exception {
 		_lock.lock();
 		try {
-			var threadId = config.threadId().orElse(THREAD_ID_DEFAULT);
+			var threadId = checkpointThreadId(config);
 			return transformer.tryApply(loadedCheckpoints(config, _checkpointsByThread.computeIfAbsent(threadId, k -> new LinkedList<>())));
 
 		}
@@ -146,7 +146,7 @@ public class MemorySaver implements BaseCheckpointSaver {
 
 		return loadOrInitCheckpoints(config, checkpoints -> {
 
-			var threadId = config.threadId().orElse(THREAD_ID_DEFAULT);
+			var threadId = checkpointThreadId(config);
 
 			var tag = new Tag(threadId, remove(threadId));
 

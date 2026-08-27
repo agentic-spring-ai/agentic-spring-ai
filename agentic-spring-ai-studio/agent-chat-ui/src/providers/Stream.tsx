@@ -11,9 +11,15 @@ import React, {
 import { useQueryState } from "nuqs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useThreads } from "./Thread";
 import { toast } from "sonner";
-import { createApiClient, ToolFeedbackDTO } from "@/lib/spring-ai-api";
+import {
+  createApiClient,
+  getStudioExecutionAuthToken,
+  setStudioExecutionAuthToken,
+  ToolFeedbackDTO,
+} from "@/lib/spring-ai-api";
 import { UIMessage, createUIMessage, fromMessageDTO } from "@/types/messages";
 
 interface StreamContextType {
@@ -520,6 +526,17 @@ export const StreamConfigurationView = () => {
     defaultValue: process.env.NEXT_PUBLIC_USER_ID || "user-001",
   });
 
+  const [executionAuthToken, setExecutionAuthTokenState] = useState("");
+
+  useEffect(() => {
+    setExecutionAuthTokenState(getStudioExecutionAuthToken());
+  }, []);
+
+  const updateExecutionAuthToken = useCallback((token: string) => {
+    setExecutionAuthTokenState(token);
+    setStudioExecutionAuthToken(token);
+  }, []);
+
   return (
     <div className="flex flex-col gap-4 p-4 border rounded-lg">
       <h3 className="text-lg font-semibold">Configuration</h3>
@@ -560,12 +577,26 @@ export const StreamConfigurationView = () => {
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="executionAuthToken">Execution Token</Label>
+        <div className="flex gap-2">
+          <PasswordInput
+            id="executionAuthToken"
+            value={executionAuthToken}
+            onChange={(e) => updateExecutionAuthToken(e.target.value)}
+            placeholder="X-Agentic-Studio-Token"
+            autoComplete="off"
+          />
+        </div>
+      </div>
+
       <div className="text-sm text-muted-foreground">
         <p>Current configuration:</p>
         <ul className="list-disc list-inside">
           <li>API URL: {apiUrl}</li>
           <li>App Name: {appName}</li>
           <li>User ID: {userId}</li>
+          <li>Execution Token: {executionAuthToken ? "set" : "not set"}</li>
         </ul>
       </div>
     </div>

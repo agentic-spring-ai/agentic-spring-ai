@@ -285,14 +285,13 @@ public class MongoSaver implements BaseCheckpointSaver {
 		return null; // No active thread exists
 	}
 
+	private String threadName(RunnableConfig config) {
+		return checkpointThreadId(config);
+	}
+
 	@Override
 	public Collection<Checkpoint> list(RunnableConfig config) {
-		Optional<String> threadNameOpt = config.threadId();
-		if (!threadNameOpt.isPresent()) {
-			throw new IllegalArgumentException("threadId is not allowed to be null");
-		}
-
-		String threadName = threadNameOpt.get();
+		String threadName = threadName(config);
 		ClientSession clientSession = this.client
 				.startSession(ClientSessionOptions.builder().defaultTransactionOptions(txnOptions).build());
 		clientSession.startTransaction();
@@ -329,12 +328,7 @@ public class MongoSaver implements BaseCheckpointSaver {
 
 	@Override
 	public Optional<Checkpoint> get(RunnableConfig config) {
-		Optional<String> threadNameOpt = config.threadId();
-		if (!threadNameOpt.isPresent()) {
-			throw new IllegalArgumentException("threadId is not allow null");
-		}
-
-		String threadName = threadNameOpt.get();
+		String threadName = threadName(config);
 		ClientSession clientSession = this.client
 				.startSession(ClientSessionOptions.builder().defaultTransactionOptions(txnOptions).build());
 		LinkedList<Checkpoint> checkpoints = null;
@@ -380,12 +374,7 @@ public class MongoSaver implements BaseCheckpointSaver {
 
 	@Override
 	public RunnableConfig put(RunnableConfig config, Checkpoint checkpoint) throws Exception {
-		Optional<String> threadNameOpt = config.threadId();
-		if (!threadNameOpt.isPresent()) {
-			throw new IllegalArgumentException("threadId is not allow null");
-		}
-
-		String threadName = threadNameOpt.get();
+		String threadName = threadName(config);
 		ClientSession clientSession = this.client
 				.startSession(ClientSessionOptions.builder().defaultTransactionOptions(txnOptions).build());
 		clientSession.startTransaction();
@@ -447,12 +436,7 @@ public class MongoSaver implements BaseCheckpointSaver {
 
 	@Override
 	public Tag release(RunnableConfig config) throws Exception {
-		Optional<String> threadNameOpt = config.threadId();
-		if (!threadNameOpt.isPresent()) {
-			throw new IllegalArgumentException("threadId is not allow null");
-		}
-
-		String threadName = threadNameOpt.get();
+		String threadName = threadName(config);
 		ClientSession clientSession = this.client
 				.startSession(ClientSessionOptions.builder().defaultTransactionOptions(txnOptions).build());
 		clientSession.startTransaction();

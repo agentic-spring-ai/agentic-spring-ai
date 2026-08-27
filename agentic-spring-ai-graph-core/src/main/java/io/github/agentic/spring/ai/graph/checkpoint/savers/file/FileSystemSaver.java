@@ -116,7 +116,7 @@ public class FileSystemSaver implements BaseCheckpointSaver {
 	}
 
 	private String getBaseName(RunnableConfig config) {
-		var threadId = config.threadId().orElse(THREAD_ID_DEFAULT);
+		var threadId = checkpointThreadId(config);
 		return format("thread-%s", threadId);
 	}
 
@@ -129,7 +129,7 @@ public class FileSystemSaver implements BaseCheckpointSaver {
 	}
 
 	private String getThreadId(RunnableConfig config) {
-		return config.threadId().orElse(THREAD_ID_DEFAULT);
+		return checkpointThreadId(config);
 	}
 
 	private void serialize(LinkedList<Checkpoint> checkpoints, File outFile) throws IOException {

@@ -31,7 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -52,6 +54,7 @@ import io.a2a.spec.TaskStatus;
 import io.a2a.spec.TextPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 public class GraphAgentExecutor implements AgentExecutor {
@@ -61,6 +64,10 @@ public class GraphAgentExecutor implements AgentExecutor {
 	private static final Set<String> IGNORE_NODE_TYPE = Set.of("preLlm", "postLlm", "preTool", "tool", "postTool");
 
 	public static final String STREAMING_METADATA_KEY = "isStreaming";
+
+	public static final String STREAMING_TASK_WAIT_TIMEOUT_MILLIS_METADATA_KEY = "streamingTaskWaitTimeoutMillis";
+
+	private static final long DEFAULT_STREAMING_TASK_WAIT_TIMEOUT_MILLIS = TimeUnit.MINUTES.toMillis(5);
 
 	private final Agent executeAgent;
 
@@ -160,11 +167,43 @@ public class GraphAgentExecutor implements AgentExecutor {
 		}
 		TaskUpdater taskUpdater = new TaskUpdater(context, eventQueue);
 		taskUpdater.submit();
-		generator.subscribe(new ReactAgentNodeOutputConsumer(taskUpdater), throwable -> {
-			LOGGER.error("Agent execution failed", throwable);
-			taskUpdater.fail(A2A.toAgentMessage(throwable.getMessage()));
-		}, taskUpdater::complete);
-		waitTaskCompleted(task);
+		CountDownLatch streamFinished = new CountDownLatch(1);
+		AtomicBoolean terminalStatusSent = new AtomicBoolean();
+		Disposable subscription = generator.subscribe(new ReactAgentNodeOutputConsumer(taskUpdater), throwable -> {
+			try {
+				LOGGER.error("Agent execution failed", throwable);
+				failTaskOnce(taskUpdater, terminalStatusSent, throwable.getMessage());
+			}
+			finally {
+				streamFinished.countDown();
+			}
+		}, () -> {
+			try {
+				if (terminalStatusSent.compareAndSet(false, true)) {
+					taskUpdater.complete();
+				}
+			}
+			finally {
+				streamFinished.countDown();
+			}
+		});
+		try {
+			if (!waitForStreamCompletion(task.getId(), streamFinished, getStreamingTaskWaitTimeoutMillis(context))) {
+				subscription.dispose();
+				failTaskOnce(taskUpdater, terminalStatusSent,
+						"A2A stream execution interrupted while waiting for task " + task.getId() + " to finish.");
+			}
+		}
+		catch (RuntimeException e) {
+			subscription.dispose();
+			failTaskOnce(taskUpdater, terminalStatusSent, e.getMessage());
+		}
+	}
+
+	private void failTaskOnce(TaskUpdater taskUpdater, AtomicBoolean terminalStatusSent, String message) {
+		if (terminalStatusSent.compareAndSet(false, true)) {
+			taskUpdater.fail(A2A.toAgentMessage(message));
+		}
 	}
 
 	private void executeForNonStreamTask(String inputMessage, RequestContext context, EventQueue eventQueue)
@@ -196,15 +235,45 @@ public class GraphAgentExecutor implements AgentExecutor {
 		}
 	}
 
-	private void waitTaskCompleted(Task task) {
-		while (!task.getStatus().state().equals(TaskState.COMPLETED)
-				&& !task.getStatus().state().equals(TaskState.CANCELED)) {
-			try {
-				TimeUnit.SECONDS.sleep(1);
+	private boolean waitForStreamCompletion(String taskId, CountDownLatch streamFinished, long timeoutMillis) {
+		try {
+			if (!streamFinished.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
+				throw new IllegalStateException("Timed out waiting for A2A task " + taskId
+						+ " stream to finish after " + timeoutMillis + " ms.");
 			}
-			catch (InterruptedException ignored) {
-			}
+			return true;
 		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return false;
+		}
+	}
+
+	private long getStreamingTaskWaitTimeoutMillis(RequestContext context) {
+		MessageSendParams params = context.getParams();
+		if (params == null || params.metadata() == null) {
+			return DEFAULT_STREAMING_TASK_WAIT_TIMEOUT_MILLIS;
+		}
+		Object value = params.metadata().get(STREAMING_TASK_WAIT_TIMEOUT_MILLIS_METADATA_KEY);
+		if (value == null) {
+			return DEFAULT_STREAMING_TASK_WAIT_TIMEOUT_MILLIS;
+		}
+		long timeoutMillis = parsePositiveTimeoutMillis(value);
+		if (timeoutMillis <= 0) {
+			throw new IllegalArgumentException("Invalid A2A streaming task wait timeout: " + value
+					+ ". It must be a positive number of milliseconds.");
+		}
+		return timeoutMillis;
+	}
+
+	private long parsePositiveTimeoutMillis(Object value) {
+		if (value instanceof Number number) {
+			return number.longValue();
+		}
+		if (value instanceof String text && StringUtils.hasText(text)) {
+			return Long.parseLong(text);
+		}
+		return -1;
 	}
 
 	private static class ReactAgentNodeOutputConsumer implements Consumer<NodeOutput> {

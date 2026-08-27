@@ -53,7 +53,7 @@ body:
       label: Environment
       description: |
         examples:
-          - **Agentic for Spring AI version(s)**: 1.1.2.2
+          - **Agentic for Spring AI version(s)**: 2.1.0-dev
       value: "Agentic for Spring AI version(s):"
       render: markdown
     validations:

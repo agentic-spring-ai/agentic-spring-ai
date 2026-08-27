@@ -16,6 +16,8 @@
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
 import io.github.agentic.spring.ai.graph.agent.extension.file.FileInfo;
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -41,6 +43,8 @@ import java.util.stream.Stream;
  */
 public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 
+	private final FilesystemBackend backend;
+
 	public static final String DESCRIPTION = """
 			Lists all files in the filesystem, filtering by directory.
 			
@@ -52,6 +56,11 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 			""";
 
 	public ListFilesTool() {
+		this(null);
+	}
+
+	public ListFilesTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
@@ -59,6 +68,9 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 			@ToolParam(description = "The directory path to list files from") String path,
 			ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				return formatFileInfoPaths(this.backend.lsInfo(path), "Directory is empty");
+			}
 			Path dirPath = Paths.get(path);
 			List<FileInfo> fileInfos = listFilesContent(dirPath, null, false);
 			
@@ -207,11 +219,22 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 			.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 	}
 
+	static String formatFileInfoPaths(List<FileInfo> fileInfos, String emptyMessage) {
+		List<String> filePaths = new ArrayList<>();
+		for (FileInfo info : fileInfos) {
+			filePaths.add(info.getPath());
+		}
+		return filePaths.isEmpty() ? emptyMessage : String.join("\n", filePaths);
+	}
+
 	public static ToolCallback createListFilesToolCallback(String description) {
-		return FunctionToolCallback.builder("ls", new ListFilesTool())
+		return createListFilesToolCallback(description, null);
+	}
+
+	public static ToolCallback createListFilesToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("ls", new ListFilesTool(backend))
 				.description(description)
 				.inputType(String.class)
 				.build();
 	}
 }
-

@@ -1,9 +1,9 @@
 .git
-.idea
 **/node_modules/**
 **/target/**
 **/build/**
 **/dist/**
+**/*.tsbuildinfo
 **/agent-chat-ui/out/**
 **/ui-vue3/ui/assets/**
 **/ui/assets/**

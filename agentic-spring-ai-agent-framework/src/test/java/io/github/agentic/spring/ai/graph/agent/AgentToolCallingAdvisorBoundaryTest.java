@@ -21,6 +21,7 @@ import io.github.agentic.spring.ai.graph.agent.interceptor.ModelCallHandler;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelInterceptor;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelRequest;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelResponse;
+import io.github.agentic.spring.ai.graph.agent.hook.returndirect.ReturnDirectModelHook;
 import io.github.agentic.spring.ai.graph.agent.tools.ToolContextHelper;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
 
@@ -68,6 +69,47 @@ class AgentToolCallingAdvisorBoundaryTest {
 	}
 
 	@Test
+	void returnDirectToolShouldEndWithoutSecondModelCallByDefault() throws Exception {
+		DirectToolCallThenFinalChatModel chatModel = new DirectToolCallThenFinalChatModel();
+		DirectTools tools = new DirectTools();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("direct-tool-agent")
+				.model(chatModel)
+				.tools(ToolCallbacks.from(tools)[0])
+				.saver(new MemorySaver())
+				.build();
+
+		AssistantMessage result = agent.call("call the direct tool",
+				RunnableConfig.builder().threadId("direct-tool-thread").addMetadata("_stream_", false).build());
+
+		assertEquals("\"direct tool response\"", result.getText());
+		assertEquals(1, chatModel.callCount.get());
+		assertEquals(1, tools.executions.get());
+	}
+
+	@Test
+	void explicitReturnDirectHookShouldNotBeDuplicatedByDefaultInjection() throws Exception {
+		DirectToolCallThenFinalChatModel chatModel = new DirectToolCallThenFinalChatModel();
+		DirectTools tools = new DirectTools();
+
+		ReactAgent agent = ReactAgent.builder()
+				.name("explicit-direct-tool-agent")
+				.model(chatModel)
+				.tools(ToolCallbacks.from(tools)[0])
+				.hooks(List.of(new ReturnDirectModelHook()))
+				.saver(new MemorySaver())
+				.build();
+
+		AssistantMessage result = agent.call("call the direct tool",
+				RunnableConfig.builder().threadId("explicit-direct-tool-thread").addMetadata("_stream_", false).build());
+
+		assertEquals("\"direct tool response\"", result.getText());
+		assertEquals(1, chatModel.callCount.get());
+		assertEquals(1, tools.executions.get());
+	}
+
+	@Test
 	void toolOnlyAgentShouldNotReplaceProviderOptionsWithGenericToolOptions() throws Exception {
 		AtomicReference<ModelRequest> capturedRequest = new AtomicReference<>();
 		ToolCallback toolCallback = ToolCallbacks.from(new BoundaryTools())[0];
@@ -95,6 +137,27 @@ class AgentToolCallingAdvisorBoundaryTest {
 			if (callCount.incrementAndGet() == 1) {
 				AssistantMessage.ToolCall toolCall = new AssistantMessage.ToolCall("call-1", "function",
 						"boundary_tool", "{}");
+				return new ChatResponse(List.of(new Generation(
+						AssistantMessage.builder().content("").toolCalls(List.of(toolCall)).build())));
+			}
+			return new ChatResponse(List.of(new Generation(new AssistantMessage("final response"))));
+		}
+
+		@Override
+		public Flux<ChatResponse> stream(Prompt prompt) {
+			return Flux.just(call(prompt));
+		}
+	}
+
+	private static final class DirectToolCallThenFinalChatModel implements ChatModel {
+
+		private final AtomicInteger callCount = new AtomicInteger();
+
+		@Override
+		public ChatResponse call(Prompt prompt) {
+			if (callCount.incrementAndGet() == 1) {
+				AssistantMessage.ToolCall toolCall = new AssistantMessage.ToolCall("call-1", "function",
+						"direct_tool", "{}");
 				return new ChatResponse(List.of(new Generation(
 						AssistantMessage.builder().content("").toolCalls(List.of(toolCall)).build())));
 			}
@@ -138,6 +201,17 @@ class AgentToolCallingAdvisorBoundaryTest {
 		@Override
 		public String getName() {
 			return "capturing-model-interceptor";
+		}
+	}
+
+	private static final class DirectTools {
+
+		private final AtomicInteger executions = new AtomicInteger();
+
+		@Tool(name = "direct_tool", description = "Returns directly", returnDirect = true)
+		String directTool() {
+			executions.incrementAndGet();
+			return "direct tool response";
 		}
 	}
 

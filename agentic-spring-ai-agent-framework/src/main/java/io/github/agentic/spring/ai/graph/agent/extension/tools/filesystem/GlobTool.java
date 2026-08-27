@@ -15,6 +15,8 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -35,6 +37,8 @@ import java.util.function.BiFunction;
  */
 public class GlobTool implements BiFunction<String, ToolContext, String> {
 
+	private final FilesystemBackend backend;
+
 	public static final String DESCRIPTION = """
 			Find files matching a glob pattern.
 			
@@ -49,6 +53,11 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 			""";
 
 	public GlobTool() {
+		this(null);
+	}
+
+	public GlobTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
@@ -56,6 +65,10 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 			@ToolParam(description = "The glob pattern to match files") String pattern,
 			ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				return ListFilesTool.formatFileInfoPaths(this.backend.globInfo(pattern, "/"),
+						"No files found matching pattern: " + pattern);
+			}
 			Path basePathObj = Paths.get(System.getProperty("user.dir"));
 			PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 
@@ -81,7 +94,11 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	public static ToolCallback createGlobToolCallback(String description) {
-		return FunctionToolCallback.builder("glob", new GlobTool())
+		return createGlobToolCallback(description, null);
+	}
+
+	public static ToolCallback createGlobToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("glob", new GlobTool(backend))
 				.description(description)
 				.inputType(String.class)
 				.build();

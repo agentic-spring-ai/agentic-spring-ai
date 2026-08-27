@@ -49,6 +49,8 @@ public final class RunnableConfig implements HasMetadata<RunnableConfig.Builder>
 	public static final String HUMAN_FEEDBACK_METADATA_KEY = "HUMAN_FEEDBACK";
 
 	public static final String STATE_UPDATE_METADATA_KEY = "STATE_UPDATE";
+	public static final String APP_NAME_METADATA_KEY = "app_name";
+	public static final String USER_ID_METADATA_KEY = "user_id";
 	public static final String DEFAULT_PARALLEL_EXECUTOR_KEY = "_DEFAULT_PARALLEL_EXECUTOR_";
 	public static final String DEFAULT_PARALLEL_AGGREGATION_STRATEGY_KEY = "_DEFAULT_PARALLEL_AGGREGATION_STRATEGY_";
 

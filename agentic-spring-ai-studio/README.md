@@ -14,8 +14,9 @@ The unified application supports both **Graph** (e.g. `simple_workflow`) and **A
 2. Then, start the chat ui
 
 ```shell
-npm install
-npm run dev
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 3. Chat with agent
@@ -32,13 +33,36 @@ Just add the following dependency to your agent project:
 
 ```xml
 <dependency>
-	<groupId>io.github.agentic.spring.ai</groupId>
+	<groupId>io.github.agentic-spring-ai</groupId>
 	<artifactId>agentic-spring-ai-studio</artifactId>
-	<version>1.1.2.3-SNAPSHOT</version>
+	<version>2.1.0-dev</version>
 </dependency>
 ```
 
 Run your agent, visit `http:localhost:{your-port}/chatui/index.html`, and now you can chat with you agent.
+
+If execution endpoints are protected, configure the backend token with:
+
+```properties
+spring.ai.alibaba.agent.studio.execution.auth-token=change-me
+```
+
+The embedded static UI does not read this value from build-time environment variables. Open the UI
+configuration panel and set `Execution Token`; the browser stores it in `sessionStorage` for the
+current tab session and sends it as `X-Agentic-Studio-Token` only on execution requests.
+
+Checkpoint keys created by older Studio versions used only `threadId`. Migrate known legacy threads
+before accepting traffic after an upgrade; runtime reads intentionally do not fall back to unscoped
+keys because that would permit cross-user access:
+
+```java
+saver.migrateLegacyThread(
+    RunnableConfig.builder().threadId(threadId).build(),
+    RunnableConfig.builder().threadId(threadId)
+        .addMetadata(RunnableConfig.APP_NAME_METADATA_KEY, appName)
+        .addMetadata(RunnableConfig.USER_ID_METADATA_KEY, userId)
+        .build());
+```
 
 Build the static UI before packaging the Maven project:
 
@@ -46,6 +70,8 @@ Build the static UI before packaging the Maven project:
 cd agent-chat-ui
 pnpm install --frozen-lockfile
 pnpm run build:static
+cd ..
+../mvnw -pl :agentic-spring-ai-studio -am -DskipTests package
 ```
 
 ### Standalone mode

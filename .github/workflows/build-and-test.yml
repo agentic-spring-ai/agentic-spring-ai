@@ -38,6 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
       - run: make tools
       - run: make format-check
   check-style:
@@ -46,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
       - run: make tools
       - run: make checkstyle-check
   test:
@@ -55,6 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
       - run: make tools
       - run: make test
   build:
@@ -64,5 +67,37 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
       - run: make tools
       - run: make build
+  studio-ui:
+    if: (github.repository == 'agentic-spring-ai/agentic-spring-ai')
+    runs-on: ubuntu-22.04
+    needs: [format, check-style]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.5.1 --activate
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui install --frozen-lockfile
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui audit --prod
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui run build:static
+      - run: test -f agentic-spring-ai-studio/agent-chat-ui/out/index.html
+      - run: ./mvnw -B -pl :agentic-spring-ai-studio -am -DskipTests package
+  examples:
+    if: (github.repository == 'agentic-spring-ai/agentic-spring-ai')
+    runs-on: ubuntu-22.04
+    needs: [build]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./tools/github-actions/setup-deps
+      - uses: ./tools/github-actions/setup-extensions
+      - run: ./mvnw -B -DskipTests install
+      - name: Compile standalone examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r pom; do
+            ./mvnw -B -f "$pom" -DskipTests compile
+          done < <(find examples -name pom.xml | sort)

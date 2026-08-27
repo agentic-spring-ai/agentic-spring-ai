@@ -15,6 +15,9 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+import io.github.agentic.spring.ai.graph.agent.extension.file.GrepMatch;
+
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
@@ -26,7 +29,9 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,6 +41,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
  * Tool for searching text patterns in files.
  */
 public class GrepTool implements BiFunction<GrepTool.GrepRequest, ToolContext, String> {
+
+	private final FilesystemBackend backend;
 
 	public static final String DESCRIPTION = """
 			Search for a pattern in files.
@@ -51,11 +58,20 @@ public class GrepTool implements BiFunction<GrepTool.GrepRequest, ToolContext, S
 			""";
 
 	public GrepTool() {
+		this(null);
+	}
+
+	public GrepTool(FilesystemBackend backend) {
+		this.backend = backend;
 	}
 
 	@Override
 	public String apply(GrepRequest request, ToolContext toolContext) {
 		try {
+			if (this.backend != null) {
+				return formatBackendGrepResult(this.backend.grepRaw(request.pattern, request.path, request.glob),
+						request.pattern, request.outputMode);
+			}
 			Path searchPath = request.path != null ?
 					Paths.get(request.path) :
 					Paths.get(System.getProperty("user.dir"));
@@ -102,10 +118,44 @@ public class GrepTool implements BiFunction<GrepTool.GrepRequest, ToolContext, S
 	}
 
 	public static ToolCallback createGrepToolCallback(String description) {
-		return FunctionToolCallback.builder("grep", new GrepTool())
+		return createGrepToolCallback(description, null);
+	}
+
+	public static ToolCallback createGrepToolCallback(String description, FilesystemBackend backend) {
+		return FunctionToolCallback.builder("grep", new GrepTool(backend))
 				.description(description)
 				.inputType(GrepRequest.class)
 				.build();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String formatBackendGrepResult(Object rawResult, String pattern, String outputMode) {
+		if (rawResult instanceof String error) {
+			return error;
+		}
+		List<GrepMatch> matches = rawResult instanceof List<?> ? (List<GrepMatch>) rawResult : List.of();
+		if (matches.isEmpty()) {
+			return "No matches found for pattern: " + pattern;
+		}
+		if ("content".equals(outputMode)) {
+			List<String> results = new ArrayList<>();
+			for (GrepMatch match : matches) {
+				results.add(match.getPath() + ":" + match.getLine() + ": " + match.getText());
+			}
+			return String.join("\n", results);
+		}
+		if ("count".equals(outputMode)) {
+			List<String> results = new ArrayList<>();
+			for (GrepMatch match : matches) {
+				results.add(match.getPath() + ": matched");
+			}
+			return String.join("\n", results);
+		}
+		Set<String> paths = new LinkedHashSet<>();
+		for (GrepMatch match : matches) {
+			paths.add(match.getPath());
+		}
+		return String.join("\n", paths);
 	}
 
 	/**

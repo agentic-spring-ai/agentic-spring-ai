@@ -21,7 +21,7 @@
 
     <groupId>io.github.agentic-spring-ai</groupId>
     <artifactId>agentic-spring-ai-bom</artifactId>
-    <version>2.1.0-dev</version>
+    <version>${revision}</version>
 
     <packaging>pom</packaging>
 
@@ -66,6 +66,8 @@
     </developers>
 
     <properties>
+        <revision>2.1.0-dev</revision>
+
         <!-- Plugin Versions -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
@@ -107,6 +109,11 @@
             <dependency>
                 <groupId>io.github.agentic-spring-ai</groupId>
                 <artifactId>agentic-spring-ai-starter-graph-observation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.agentic-spring-ai</groupId>
+                <artifactId>agentic-spring-ai-starter-builtin-nodes</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

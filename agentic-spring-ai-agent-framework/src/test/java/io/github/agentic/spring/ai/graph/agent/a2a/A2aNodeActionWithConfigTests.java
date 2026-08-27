@@ -18,6 +18,7 @@ package io.github.agentic.spring.ai.graph.agent.a2a;
 import io.github.agentic.spring.ai.graph.GraphResponse;
 import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.OverAllState;
+import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.async.AsyncGenerator;
 import io.github.agentic.spring.ai.graph.streaming.OutputType;
 import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
@@ -31,6 +32,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Flux;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.HashMap;
@@ -38,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.sun.net.httpserver.HttpServer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -146,6 +153,40 @@ class A2aNodeActionWithConfigTests {
 		assertEquals("boom", exception.getMessage());
 	}
 
+	@Test
+	void applyDoesNotWriteNonStreamingPayloadToStdout() throws Exception {
+		HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		server.createContext("/", exchange -> {
+			String response = """
+					{"jsonrpc":"2.0","id":"response-1","result":{"kind":"artifact-update","artifact":{"parts":[{"text":"remote ok"}]}}}
+					""";
+			byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().add("Content-Type", "application/json");
+			exchange.sendResponseHeaders(200, bytes.length);
+			exchange.getResponseBody().write(bytes);
+			exchange.close();
+		});
+		server.start();
+		String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/";
+		PrintStream originalOut = System.out;
+		ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		try {
+			System.setOut(new PrintStream(stdout, true, StandardCharsets.UTF_8));
+			A2aNodeActionWithConfig nonStreamingAction = new A2aNodeActionWithConfig(
+					createAgentCardWrapper(baseUrl), "remote-agent", false, "reply", "secret instruction", false);
+
+			Map<String, Object> result = nonStreamingAction.apply(new OverAllState(),
+					RunnableConfig.builder().threadId("thread-1").build());
+
+			assertEquals("remote ok", result.get("reply"));
+			assertEquals("", stdout.toString(StandardCharsets.UTF_8));
+		}
+		finally {
+			System.setOut(originalOut);
+			server.stop(0);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	private Flux<GraphResponse<NodeOutput>> invokeToFlux(AsyncGenerator<NodeOutput> generator) throws Exception {
 		return (Flux<GraphResponse<NodeOutput>>) TO_FLUX.invoke(this.action, generator);
@@ -163,8 +204,13 @@ class A2aNodeActionWithConfigTests {
 	}
 
 	private static AgentCardWrapper createAgentCardWrapper() {
+		return createAgentCardWrapper(null);
+	}
+
+	private static AgentCardWrapper createAgentCardWrapper(String url) {
 		AgentCard agentCard = mock(AgentCard.class);
 		when(agentCard.name()).thenReturn("test-agent");
+		when(agentCard.url()).thenReturn(url);
 		return new AgentCardWrapper(agentCard);
 	}
 

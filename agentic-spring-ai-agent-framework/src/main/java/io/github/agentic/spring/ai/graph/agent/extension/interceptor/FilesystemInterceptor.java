@@ -16,6 +16,7 @@
 package io.github.agentic.spring.ai.graph.agent.extension.interceptor;
 
 import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
+import io.github.agentic.spring.ai.graph.agent.extension.file.LocalFilesystemBackend;
 import io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem.EditFileTool;
 import io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem.GlobTool;
 import io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem.GrepTool;
@@ -119,26 +120,32 @@ public class FilesystemInterceptor extends ModelInterceptor {
 		// Create filesystem tools using factory methods with custom or default descriptions
 		List<ToolCallback> toolList = new ArrayList<>();
 		toolList.add(ListFilesTool.createListFilesToolCallback(
-			customToolDescriptions.getOrDefault("ls", ListFilesTool.DESCRIPTION)
+			customToolDescriptions.getOrDefault("ls", ListFilesTool.DESCRIPTION),
+			builder.backend
 		));
 		toolList.add(ReadFileTool.createReadFileToolCallback(
-			customToolDescriptions.getOrDefault("read_file", ReadFileTool.DESCRIPTION)
+			customToolDescriptions.getOrDefault("read_file", ReadFileTool.DESCRIPTION),
+			builder.backend
 		));
 
 		if (!readOnly) {
 			toolList.add(WriteFileTool.createWriteFileToolCallback(
-				customToolDescriptions.getOrDefault("write_file", WriteFileTool.DESCRIPTION)
+				customToolDescriptions.getOrDefault("write_file", WriteFileTool.DESCRIPTION),
+				builder.backend
 			));
 			toolList.add(EditFileTool.createEditFileToolCallback(
-				customToolDescriptions.getOrDefault("edit_file", EditFileTool.DESCRIPTION)
+				customToolDescriptions.getOrDefault("edit_file", EditFileTool.DESCRIPTION),
+				builder.backend
 			));
 		}
 
 		toolList.add(GlobTool.createGlobToolCallback(
-			customToolDescriptions.getOrDefault("glob", GlobTool.DESCRIPTION)
+			customToolDescriptions.getOrDefault("glob", GlobTool.DESCRIPTION),
+			builder.backend
 		));
 		toolList.add(GrepTool.createGrepToolCallback(
-			customToolDescriptions.getOrDefault("grep", GrepTool.DESCRIPTION)
+			customToolDescriptions.getOrDefault("grep", GrepTool.DESCRIPTION),
+			builder.backend
 		));
 
 		this.tools = Collections.unmodifiableList(toolList);
@@ -228,7 +235,7 @@ public class FilesystemInterceptor extends ModelInterceptor {
 		private String systemPrompt;
 		private boolean readOnly = false;
 		private Map<String, String> customToolDescriptions;
-		private FilesystemBackend backend;
+		private FilesystemBackend backend = new LocalFilesystemBackend(null, true, 10);
 
 		/**
 		 * Set custom system prompt to guide filesystem usage.
@@ -284,10 +291,14 @@ public class FilesystemInterceptor extends ModelInterceptor {
 			return this;
 		}
 
+		public Builder backend(FilesystemBackend backend) {
+			this.backend = backend;
+			return this;
+		}
+
 		public FilesystemInterceptor build() {
 			return new FilesystemInterceptor(this);
 		}
 	}
 
 }
-
