@@ -128,7 +128,7 @@
         <a2a-sdk.version>0.2.5.Beta2</a2a-sdk.version>
 
         <!-- JSpecify Version -->
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
 
         <graalvm.polyglot.version>24.2.1</graalvm.polyglot.version>
 
