@@ -29,11 +29,11 @@
     <packaging>jar</packaging>
     <name>Agentic Spring AI Studio</name>
     <description>The studio library that is designed to be used inside spring ai alibaba project.</description>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     <scm>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     </scm>
 
     <properties>

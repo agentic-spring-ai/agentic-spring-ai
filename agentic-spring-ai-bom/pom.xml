@@ -20,28 +20,28 @@
 
     <groupId>io.github.agentic-spring-ai</groupId>
     <artifactId>agentic-spring-ai-bom</artifactId>
-    <version>1.1.2.2</version>
+    <version>1.1.2.3</version>
 
     <packaging>pom</packaging>
 
     <name>Agentic Spring AI Bom</name>
-    <url>https://github.com/alibaba/agentic-spring-ai</url>
+    <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
     <description>Bill of Materials POM (BOM) for the Spring AI Alibaba modules</description>
 
 
     <scm>
-        <url>https://github.com/alibaba/agentic-spring-ai</url>
-        <connection>git://github.com/alibaba/agentic-spring-ai.git</connection>
-        <developerConnection>git@github.com:alibaba/agentic-spring-ai.git</developerConnection>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
+        <connection>git://github.com/agentic-spring-ai/agentic-spring-ai.git</connection>
+        <developerConnection>git@github.com:agentic-spring-ai/agentic-spring-ai.git</developerConnection>
     </scm>
 
     <issueManagement>
         <system>Github Issues</system>
-        <url>https://github.com/alibaba/agentic-spring-ai/issues</url>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai/issues</url>
     </issueManagement>
     <ciManagement>
         <system>Github Actions</system>
-        <url>https://github.com/alibaba/agentic-spring-ai/actions</url>
+        <url>https://github.com/agentic-spring-ai/agentic-spring-ai/actions</url>
     </ciManagement>
     <licenses>
         <license>
@@ -83,7 +83,7 @@
         <spring-javaformat-maven-plugin.version>0.0.39</spring-javaformat-maven-plugin.version>
 
         <!-- Maven Central Portal -->
-        <central.publishing.maven.version>0.7.0</central.publishing.maven.version>
+        <central.publishing.maven.version>0.11.0</central.publishing.maven.version>
     </properties>
 
     <dependencyManagement>
@@ -408,7 +408,7 @@
         <profile>
             <id>release</id>
             <properties>
-                <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
+                <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
                 <nexus-staging-maven-plugin.version>1.7.0</nexus-staging-maven-plugin.version>
             </properties>
             <build>
@@ -487,6 +487,8 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
                         </configuration>
                     </plugin>
                 </plugins>

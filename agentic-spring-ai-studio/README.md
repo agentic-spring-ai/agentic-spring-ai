@@ -45,7 +45,7 @@ Run your agent, visit `http:localhost:{your-port}/chatui/index.html`, and now yo
 First, clone the repository,
 
 ```bash
-git clone https://github.com/alibaba/agentic-spring-ai.git
+git clone https://github.com/agentic-spring-ai/agentic-spring-ai.git
 
 cd agentic-spring-ai/agentic-spring-ai-studio/agent-chat-ui
 ```

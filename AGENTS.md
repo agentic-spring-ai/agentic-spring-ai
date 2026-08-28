@@ -145,6 +145,6 @@ The project uses `make` for linting tasks:
 
 ## Important Links
 
-- **Issues**: [https://github.com/alibaba/agentic-spring-ai/issues](https://github.com/alibaba/agentic-spring-ai/issues)
-- **Source**: [https://github.com/alibaba/agentic-spring-ai](https://github.com/alibaba/agentic-spring-ai)
+- **Issues**: [https://github.com/agentic-spring-ai/agentic-spring-ai/issues](https://github.com/agentic-spring-ai/agentic-spring-ai/issues)
+- **Source**: [https://github.com/agentic-spring-ai/agentic-spring-ai](https://github.com/agentic-spring-ai/agentic-spring-ai)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)

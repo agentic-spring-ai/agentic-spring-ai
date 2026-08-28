@@ -193,13 +193,15 @@ class SerializationHelper {
 					JsonInclude.Value propertyInclusion =
 							getPropertyInclusion(provider, accessor, recordInclusion);
 					if (shouldInclude(provider, propertyInclusion, property, propertyValue)) {
+						boolean incompatibleContainer =
+								hasIncompatibleContainerValue(property.getPrimaryType(), propertyValue);
 						boolean hasAssignedSerializer = propertyWriter.isUnwrapping()
 								|| !propertyWriter.getName().equals(property.getName())
 								|| propertyWriter.getTypeSerializer() != null
 								|| (propertyValue == null
 										? propertyWriter.hasNullSerializer()
 										: propertyWriter.hasSerializer());
-						if (hasAssignedSerializer) {
+						if (hasAssignedSerializer && !incompatibleContainer) {
 							normalized.putAll(applyPropertyWriter(provider, propertyWriter, record));
 						}
 						else {

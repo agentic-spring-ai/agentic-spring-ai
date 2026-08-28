@@ -14,7 +14,7 @@ Just add the following dependency to your agent project:
 <dependency>
 	<groupId>io.github.agentic.spring.ai</groupId>
 	<artifactId>agentic-spring-ai-studio</artifactId>
-	<version>1.1.2.2</version>
+	<version>1.1.2.3</version>
 </dependency>
 ```
 
@@ -25,7 +25,7 @@ Run your agent, visit `http:localhost:{your-port}/chatui/index.html`, and now yo
 First, clone the repository,
 
 ```bash
-git clone https://github.com/alibaba/agentic-spring-ai.git
+git clone https://github.com/agentic-spring-ai/agentic-spring-ai.git
 
 cd agentic-spring-ai/agentic-spring-ai-studio/agent-chat-ui
 ```

@@ -20,11 +20,11 @@ For more complex changes, we suggest first adding a Feature tag in an Issue with
 
 ### Where to Start?
 
-If you are a first-time contributor, you can claim a relatively simple task from [good first issue](https://github.com/alibaba/agentic-spring-ai/labels/good%20first%20issue) or [help wanted](https://github.com/alibaba/agentic-spring-ai/labels/help%20wanted).
+If you are a first-time contributor, you can claim a relatively simple task from [good first issue](https://github.com/agentic-spring-ai/agentic-spring-ai/labels/good%20first%20issue) or [help wanted](https://github.com/agentic-spring-ai/agentic-spring-ai/labels/help%20wanted).
 
 ### Fork the Repository and Clone it Locally
 
-- Click the `Fork` icon in the upper right corner of [this project](https://github.com/alibaba/agentic-spring-ai) to fork alibaba/agentic-spring-ai to your own space.
+- Click the `Fork` icon in the upper right corner of [this project](https://github.com/agentic-spring-ai/agentic-spring-ai) to fork agentic-spring-ai/agentic-spring-ai to your own space.
 - Clone the agentic-spring-ai repository from your account to your local machine. For example, if my account is `chickenlj`, I would execute `git clone https://github.com/chickenlj/agentic-spring-ai.git` to clone it.
 
 ### Configure GitHub Information
@@ -38,7 +38,7 @@ If you are a first-time contributor, you can claim a relatively simple task from
 
 After forking the repository, new commits may have appeared in the original repository's main branch. To avoid conflicts between your PR and the commits in the main branch, you need to regularly merge from the main branch.
 
-- In your local agentic-spring-ai directory, execute `git remote add upstream https://github.com/alibaba/agentic-spring-ai` to add the original repository address as the remote upstream.
+- In your local agentic-spring-ai directory, execute `git remote add upstream https://github.com/agentic-spring-ai/agentic-spring-ai` to add the original repository address as the remote upstream.
 - In your local agentic-spring-ai directory, execute `git fetch upstream` to fetch the remote updates to your local machine.
 - In your local agentic-spring-ai directory, execute `git checkout main` to switch to the main branch.
 - In your local agentic-spring-ai directory, execute `git rebase upstream/main` to rebase the latest code.
