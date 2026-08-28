@@ -139,9 +139,7 @@ public class SkillsAgentHook extends AgentHook {
 	@Override
 	public List<ModelInterceptor> getModelInterceptors() {
 		SkillsInterceptor.Builder interceptorBuilder = SkillsInterceptor.builder().skillRegistry(this.skillRegistry);
-		if (!this.groupedTools.isEmpty()) {
-			interceptorBuilder.groupedTools(this.groupedTools);
-		}
+		interceptorBuilder.groupedTools(this.groupedTools);
 		if (this.toolCallbackResolver != null) {
 			interceptorBuilder.toolCallbackResolver(this.toolCallbackResolver);
 		}

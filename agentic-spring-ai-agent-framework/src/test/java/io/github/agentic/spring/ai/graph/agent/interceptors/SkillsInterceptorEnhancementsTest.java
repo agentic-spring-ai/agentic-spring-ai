@@ -45,6 +45,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -153,6 +154,20 @@ class SkillsInterceptorEnhancementsTest {
 
 		assertEquals(1, toolCallbacks.size());
 		assertEquals("duplicate_tool", toolCallbacks.get(0).getToolDefinition().name());
+	}
+
+	@Test
+	void hookRetainsInitiallyEmptyGroupedToolsForLaterUpdates() {
+		Map<String, List<ToolCallback>> groupedTools = new ConcurrentHashMap<>();
+		SkillsAgentHook hook = SkillsAgentHook.builder().skillRegistry(registry).groupedTools(groupedTools).build();
+		SkillsInterceptor interceptor = (SkillsInterceptor) hook.getModelInterceptors().get(0);
+		assertTrue(interceptor.getGroupedTools().isEmpty());
+
+		ToolCallback tool = FunctionToolCallback.builder("late_tool", args -> "ok")
+				.description("Tool added after agent construction").inputType(String.class).build();
+		groupedTools.put("allowed-tools-test", List.of(tool));
+		assertEquals("late_tool", interceptor.getGroupedTools().get("allowed-tools-test").get(0)
+				.getToolDefinition().name());
 	}
 
 }
