@@ -22,9 +22,11 @@ import io.github.agentic.spring.ai.graph.serializer.std.ObjectStreamStateSeriali
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,6 +51,30 @@ public class FileSystemSaverDeleteFileTest {
 		assertTrue(saver.deleteFile(config));
 		assertFalse(Files.exists(checkpointFile));
 		assertFalse(saver.deleteFile(config));
+	}
+
+	@Test
+	public void releaseShouldTreatThreadIdAsLiteralWhenSelectingBackupVersion() throws Exception {
+		Path root = Files.createTempDirectory("checkpoint-regex");
+		FileSystemSaver saver = FileSystemSaver.builder()
+				.targetFolder(root)
+				.stateSerializer(new ObjectStreamStateSerializer(OverAllState::new))
+				.build();
+		RunnableConfig config = RunnableConfig.builder().threadId("id[abc]").build();
+
+		saver.put(config, Checkpoint.builder()
+				.state(Map.of("value", "current"))
+				.nodeId("node")
+				.nextNodeId("end")
+				.build());
+		Files.createFile(root.resolve("thread-ida-v9.saver"));
+
+		var tag = saver.release(config);
+
+		assertEquals("id[abc]", tag.threadId());
+		assertTrue(Files.exists(root.resolve("thread-id[abc]-v1.saver")));
+		assertFalse(Files.exists(root.resolve("thread-id[abc].saver")));
+		assertTrue(Files.exists(root.resolve("thread-ida-v9.saver")));
 	}
 
 }

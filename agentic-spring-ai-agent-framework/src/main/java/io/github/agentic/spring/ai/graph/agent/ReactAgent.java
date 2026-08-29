@@ -86,6 +86,7 @@ import java.util.stream.Collectors;
 
 import static io.github.agentic.spring.ai.graph.RunnableConfig.AGENT_MODEL_NAME;
 import static io.github.agentic.spring.ai.graph.RunnableConfig.AGENT_TOOL_NAME;
+import static io.github.agentic.spring.ai.graph.OverAllState.MARK_FOR_REMOVAL;
 import static io.github.agentic.spring.ai.graph.StateGraph.START;
 import static io.github.agentic.spring.ai.graph.action.AsyncEdgeAction.edge_async;
 import static io.github.agentic.spring.ai.graph.action.AsyncNodeActionWithConfig.node_async;
@@ -691,15 +692,7 @@ public class ReactAgent extends BaseAgent {
 
 		if (canJumpTo != null && !canJumpTo.isEmpty()) {
 			EdgeAction router = state -> {
-				Object jumpToValue = state.value("jump_to").orElse(null);
-				JumpTo jumpTo = null;
-				if (jumpToValue != null) {
-					if (jumpToValue instanceof JumpTo) {
-						jumpTo = (JumpTo) jumpToValue;
-					} else if (jumpToValue instanceof String) {
-						jumpTo = JumpTo.fromStringOrNull((String) jumpToValue);
-					}
-				}
+				JumpTo jumpTo = readAndClearJumpTo(state);
 				return resolveJump(jumpTo, modelDestination, endDestination, defaultDestination);
 			};
 
@@ -734,6 +727,20 @@ public class ReactAgent extends BaseAgent {
 
 		// Tools to model routing
 		graph.addConditionalEdges(AGENT_TOOL_NAME, edge_async(agentInstance.makeToolsToModelEdge(loopEntryNode, exitNode)), Map.of(loopEntryNode, loopEntryNode, exitNode, exitNode));
+	}
+
+	private static JumpTo readAndClearJumpTo(OverAllState state) {
+		Object jumpToValue = state.value("jump_to").orElse(null);
+		if (jumpToValue != null) {
+			state.updateState(Map.of("jump_to", MARK_FOR_REMOVAL));
+		}
+		if (jumpToValue instanceof JumpTo jumpTo) {
+			return jumpTo;
+		}
+		if (jumpToValue instanceof String jumpTo) {
+			return JumpTo.fromStringOrNull(jumpTo);
+		}
+		return null;
 	}
 
 	private static String resolveJump(JumpTo jumpTo, String modelDestination, String endDestination, String defaultDestination) {
@@ -774,23 +781,15 @@ public class ReactAgent extends BaseAgent {
 		return state -> {
 			// Priority 1: Check for jump_to instruction from hooks
 			// This allows afterModel hooks to control workflow execution
-			Object jumpToValue = state.value("jump_to").orElse(null);
-			if (jumpToValue != null) {
-				JumpTo jumpTo = null;
-				if (jumpToValue instanceof JumpTo) {
-					jumpTo = (JumpTo) jumpToValue;
-				} else if (jumpToValue instanceof String) {
-					jumpTo = JumpTo.fromStringOrNull((String) jumpToValue);
-				}
-				
-				// If a valid jump_to instruction exists, execute it immediately
-				if (jumpTo != null) {
-					return switch (jumpTo) {
-						case model -> modelDestination;
-						case end -> endDestination;
-						case tool -> AGENT_TOOL_NAME;
-					};
-				}
+			JumpTo jumpTo = readAndClearJumpTo(state);
+
+			// If a valid jump_to instruction exists, execute it immediately
+			if (jumpTo != null) {
+				return switch (jumpTo) {
+					case model -> modelDestination;
+					case end -> endDestination;
+					case tool -> AGENT_TOOL_NAME;
+				};
 			}
 			
 			// Priority 2: Check message content for tool calls

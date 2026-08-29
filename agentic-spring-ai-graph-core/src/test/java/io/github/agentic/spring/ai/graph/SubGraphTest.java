@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.LogManager;
 
 import static io.github.agentic.spring.ai.graph.StateGraph.END;
@@ -88,6 +89,26 @@ public class SubGraphTest {
 	 */
 	private AsyncNodeAction _makeNode(String id) {
 		return node_async(state -> Map.of("messages", id));
+	}
+
+	private static KeyStrategyFactory outputKeyStrategyFactory() {
+		return () -> {
+			Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();
+			keyStrategyMap.put("input", new ReplaceStrategy());
+			keyStrategyMap.put("output", new AppendStrategy());
+			return keyStrategyMap;
+		};
+	}
+
+	private CompiledGraph makeOutputSubGraph(String nodeName, AtomicInteger hitCounter) throws GraphStateException {
+		return new StateGraph(outputKeyStrategyFactory())
+			.addNode(nodeName, node_async(state -> {
+				hitCounter.incrementAndGet();
+				return Map.of("output", nodeName + "_output");
+			}))
+			.addEdge(START, nodeName)
+			.addEdge(nodeName, END)
+			.compile();
 	}
 
 	/**
@@ -449,6 +470,81 @@ public class SubGraphTest {
 		assertIterableEquals(List.of("step1", "step2", "child:step1", "child:step2", "child:step3", "step3"),
 				(List<String>) result.value("messages").get());
 
+	}
+
+	@Test
+	public void testParentParallelBranchesMergeSubgraphOutputs() throws Exception {
+		AtomicInteger hitCounter = new AtomicInteger();
+
+		var workflowParent = new StateGraph(outputKeyStrategyFactory())
+			.addNode("A", node_async(state -> Map.of("Node_A", "node_a")))
+			.addNode("B", makeOutputSubGraph("B", hitCounter))
+			.addNode("C", makeOutputSubGraph("C", hitCounter))
+			.addNode("D", makeOutputSubGraph("D", hitCounter))
+			.addNode("E", makeOutputSubGraph("E", hitCounter))
+			.addNode("F", node_async(state -> Map.of("Node_F", "node_f")))
+			.addEdge(START, "A")
+			.addEdge("A", "B")
+			.addEdge("A", "C")
+			.addEdge("A", "D")
+			.addEdge("A", "E")
+			.addEdge("B", "F")
+			.addEdge("C", "F")
+			.addEdge("D", "F")
+			.addEdge("E", "F")
+			.addEdge("F", END)
+			.compile();
+
+		var result = workflowParent.invoke(Map.of("input", "hello")).orElseThrow();
+
+		assertEquals(4, hitCounter.get());
+		assertIterableEquals(List.of("B_output", "C_output", "D_output", "E_output"),
+				(List<String>) result.value("output").orElseThrow());
+	}
+
+	@Test
+	public void testParentMergesOnlyNewSubgraphOutputEachTime() throws Exception {
+		AtomicInteger sharedHitCounter = new AtomicInteger();
+		AtomicInteger separateHitCounter = new AtomicInteger();
+
+		CompiledGraph sharedSubGraph = makeOutputSubGraph("A", sharedHitCounter);
+		var sameSubGraphParent = new StateGraph(outputKeyStrategyFactory())
+			.addNode("before", node_async(state -> Map.of()))
+			.addNode("B", sharedSubGraph)
+			.addNode("C", sharedSubGraph)
+			.addNode("after", node_async(state -> Map.of()))
+			.addEdge(START, "before")
+			.addEdge("before", "B")
+			.addEdge("B", "C")
+			.addEdge("C", "after")
+			.addEdge("after", END)
+			.compile();
+
+		var sameSubGraphResult = sameSubGraphParent.invoke(Map.of("input", "hello")).orElseThrow();
+
+		assertEquals(2, sharedHitCounter.get());
+		List<String> sameSubGraphOutput = (List<String>) sameSubGraphResult.value("output").orElseThrow();
+		assertIterableEquals(List.of("A_output", "A_output"),
+				sameSubGraphOutput, "Unexpected output: " + sameSubGraphOutput);
+
+		var separateSubGraphParent = new StateGraph(outputKeyStrategyFactory())
+			.addNode("before", node_async(state -> Map.of()))
+			.addNode("B", makeOutputSubGraph("B", separateHitCounter))
+			.addNode("C", makeOutputSubGraph("C", separateHitCounter))
+			.addNode("after", node_async(state -> Map.of()))
+			.addEdge(START, "before")
+			.addEdge("before", "B")
+			.addEdge("B", "C")
+			.addEdge("C", "after")
+			.addEdge("after", END)
+			.compile();
+
+		var separateSubGraphResult = separateSubGraphParent.invoke(Map.of("input", "hello")).orElseThrow();
+
+		assertEquals(2, separateHitCounter.get());
+		List<String> separateSubGraphOutput = (List<String>) separateSubGraphResult.value("output").orElseThrow();
+		assertIterableEquals(List.of("B_output", "C_output"),
+				separateSubGraphOutput, "Unexpected output: " + separateSubGraphOutput);
 	}
 
 	/**

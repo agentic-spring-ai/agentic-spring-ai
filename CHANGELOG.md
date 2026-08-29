@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The A2A server now uses a bounded executor. Size it with the
   `spring.ai.alibaba.a2a.server.executor-*` properties; when saturated, its caller-runs policy applies
   backpressure on the submitting thread instead of growing an unbounded queue.
+- Fixed checkpoint and graph correctness edge cases: FileSystemSaver thread IDs are treated literally,
+  MongoSaver honors checkpoint retention, resumed nodes receive checkpoint state, parallel subgraph
+  results are merged as deltas, and one-shot `jump_to` routing is consumed instead of leaking into
+  later loops.
+- Added the [2.1.0 migration and compatibility guide](docs/2.1.0-migration.md), an isolated
+  Extensions source-compatibility check, and CI compilation coverage for JDK 17 and JDK 21.
 
 ## [2.0.0.0] - 2026-08-27
 

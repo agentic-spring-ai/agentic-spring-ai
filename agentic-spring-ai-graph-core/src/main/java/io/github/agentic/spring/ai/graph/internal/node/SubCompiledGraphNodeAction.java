@@ -18,17 +18,26 @@ package io.github.agentic.spring.ai.graph.internal.node;
 
 import io.github.agentic.spring.ai.graph.CompileConfig;
 import io.github.agentic.spring.ai.graph.CompiledGraph;
+import io.github.agentic.spring.ai.graph.GraphResponse;
+import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.action.AsyncNodeActionWithConfig;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.agentic.spring.ai.graph.internal.node.ResumableSubGraphAction.outputKeyToParent;
 import static io.github.agentic.spring.ai.graph.internal.node.ResumableSubGraphAction.resumeSubGraphId;
 import static io.github.agentic.spring.ai.graph.internal.node.ResumableSubGraphAction.subGraphId;
+import static io.github.agentic.spring.ai.graph.StateGraph.START;
 import static java.lang.String.format;
 
 /**
@@ -49,6 +58,8 @@ import static java.lang.String.format;
  */
 public record SubCompiledGraphNodeAction(String nodeId, CompileConfig parentCompileConfig,
 		CompiledGraph subGraph) implements AsyncNodeActionWithConfig, ResumableSubGraphAction {
+
+	private static final Object UNCHANGED = new Object();
 
 	public String getResumeSubGraphId() {
 		return resumeSubGraphId(nodeId);
@@ -100,7 +111,9 @@ public record SubCompiledGraphNodeAction(String nodeId, CompileConfig parentComp
 				subGraphRunnableConfig = subGraph.updateState(subGraphRunnableConfig, state.data());
 			}
 
-			var fluxStream = subGraph.graphResponseStream(state, subGraphRunnableConfig);
+			AtomicReference<Map<String, Object>> subGraphInputState = new AtomicReference<>(new HashMap<>(state.data()));
+			var fluxStream = subGraph.graphResponseStream(state, subGraphRunnableConfig)
+				.map(response -> toParentDeltaResponse(response, subGraphInputState));
 
 			future.complete(Map.of(outputKeyToParent(nodeId), fluxStream));
 
@@ -111,5 +124,51 @@ public record SubCompiledGraphNodeAction(String nodeId, CompileConfig parentComp
 		}
 
 		return future;
+	}
+
+	private static GraphResponse<NodeOutput> toParentDeltaResponse(GraphResponse<NodeOutput> response,
+			AtomicReference<Map<String, Object>> subGraphInputState) {
+		if (response.getOutput() != null && !response.getOutput().isCompletedExceptionally()) {
+			NodeOutput output = response.getOutput().join();
+			if (START.equals(output.node())) {
+				subGraphInputState.set(new HashMap<>(output.state().data()));
+			}
+		}
+		if (!response.isDone()) {
+			return response;
+		}
+
+		Optional<Object> resultValue = response.resultValue();
+		if (resultValue.isEmpty() || !(resultValue.get() instanceof Map<?, ?> resultMap)) {
+			return response;
+		}
+
+		return GraphResponse.done(deltaState(subGraphInputState.get(), resultMap), response.getAllMetadata());
+	}
+
+	private static Map<String, Object> deltaState(Map<String, Object> baseState, Map<?, ?> finalState) {
+		Map<String, Object> delta = new HashMap<>();
+		for (Map.Entry<?, ?> entry : finalState.entrySet()) {
+			if (!(entry.getKey() instanceof String key)) {
+				throw new IllegalArgumentException("Subgraph done result map keys must be String");
+			}
+			Object valueDelta = deltaValue(baseState.get(key), entry.getValue());
+			if (valueDelta != UNCHANGED) {
+				delta.put(key, valueDelta);
+			}
+		}
+		return delta;
+	}
+
+	private static Object deltaValue(Object baseValue, Object finalValue) {
+		if (Objects.equals(baseValue, finalValue)) {
+			return UNCHANGED;
+		}
+		if (baseValue instanceof List<?> baseList && finalValue instanceof List<?> finalList
+				&& finalList.size() >= baseList.size()
+				&& finalList.subList(0, baseList.size()).equals(baseList)) {
+			return new ArrayList<>(finalList.subList(baseList.size(), finalList.size()));
+		}
+		return finalValue;
 	}
 }

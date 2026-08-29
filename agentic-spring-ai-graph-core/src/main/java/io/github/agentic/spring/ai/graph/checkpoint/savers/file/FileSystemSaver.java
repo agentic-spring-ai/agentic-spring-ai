@@ -334,7 +334,8 @@ public class FileSystemSaver implements BaseCheckpointSaver {
 			return;
 		}
 
-		var versionPattern = Pattern.compile(format("%s-v(\\d+)\\%s$", getBaseName(config), EXTENSION));
+		var versionPattern = Pattern.compile(
+				format("%s-v(\\d+)%s$", Pattern.quote(getBaseName(config)), Pattern.quote(EXTENSION)));
 
 		int maxVersion = 0;
 		try (var stream = Files.list(targetFolder)) {

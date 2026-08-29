@@ -15,12 +15,17 @@
 #
 name: setup-deps
 description: Install host system dependencies
+inputs:
+  java-version:
+    description: JDK version used by Maven jobs
+    required: false
+    default: '17'
 runs:
   using: composite
   steps:
     - uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: ${{ inputs.java-version }}
         distribution: 'temurin'
         cache: 'maven'
     - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.0.1

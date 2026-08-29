@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.LogManager;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -414,6 +415,55 @@ public class StateGraphMemorySaverTest {
 		assertTrue(messages2.get(messages.size() - 1) != null);
 		assertEquals("whether in Naples is sunny", messages2.get(messages2.size() - 1));
 
+	}
+
+	@Test
+	public void resumePassesCheckpointStateToInterruptedNextNode() throws Exception {
+		AtomicReference<Map<String, Object>> node2EntryState = new AtomicReference<>();
+
+		NodeAction node1 = state -> Map.of("value", "node1-value");
+		NodeAction node2 = state -> {
+			node2EntryState.set(new HashMap<>(state.data()));
+			return Map.of("seenByNode2", state.value("value").orElseThrow());
+		};
+
+		var workflow = new StateGraph(() -> {
+			Map<String, KeyStrategy> keyStrategyMap = new HashMap<>();
+			keyStrategyMap.put("value", new ReplaceStrategy());
+			keyStrategyMap.put("seenByNode2", new ReplaceStrategy());
+			return keyStrategyMap;
+		}).addNode("node1", node_async(node1))
+			.addNode("node2", node_async(node2))
+			.addEdge(START, "node1")
+			.addEdge("node1", "node2")
+			.addEdge("node2", END);
+
+		var saver = MemorySaver.builder().build();
+		var compileConfig = CompileConfig.builder()
+			.saverConfig(SaverConfig.builder().register(saver).build())
+			.interruptBefore("node2")
+			.build();
+		var app = workflow.compile(compileConfig);
+		var runnableConfig = RunnableConfig.builder().threadId("resume-state-thread").build();
+
+		var interruptedResults = app.stream(Map.of("input", "start"), runnableConfig).collectList().block();
+
+		assertNotNull(interruptedResults);
+		assertEquals(3, interruptedResults.size());
+		assertEquals("node1", interruptedResults.get(1).node());
+		assertInstanceOf(InterruptionMetadata.class, interruptedResults.get(2));
+		assertEquals("node2", app.getState(runnableConfig).next());
+		assertEquals("node1-value", app.getState(runnableConfig).state().value("value").orElseThrow());
+		assertTrue(node2EntryState.get() == null);
+
+		var resumedResults = app.stream(null, runnableConfig.withResume()).collectList().block();
+
+		assertNotNull(resumedResults);
+		assertFalse(resumedResults.isEmpty());
+		assertNotNull(node2EntryState.get());
+		assertEquals("node1-value", node2EntryState.get().get("value"));
+		assertEquals("node1-value",
+				resumedResults.get(resumedResults.size() - 1).state().value("seenByNode2").orElseThrow());
 	}
 
 	@Test
