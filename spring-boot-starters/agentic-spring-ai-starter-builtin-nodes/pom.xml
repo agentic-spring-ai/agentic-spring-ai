@@ -55,7 +55,7 @@
     </scm>
 
     <properties>
-        <docker-java.version>3.5.3</docker-java.version>
+        <docker-java.version>3.7.1</docker-java.version>
     </properties>
 
     <dependencyManagement>
