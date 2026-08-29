@@ -69,6 +69,9 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 			ToolContext toolContext) {
 		try {
 			if (this.backend != null) {
+				if (!this.backend.isDirectory(path)) {
+					return "Error: Directory not found: " + path;
+				}
 				return formatFileInfoPaths(this.backend.lsInfo(path), "Directory is empty");
 			}
 			Path dirPath = Paths.get(path);

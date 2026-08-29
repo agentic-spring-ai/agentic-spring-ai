@@ -15,6 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.observation.graph;
 
+import io.github.agentic.spring.ai.graph.observation.ObservationContentSanitizer;
 import io.github.agentic.spring.ai.graph.observation.SpringAiAlibabaKind;
 import io.github.agentic.spring.ai.graph.observation.graph.GraphObservationDocumentation.HighCardinalityKeyNames;
 import io.micrometer.common.KeyValue;
@@ -36,6 +37,10 @@ public class DefaultGraphObservationConvention implements GraphObservationConven
 
 	private String name;
 
+	private final boolean captureContent;
+
+	private final int maxContentLength;
+
 	/**
 	 * Constructs a default convention with the default operation name.
 	 */
@@ -48,7 +53,13 @@ public class DefaultGraphObservationConvention implements GraphObservationConven
 	 * @param name the custom operation name
 	 */
 	public DefaultGraphObservationConvention(String name) {
+		this(name, false, ObservationContentSanitizer.DEFAULT_MAX_CONTENT_LENGTH);
+	}
+
+	public DefaultGraphObservationConvention(String name, boolean captureContent, int maxContentLength) {
 		this.name = name;
+		this.captureContent = captureContent;
+		this.maxContentLength = maxContentLength;
 	}
 
 	@Override
@@ -87,10 +98,14 @@ public class DefaultGraphObservationConvention implements GraphObservationConven
 	 */
 	@Override
 	public KeyValues getHighCardinalityKeyValues(GraphObservationContext context) {
-		KeyValues keyValues = KeyValues
-			.of(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_STATE, context.getState().toString()));
+		if (!captureContent) {
+			return KeyValues.empty();
+		}
+		KeyValues keyValues = KeyValues.of(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_STATE,
+				ObservationContentSanitizer.sanitizeState(context.getState(), maxContentLength)));
 		if (context.getOutput() != null) {
-			keyValues.and(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_OUTPUT, context.getOutput().toString()));
+			keyValues = keyValues.and(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_OUTPUT,
+					ObservationContentSanitizer.sanitizeText(context.getOutput(), maxContentLength)));
 		}
 		return keyValues;
 	}

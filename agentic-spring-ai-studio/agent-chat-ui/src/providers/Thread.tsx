@@ -5,12 +5,12 @@ import React, {
   useCallback,
   ReactNode,
   useEffect,
-  useMemo
-} from 'react';
-import { createApiClient, Session } from '@/lib/spring-ai-api';
-import { toast } from 'sonner';
+  useMemo,
+} from "react";
+import { createApiClient, Session } from "@/lib/spring-ai-api";
+import { toast } from "sonner";
 
-export type Mode = 'agent' | 'graph';
+export type Mode = "agent" | "graph";
 
 interface ThreadContextType {
   threads: Session[];
@@ -47,12 +47,14 @@ const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
 export function useThreads() {
   const context = useContext(ThreadContext);
   if (!context) {
-    throw new Error('useThreads must be used within a ThreadProvider');
+    throw new Error("useThreads must be used within a ThreadProvider");
   }
   return context;
 }
 
-export type LockedMode = { mode: 'agent'; agent: string } | { mode: 'graph'; graph: string };
+export type LockedMode =
+  | { mode: "agent"; agent: string }
+  | { mode: "graph"; graph: string };
 
 interface ThreadProviderProps {
   children: ReactNode;
@@ -64,24 +66,31 @@ export function ThreadProvider({ children, initialLock }: ThreadProviderProps) {
   const [threads, setThreads] = useState<Session[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [newlyCreatedThreadIds, setNewlyCreatedThreadIds] = useState<Set<string>>(new Set());
+  const [newlyCreatedThreadIds, setNewlyCreatedThreadIds] = useState<
+    Set<string>
+  >(new Set());
   const [agentList, setAgentList] = useState<string[]>([]);
   const [selectedAgent, setSelectedAgentState] = useState<string>(
-    initialLock?.mode === 'agent' ? initialLock.agent : ''
+    initialLock?.mode === "agent" ? initialLock.agent : "",
   );
   const [isAgentsLoading, setIsAgentsLoading] = useState(!initialLock);
   const [mode, setModeState] = useState<Mode>(
-    initialLock?.mode === 'graph' ? 'graph' : 'agent'
+    initialLock?.mode === "graph" ? "graph" : "agent",
   );
   const [graphList, setGraphList] = useState<string[]>([]);
   const [selectedGraph, setSelectedGraphState] = useState<string>(
-    initialLock?.mode === 'graph' ? initialLock.graph : ''
+    initialLock?.mode === "graph" ? initialLock.graph : "",
   );
   const [isGraphsLoading, setIsGraphsLoading] = useState(!initialLock);
 
   const isLocked = !!initialLock;
-  const userId = process.env.NEXT_PUBLIC_USER_ID || 'user-001';
-  const appName = mode === 'agent' ? selectedAgent : (selectedGraph ? `graph:${selectedGraph}` : '');
+  const userId = process.env.NEXT_PUBLIC_USER_ID || "user-001";
+  const appName =
+    mode === "agent"
+      ? selectedAgent
+      : selectedGraph
+        ? `graph:${selectedGraph}`
+        : "";
 
   // Fetch available agents on mount (skip when locked - we already have the agent/graph)
   useEffect(() => {
@@ -102,14 +111,16 @@ export function ThreadProvider({ children, initialLock }: ThreadProviderProps) {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error('Failed to fetch agent list:', err);
+          console.error("Failed to fetch agent list:", err);
           setAgentList([]);
         }
       })
       .finally(() => {
         if (!cancelled) setIsAgentsLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initialLock]);
 
   // Fetch available graphs on mount (graceful if backend has no graph support)
@@ -131,56 +142,76 @@ export function ThreadProvider({ children, initialLock }: ThreadProviderProps) {
       })
       .catch((err) => {
         if (!cancelled) {
-          console.warn('Graph list not available (may not be configured):', err.message);
+          console.warn(
+            "Graph list not available (may not be configured):",
+            err.message,
+          );
           setGraphList([]);
         }
       })
       .finally(() => {
         if (!cancelled) setIsGraphsLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initialLock]);
 
-  const setSelectedAgent = useCallback((agent: string) => {
-    if (isLocked) return;
-    setSelectedAgentState(agent);
-    setCurrentThreadId(null);
-  }, [isLocked]);
+  const setSelectedAgent = useCallback(
+    (agent: string) => {
+      if (isLocked) return;
+      setSelectedAgentState(agent);
+      setCurrentThreadId(null);
+    },
+    [isLocked],
+  );
 
-  const setMode = useCallback((m: Mode) => {
-    if (isLocked) return;
-    setModeState(m);
-    setCurrentThreadId(null);
-  }, [isLocked]);
+  const setMode = useCallback(
+    (m: Mode) => {
+      if (isLocked) return;
+      setModeState(m);
+      setCurrentThreadId(null);
+    },
+    [isLocked],
+  );
 
-  const setSelectedGraph = useCallback((graph: string) => {
-    if (isLocked) return;
-    setSelectedGraphState(graph);
-    setCurrentThreadId(null);
-  }, [isLocked]);
+  const setSelectedGraph = useCallback(
+    (graph: string) => {
+      if (isLocked) return;
+      setSelectedGraphState(graph);
+      setCurrentThreadId(null);
+    },
+    [isLocked],
+  );
 
-  const isNewlyCreatedThread = useCallback((threadId: string) => {
-    return newlyCreatedThreadIds.has(threadId);
-  }, [newlyCreatedThreadIds]);
+  const isNewlyCreatedThread = useCallback(
+    (threadId: string) => {
+      return newlyCreatedThreadIds.has(threadId);
+    },
+    [newlyCreatedThreadIds],
+  );
 
   const loadThreads = useCallback(async () => {
-    if (mode === 'agent' && !selectedAgent) return;
-    if (mode === 'graph' && !selectedGraph) return;
+    if (mode === "agent" && !selectedAgent) return;
+    if (mode === "graph" && !selectedGraph) return;
     setIsLoading(true);
     try {
       const apiClient = createApiClient();
-      const sessions = mode === 'graph'
-        ? await apiClient.listGraphSessions(selectedGraph, userId)
-        : await apiClient.listSessions(selectedAgent, userId);
+      const sessions =
+        mode === "graph"
+          ? await apiClient.listGraphSessions(selectedGraph, userId)
+          : await apiClient.listSessions(selectedAgent, userId);
 
-      const sortedSessions = sessions.sort(
-        (a, b) => a.thread_id.localeCompare(b.thread_id)
+      const sortedSessions = sessions.sort((a, b) =>
+        a.thread_id.localeCompare(b.thread_id),
       );
 
       setThreads(sortedSessions);
     } catch (error: any) {
-      console.error('Failed to load threads:', error);
-      toast.error('Failed to load threads: ' + (error.message || 'Unknown error'));
+      console.error("Failed to load threads:", error);
+      toast.error(
+        "Failed to load threads: " + (error.message || "Unknown error"),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -189,79 +220,114 @@ export function ThreadProvider({ children, initialLock }: ThreadProviderProps) {
   const createThread = useCallback(async (): Promise<Session | null> => {
     try {
       const apiClient = createApiClient();
-      const newSession = mode === 'graph'
-        ? await apiClient.createGraphSession(selectedGraph, userId, {})
-        : await apiClient.createSession(selectedAgent, userId, {});
+      const newSession =
+        mode === "graph"
+          ? await apiClient.createGraphSession(selectedGraph, userId, {})
+          : await apiClient.createSession(selectedAgent, userId, {});
 
-      setNewlyCreatedThreadIds((prev) => new Set(prev).add(newSession.thread_id));
+      setNewlyCreatedThreadIds((prev) =>
+        new Set(prev).add(newSession.thread_id),
+      );
       setThreads((prev) => [newSession, ...prev]);
       setCurrentThreadId(newSession.thread_id);
 
-      toast.success('New thread created');
+      toast.success("New thread created");
       return newSession;
     } catch (error: any) {
-      console.error('Failed to create thread:', error);
-      toast.error('Failed to create thread: ' + (error.message || 'Unknown error'));
+      console.error("Failed to create thread:", error);
+      toast.error(
+        "Failed to create thread: " + (error.message || "Unknown error"),
+      );
       return null;
     }
   }, [mode, selectedAgent, selectedGraph, userId]);
 
-  const deleteThread = useCallback(async (threadId: string) => {
-    try {
-      const apiClient = createApiClient();
-      if (mode === 'graph') {
-        await apiClient.deleteGraphSession(selectedGraph, userId, threadId);
-      } else {
-        await apiClient.deleteSession(selectedAgent, userId, threadId);
+  const deleteThread = useCallback(
+    async (threadId: string) => {
+      try {
+        const apiClient = createApiClient();
+        if (mode === "graph") {
+          await apiClient.deleteGraphSession(selectedGraph, userId, threadId);
+        } else {
+          await apiClient.deleteSession(selectedAgent, userId, threadId);
+        }
+
+        setThreads((prev) => prev.filter((t) => t.thread_id !== threadId));
+
+        if (currentThreadId === threadId) {
+          setCurrentThreadId(null);
+        }
+
+        toast.success("Thread deleted");
+      } catch (error: any) {
+        console.error("Failed to delete thread:", error);
+        toast.error(
+          "Failed to delete thread: " + (error.message || "Unknown error"),
+        );
       }
-
-      setThreads((prev) => prev.filter((t) => t.thread_id !== threadId));
-
-      if (currentThreadId === threadId) {
-        setCurrentThreadId(null);
-      }
-
-      toast.success('Thread deleted');
-    } catch (error: any) {
-      console.error('Failed to delete thread:', error);
-      toast.error('Failed to delete thread: ' + (error.message || 'Unknown error'));
-    }
-  }, [mode, selectedAgent, selectedGraph, userId, currentThreadId]);
+    },
+    [mode, selectedAgent, selectedGraph, userId, currentThreadId],
+  );
 
   // When selected agent/graph changes, reload threads
   useEffect(() => {
-    if (mode === 'agent' && selectedAgent) {
+    if (mode === "agent" && selectedAgent) {
       setCurrentThreadId(null);
       loadThreads();
-    } else if (mode === 'graph' && selectedGraph) {
+    } else if (mode === "graph" && selectedGraph) {
       setCurrentThreadId(null);
       loadThreads();
     }
   }, [mode, selectedAgent, selectedGraph, loadThreads]);
 
-  const contextValue = useMemo(() => ({
-    threads,
-    currentThreadId,
-    setCurrentThreadId,
-    loadThreads,
-    createThread,
-    deleteThread,
-    appName,
-    userId,
-    agentList,
-    selectedAgent,
-    setSelectedAgent,
-    mode,
-    setMode,
-    graphList,
-    selectedGraph,
-    setSelectedGraph,
-    isGraphsLoading,
-    isLoading,
-    isAgentsLoading,
-    isNewlyCreatedThread,
-    isLocked,
-  }), [threads, currentThreadId, setCurrentThreadId, loadThreads, createThread, deleteThread, appName, userId, agentList, selectedAgent, setSelectedAgent, mode, setMode, graphList, selectedGraph, setSelectedGraph, isGraphsLoading, isLoading, isAgentsLoading, isNewlyCreatedThread, isLocked]);
+  const contextValue = useMemo(
+    () => ({
+      threads,
+      currentThreadId,
+      setCurrentThreadId,
+      loadThreads,
+      createThread,
+      deleteThread,
+      appName,
+      userId,
+      agentList,
+      selectedAgent,
+      setSelectedAgent,
+      mode,
+      setMode,
+      graphList,
+      selectedGraph,
+      setSelectedGraph,
+      isGraphsLoading,
+      isLoading,
+      isAgentsLoading,
+      isNewlyCreatedThread,
+      isLocked,
+    }),
+    [
+      threads,
+      currentThreadId,
+      setCurrentThreadId,
+      loadThreads,
+      createThread,
+      deleteThread,
+      appName,
+      userId,
+      agentList,
+      selectedAgent,
+      setSelectedAgent,
+      mode,
+      setMode,
+      graphList,
+      selectedGraph,
+      setSelectedGraph,
+      isGraphsLoading,
+      isLoading,
+      isAgentsLoading,
+      isNewlyCreatedThread,
+      isLocked,
+    ],
+  );
 
   return (
     <ThreadContext.Provider value={contextValue}>
@@ -269,4 +335,3 @@ export function ThreadProvider({ children, initialLock }: ThreadProviderProps) {
     </ThreadContext.Provider>
   );
 }
-

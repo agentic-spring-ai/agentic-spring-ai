@@ -118,11 +118,68 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 		return cwd.resolve(path).normalize();
 	}
 
+	private void ensureVirtualPathInsideRoot(Path path) throws IOException {
+		if (!virtualMode) {
+			return;
+		}
+		Path normalizedPath = path.toAbsolutePath().normalize();
+		if (!normalizedPath.startsWith(cwd)) {
+			throw new IllegalArgumentException("Path:" + normalizedPath + " outside root directory: " + cwd);
+		}
+		if (!Files.exists(cwd, LinkOption.NOFOLLOW_LINKS)) {
+			return;
+		}
+
+		Path rootRealPath = cwd.toRealPath();
+		Path current = cwd;
+		Path relativePath = cwd.relativize(normalizedPath);
+		for (Path segment : relativePath) {
+			current = current.resolve(segment);
+			if (!Files.exists(current, LinkOption.NOFOLLOW_LINKS)) {
+				return;
+			}
+			Path realPath = current.toRealPath();
+			if (!realPath.startsWith(rootRealPath)) {
+				throw new IllegalArgumentException("Path:" + normalizedPath + " outside root directory: " + cwd);
+			}
+		}
+	}
+
+	private BasicFileAttributes readRegularFileAttributes(Path path, String displayPath) throws IOException {
+		if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+			return null;
+		}
+		BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+		if (!attrs.isRegularFile()) {
+			return null;
+		}
+		if (attrs.size() > maxFileSizeBytes) {
+			throw new IllegalArgumentException("File '" + displayPath + "' exceeds maximum file size ("
+					+ maxFileSizeBytes + " bytes)");
+		}
+		return attrs;
+	}
+
+	@Override
+	public boolean isDirectory(String path) {
+		try {
+			Path resolvedPath = resolvePath(path);
+			ensureVirtualPathInsideRoot(resolvedPath);
+			return Files.exists(resolvedPath, LinkOption.NOFOLLOW_LINKS)
+					&& Files.isDirectory(resolvedPath, LinkOption.NOFOLLOW_LINKS);
+		}
+		catch (IOException e) {
+			return false;
+		}
+	}
+
 	@Override
 	public List<FileInfo> lsInfo(String path) {
 		try {
 			Path dirPath = resolvePath(path);
-			if (!Files.exists(dirPath) || !Files.isDirectory(dirPath)) {
+			ensureVirtualPathInsideRoot(dirPath);
+			if (!Files.exists(dirPath, LinkOption.NOFOLLOW_LINKS)
+					|| !Files.isDirectory(dirPath, LinkOption.NOFOLLOW_LINKS)) {
 				return Collections.emptyList();
 			}
 
@@ -227,8 +284,9 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 	public String read(String filePath, int offset, int limit) {
 		try {
 			Path resolvedPath = resolvePath(filePath);
+			ensureVirtualPathInsideRoot(resolvedPath);
 
-			if (!Files.exists(resolvedPath) || !Files.isRegularFile(resolvedPath, LinkOption.NOFOLLOW_LINKS)) {
+			if (readRegularFileAttributes(resolvedPath, filePath) == null) {
 				return "Error: File '" + filePath + "' not found";
 			}
 
@@ -265,8 +323,9 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 	public WriteResult write(String filePath, String content) {
 		try {
 			Path resolvedPath = resolvePath(filePath);
+			ensureVirtualPathInsideRoot(resolvedPath);
 
-			if (Files.exists(resolvedPath)) {
+			if (Files.exists(resolvedPath, LinkOption.NOFOLLOW_LINKS)) {
 				return new WriteResult(null,
 					"Cannot write to " + filePath + " because it already exists. Read and then make an edit, or write to a new path.",
 					null);
@@ -294,8 +353,9 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 	public EditResult edit(String filePath, String oldString, String newString, boolean replaceAll) {
 		try {
 			Path resolvedPath = resolvePath(filePath);
+			ensureVirtualPathInsideRoot(resolvedPath);
 
-			if (!Files.exists(resolvedPath) || !Files.isRegularFile(resolvedPath, LinkOption.NOFOLLOW_LINKS)) {
+			if (readRegularFileAttributes(resolvedPath, filePath) == null) {
 				return new EditResult(null, 0, "Error: File '" + filePath + "' not found", null);
 			}
 
@@ -338,7 +398,9 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 			}
 
 			Path searchPath = "/".equals(path) ? cwd : resolvePath(path);
-			if (!Files.exists(searchPath) || !Files.isDirectory(searchPath)) {
+			ensureVirtualPathInsideRoot(searchPath);
+			if (!Files.exists(searchPath, LinkOption.NOFOLLOW_LINKS)
+					|| !Files.isDirectory(searchPath, LinkOption.NOFOLLOW_LINKS)) {
 				return Collections.emptyList();
 			}
 
@@ -430,11 +492,14 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 		Path baseFull;
 		try {
 			baseFull = resolvePath(path != null ? path : ".");
+			ensureVirtualPathInsideRoot(baseFull);
 		} catch (IllegalArgumentException e) {
+			return Collections.emptyList();
+		} catch (IOException e) {
 			return Collections.emptyList();
 		}
 
-		if (!Files.exists(baseFull)) {
+		if (!Files.exists(baseFull, LinkOption.NOFOLLOW_LINKS)) {
 			return Collections.emptyList();
 		}
 
@@ -656,4 +721,3 @@ public class LocalFilesystemBackend implements FilesystemBackend {
 		}
 	}
 }
-

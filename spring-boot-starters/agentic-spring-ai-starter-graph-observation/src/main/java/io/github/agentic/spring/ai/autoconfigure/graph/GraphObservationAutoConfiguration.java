@@ -94,14 +94,17 @@ public class GraphObservationAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public GraphObservationLifecycleListener graphObservationLifecycleListener(
-			ObjectProvider<ObservationRegistry> observationRegistry) {
-		return new GraphObservationLifecycleListener(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP));
+			ObjectProvider<ObservationRegistry> observationRegistry, GraphObservationProperties properties) {
+		return new GraphObservationLifecycleListener(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
+				properties.isCaptureContent(), properties.getMaxContentLength());
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
-	public org.springframework.ai.chat.observation.ChatModelObservationConvention springAiAlibabaChatModelObservationConvention() {
-		return new io.github.agentic.spring.ai.graph.observation.SpringAiAlibabaChatModelObservationConvention();
+	public org.springframework.ai.chat.observation.ChatModelObservationConvention springAiAlibabaChatModelObservationConvention(
+			GraphObservationProperties properties) {
+		return new io.github.agentic.spring.ai.graph.observation.SpringAiAlibabaChatModelObservationConvention(
+				properties.isCaptureContent(), properties.getMaxContentLength());
 	}
 
 	/**

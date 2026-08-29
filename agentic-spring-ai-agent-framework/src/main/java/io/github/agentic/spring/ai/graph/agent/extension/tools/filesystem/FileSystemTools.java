@@ -15,15 +15,15 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
+import io.github.agentic.spring.ai.graph.agent.extension.file.EditResult;
 import io.github.agentic.spring.ai.graph.agent.extension.file.FileInfo;
+import io.github.agentic.spring.ai.graph.agent.extension.file.LocalFilesystemBackend;
+import io.github.agentic.spring.ai.graph.agent.extension.file.WriteResult;
 
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -42,9 +42,7 @@ public class FileSystemTools {
 
 	private static final int DEFAULT_MAX_FILE_SIZE_MB = 10;
 
-	private final Path cwd;
-	private final boolean virtualMode;
-	private final long maxFileSizeBytes;
+	private final LocalFilesystemBackend backend;
 
 	/**
 	 * Default constructor using current working directory.
@@ -61,32 +59,7 @@ public class FileSystemTools {
 	 * @param maxFileSizeMb Maximum file size in MB for reading operations
 	 */
 	public FileSystemTools(String rootDir, boolean virtualMode, int maxFileSizeMb) {
-		this.cwd = rootDir != null ? Paths.get(rootDir).toAbsolutePath().normalize() : Paths.get("").toAbsolutePath();
-		this.virtualMode = virtualMode;
-		this.maxFileSizeBytes = maxFileSizeMb * 1024L * 1024L;
-	}
-
-	/**
-	 * Resolve a file path with security checks.
-	 */
-	private Path resolvePath(String key) throws IllegalArgumentException {
-		if (virtualMode) {
-			String vpath = key.startsWith("/") ? key : "/" + key;
-			if (vpath.contains("..") || vpath.startsWith("~")) {
-				throw new IllegalArgumentException("Path traversal not allowed");
-			}
-			Path full = cwd.resolve(vpath.substring(1)).normalize();
-			if (!full.startsWith(cwd)) {
-				throw new IllegalArgumentException("Path:" + full + " outside root directory: " + cwd);
-			}
-			return full;
-		}
-
-		Path path = Paths.get(key);
-		if (path.isAbsolute()) {
-			return path;
-		}
-		return cwd.resolve(path).normalize();
+		this.backend = new LocalFilesystemBackend(rootDir, virtualMode, maxFileSizeMb);
 	}
 
 	// @formatter:off
@@ -115,11 +88,7 @@ public class FileSystemTools {
 		ToolContext toolContext) { // @formatter:on
 
 		try {
-			Path resolvedPath = resolvePath(filePath);
-			return ReadFileTool.readFileContent(resolvedPath, offset, limit, true);
-		}
-		catch (IllegalArgumentException e) {
-			return "Error: " + e.getMessage();
+			return this.backend.read(filePath, offset != null ? offset : 0, limit != null ? limit : 500);
 		}
 		catch (Exception e) {
 			return "Error reading file '" + filePath + "': " + e.getMessage();
@@ -142,11 +111,11 @@ public class FileSystemTools {
 		ToolContext toolContext) { // @formatter:on
 
 		try {
-			Path resolvedPath = resolvePath(filePath);
-			return WriteFileTool.writeFileContent(resolvedPath, content);
-		}
-		catch (IllegalArgumentException e) {
-			return "Error: " + e.getMessage();
+			WriteResult result = this.backend.write(filePath, content);
+			if (result.getError() != null) {
+				return result.getError();
+			}
+			return "Successfully created file: " + result.getPath();
 		}
 		catch (Exception e) {
 			return "Error writing file '" + filePath + "': " + e.getMessage();
@@ -172,12 +141,13 @@ public class FileSystemTools {
 		ToolContext toolContext) { // @formatter:on
 
 		try {
-			Path resolvedPath = resolvePath(filePath);
 			boolean replaceAllFlag = Boolean.TRUE.equals(replaceAll);
-			return EditFileTool.editFileContent(resolvedPath, oldString, newString, replaceAllFlag);
-		}
-		catch (IllegalArgumentException e) {
-			return "Error: " + e.getMessage();
+			EditResult result = this.backend.edit(filePath, oldString, newString, replaceAllFlag);
+			if (result.getError() != null) {
+				return result.getError();
+			}
+			return String.format("Successfully edited file: %s (replaced %d occurrence(s))", result.getPath(),
+					result.getOccurrences());
 		}
 		catch (Exception e) {
 			return "Error editing file '" + filePath + "': " + e.getMessage();
@@ -200,12 +170,10 @@ public class FileSystemTools {
 		ToolContext toolContext) { // @formatter:on
 
 		try {
-			Path dirPath = resolvePath(path);
-			if (!Files.exists(dirPath) || !Files.isDirectory(dirPath)) {
+			if (!this.backend.isDirectory(path)) {
 				return "Error: Directory not found: " + path;
 			}
-
-			List<FileInfo> results = ListFilesTool.listFilesContent(dirPath, virtualMode ? cwd : null, virtualMode);
+			List<FileInfo> results = this.backend.lsInfo(path);
 
 			// Format output
 			StringBuilder result = new StringBuilder();
@@ -221,9 +189,6 @@ public class FileSystemTools {
 			}
 
 			return !result.isEmpty() ? result.toString().trim() : "Directory is empty";
-		}
-		catch (IllegalArgumentException e) {
-			return "Error: " + e.getMessage();
 		}
 		catch (Exception e) {
 			return "Error listing directory '" + path + "': " + e.getMessage();

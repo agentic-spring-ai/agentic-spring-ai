@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -44,11 +45,18 @@ public class GraphController {
 
 	private final GraphLoader graphLoader;
 
+	private final StudioExecutionAccess executionAccess;
+
 	@Autowired
-	public GraphController(GraphLoader graphLoader) {
+	public GraphController(GraphLoader graphLoader, StudioExecutionAccess executionAccess) {
 		this.graphLoader = graphLoader;
+		this.executionAccess = executionAccess;
 		List<String> graphNames = this.graphLoader.listGraphs();
 		log.info("GraphController initialized with {} graphs: {}", graphNames.size(), graphNames);
+	}
+
+	public GraphController(GraphLoader graphLoader) {
+		this(graphLoader, new StudioExecutionAccess(""));
 	}
 
 	/**
@@ -57,7 +65,9 @@ public class GraphController {
 	 * @return A list of graph names.
 	 */
 	@GetMapping("/list-graphs")
-	public List<String> listGraphs() {
+	public List<String> listGraphs(
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		List<String> graphNames = graphLoader.listGraphs();
 		log.debug("Listing graphs. Found: {}", graphNames);
 		return graphNames.stream().sorted().collect(toList());
@@ -70,7 +80,9 @@ public class GraphController {
 	 * @return GraphResponse containing the Mermaid diagram source.
 	 */
 	@GetMapping("/graphs/{graphName}/representation")
-	public GraphResponse getGraphRepresentation(@PathVariable String graphName) {
+	public GraphResponse getGraphRepresentation(@PathVariable String graphName,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		if (graphName == null || graphName.isBlank()) {
 			throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
 					"graphName cannot be null or empty");

@@ -25,20 +25,37 @@ import io.github.agentic.spring.ai.parser.tika.TikaDocumentParser;
 import io.github.agentic.spring.ai.parser.yaml.YamlDocumentParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.ai.document.Document;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.Set;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ScheduledFuture;
 import java.util.function.Function;
 
 /**
@@ -49,6 +66,18 @@ public class DocumentExtractorNode implements NodeAction {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+	private static final ScheduledThreadPoolExecutor DEADLINE_SCHEDULER = createDeadlineScheduler();
+
+	private static ScheduledThreadPoolExecutor createDeadlineScheduler() {
+		ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, runnable -> {
+			Thread thread = new Thread(runnable, "document-extractor-deadline");
+			thread.setDaemon(true);
+			return thread;
+		});
+		executor.setRemoveOnCancelPolicy(true);
+		return executor;
+	}
+
 	private final String paramsKey;
 
 	private final String outputKey;
@@ -57,13 +86,45 @@ public class DocumentExtractorNode implements NodeAction {
 
 	private final boolean inputIsArray;
 
+	private final Path localRoot;
+
+	private final boolean allowAnyLocalPath;
+
+	private final boolean allowRemoteAccess;
+
+	private final boolean allowPrivateNetworkAccess;
+
+	private final int connectTimeoutMillis;
+
+	private final int readTimeoutMillis;
+
+	private final long maxBytes;
+
+	private final Duration totalTimeout;
+
 	private final Map<String, Function<InputStream, List<Document>>> extractors = new HashMap<>();
 
 	public DocumentExtractorNode(String paramsKey, String outputKey, List<String> fileList, boolean inputIsArray) {
+		this(paramsKey, outputKey, fileList, inputIsArray, Paths.get(""), false, true, false,
+				NetworkAccessPolicy.DEFAULT_CONNECT_TIMEOUT_MILLIS, NetworkAccessPolicy.DEFAULT_READ_TIMEOUT_MILLIS,
+				NetworkAccessPolicy.DEFAULT_MAX_BYTES, NetworkAccessPolicy.DEFAULT_TOTAL_TIMEOUT);
+	}
+
+	private DocumentExtractorNode(String paramsKey, String outputKey, List<String> fileList, boolean inputIsArray,
+			Path localRoot, boolean allowAnyLocalPath, boolean allowRemoteAccess, boolean allowPrivateNetworkAccess,
+			int connectTimeoutMillis, int readTimeoutMillis, long maxBytes, Duration totalTimeout) {
 		this.paramsKey = paramsKey;
 		this.outputKey = outputKey;
 		this.fileList = fileList;
 		this.inputIsArray = inputIsArray;
+		this.localRoot = localRoot;
+		this.allowAnyLocalPath = allowAnyLocalPath;
+		this.allowRemoteAccess = allowRemoteAccess;
+		this.allowPrivateNetworkAccess = allowPrivateNetworkAccess;
+		this.connectTimeoutMillis = connectTimeoutMillis;
+		this.readTimeoutMillis = readTimeoutMillis;
+		this.maxBytes = maxBytes;
+		this.totalTimeout = totalTimeout;
 		extractors.put("txt", inputStream -> new TextDocumentParser().parse(inputStream));
 		extractors.put("markdown", inputStream -> new MarkdownDocumentParser().parse(inputStream));
 		extractors.put("md", inputStream -> new MarkdownDocumentParser().parse(inputStream));
@@ -92,15 +153,91 @@ public class DocumentExtractorNode implements NodeAction {
 			uri = URI.create(filePath);
 		}
 		else {
-			uri = Paths.get(filePath).toUri();
+			Path resolvedPath = NetworkAccessPolicy.resolveLocalPath(filePath, this.localRoot, this.allowAnyLocalPath);
+			NetworkAccessPolicy.validateSize(Files.size(resolvedPath), this.maxBytes, filePath);
+			return NetworkAccessPolicy.limit(new BufferedInputStream(Files.newInputStream(resolvedPath)), this.maxBytes);
 		}
 
 		if (uri.getScheme().equals("file")) {
-			return new BufferedInputStream(Files.newInputStream(Paths.get(uri)));
+			Path resolvedPath = NetworkAccessPolicy.resolveLocalPath(Paths.get(uri).toString(), this.localRoot,
+					this.allowAnyLocalPath);
+			NetworkAccessPolicy.validateSize(Files.size(resolvedPath), this.maxBytes, filePath);
+			return NetworkAccessPolicy.limit(new BufferedInputStream(Files.newInputStream(resolvedPath)), this.maxBytes);
 		}
-		else {
-			return new BufferedInputStream(uri.toURL().openStream());
+		if (!this.allowRemoteAccess) {
+			throw new IOException("Remote document access is disabled: " + filePath);
 		}
+		return openRemoteInputStream(uri);
+	}
+
+	private InputStream openRemoteInputStream(URI uri) throws IOException {
+		long deadlineNanos = NetworkAccessPolicy.deadlineAfter(this.totalTimeout);
+		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+			.setDnsResolver(NetworkAccessPolicy.dnsResolver(this.allowPrivateNetworkAccess))
+			.setDefaultConnectionConfig(ConnectionConfig.custom()
+				.setConnectTimeout(Timeout.ofMilliseconds(this.connectTimeoutMillis))
+				.setSocketTimeout(Timeout.ofMilliseconds(this.readTimeoutMillis))
+				.build())
+			.build();
+		try (CloseableHttpClient httpClient = HttpClients.custom()
+			.setConnectionManager(connectionManager)
+			.disableRedirectHandling()
+			.build()) {
+			URI currentUri = uri;
+			for (int redirects = 0; redirects <= 5; redirects++) {
+				NetworkAccessPolicy.checkDeadline(deadlineNanos);
+				NetworkAccessPolicy.validateUri(currentUri, Set.of("http", "https"), this.allowPrivateNetworkAccess);
+				HttpGet request = new HttpGet(currentUri);
+				long remainingNanos = deadlineNanos - System.nanoTime();
+				NetworkAccessPolicy.checkDeadline(deadlineNanos);
+				request.setConfig(RequestConfig.custom()
+					.setRedirectsEnabled(false)
+					.setResponseTimeout(this.readTimeoutMillis, TimeUnit.MILLISECONDS)
+					.build());
+				ScheduledFuture<?> deadlineTask = DEADLINE_SCHEDULER.schedule(request::cancel, remainingNanos,
+						TimeUnit.NANOSECONDS);
+				try (CloseableHttpResponse response = httpClient.execute(request)) {
+					int status = response.getCode();
+					if (status >= 300 && status < 400) {
+						Header locationHeader = response.getFirstHeader("Location");
+						if (locationHeader == null || locationHeader.getValue().isBlank()) {
+							throw new IOException("Redirect response missing Location header: " + currentUri);
+						}
+						currentUri = currentUri.resolve(locationHeader.getValue());
+						continue;
+					}
+					if (status >= 400) {
+						throw new IOException("Failed to fetch remote document: HTTP " + status);
+					}
+					HttpEntity entity = response.getEntity();
+					if (entity == null) {
+						return new ByteArrayInputStream(new byte[0]);
+					}
+					long contentLength = entity.getContentLength();
+					if (contentLength >= 0) {
+						NetworkAccessPolicy.validateSize(contentLength, this.maxBytes, currentUri.toString());
+					}
+					try (InputStream input = NetworkAccessPolicy.limit(
+							NetworkAccessPolicy.deadline(new BufferedInputStream(entity.getContent()), deadlineNanos),
+							this.maxBytes)) {
+						return new ByteArrayInputStream(input.readAllBytes());
+					}
+				}
+				catch (IOException e) {
+					if (System.nanoTime() >= deadlineNanos) {
+						java.net.SocketTimeoutException timeout = new java.net.SocketTimeoutException(
+								"Remote document fetch exceeded total timeout");
+						timeout.initCause(e);
+						throw timeout;
+					}
+					throw e;
+				}
+				finally {
+					deadlineTask.cancel(false);
+				}
+			}
+		}
+		throw new IOException("Too many redirects while fetching remote document: " + uri);
 	}
 
 	private List<String> getDocument(List<String> fileList) {
@@ -120,8 +257,14 @@ public class DocumentExtractorNode implements NodeAction {
 			throw new RuntimeException("File variable not found for selector");
 		}
 		List<String> fileList;
-		Object fileObj = state.value(paramsKey).orElse(this.fileList);
-		if (this.inputIsArray) {
+		Object fileObj = paramsKey != null ? state.value(paramsKey).orElse(this.fileList) : this.fileList;
+		if (fileObj == null) {
+			throw new RuntimeException("File variable not found for selector");
+		}
+		if (paramsKey == null && this.fileList != null) {
+			fileList = this.fileList;
+		}
+		else if (this.inputIsArray) {
 			if (fileObj instanceof List<?>) {
 				fileList = (List<String>) fileObj;
 			}
@@ -168,7 +311,11 @@ public class DocumentExtractorNode implements NodeAction {
 	}
 
 	private String getFileExtension(String filePath) {
-		Path path = Paths.get(filePath);
+		String pathValue = filePath;
+		if (filePath.startsWith("http://") || filePath.startsWith("https://") || filePath.startsWith("ftp://")) {
+			pathValue = URI.create(filePath).getPath();
+		}
+		Path path = Paths.get(pathValue);
 		String fileName = path.getFileName().toString();
 		int dotIndex = fileName.lastIndexOf('.');
 
@@ -188,6 +335,22 @@ public class DocumentExtractorNode implements NodeAction {
 		private List<String> fileList;
 
 		private boolean inputIsArray = false;
+
+		private Path localRoot = Paths.get("");
+
+		private boolean allowAnyLocalPath = false;
+
+		private boolean allowRemoteAccess = true;
+
+		private boolean allowPrivateNetworkAccess = false;
+
+		private int connectTimeoutMillis = NetworkAccessPolicy.DEFAULT_CONNECT_TIMEOUT_MILLIS;
+
+		private int readTimeoutMillis = NetworkAccessPolicy.DEFAULT_READ_TIMEOUT_MILLIS;
+
+		private long maxBytes = NetworkAccessPolicy.DEFAULT_MAX_BYTES;
+
+		private Duration totalTimeout = NetworkAccessPolicy.DEFAULT_TOTAL_TIMEOUT;
 
 		public Builder paramsKey(String paramsKey) {
 			this.paramsKey = paramsKey;
@@ -209,8 +372,53 @@ public class DocumentExtractorNode implements NodeAction {
 			return this;
 		}
 
+		public Builder localRoot(Path localRoot) {
+			this.localRoot = localRoot;
+			return this;
+		}
+
+		public Builder allowAnyLocalPath(boolean allowAnyLocalPath) {
+			this.allowAnyLocalPath = allowAnyLocalPath;
+			return this;
+		}
+
+		public Builder allowRemoteAccess(boolean allowRemoteAccess) {
+			this.allowRemoteAccess = allowRemoteAccess;
+			return this;
+		}
+
+		public Builder allowPrivateNetworkAccess(boolean allowPrivateNetworkAccess) {
+			this.allowPrivateNetworkAccess = allowPrivateNetworkAccess;
+			return this;
+		}
+
+		public Builder connectTimeoutMillis(int connectTimeoutMillis) {
+			this.connectTimeoutMillis = connectTimeoutMillis;
+			return this;
+		}
+
+		public Builder readTimeoutMillis(int readTimeoutMillis) {
+			this.readTimeoutMillis = readTimeoutMillis;
+			return this;
+		}
+
+		public Builder maxBytes(long maxBytes) {
+			this.maxBytes = maxBytes;
+			return this;
+		}
+
+		public Builder totalTimeout(Duration totalTimeout) {
+			if (totalTimeout == null || totalTimeout.isZero() || totalTimeout.isNegative()) {
+				throw new IllegalArgumentException("totalTimeout must be greater than zero");
+			}
+			this.totalTimeout = totalTimeout;
+			return this;
+		}
+
 		public DocumentExtractorNode build() {
-			return new DocumentExtractorNode(paramsKey, outputKey, fileList, inputIsArray);
+			return new DocumentExtractorNode(paramsKey, outputKey, fileList, inputIsArray, localRoot, allowAnyLocalPath,
+					allowRemoteAccess, allowPrivateNetworkAccess, connectTimeoutMillis, readTimeoutMillis, maxBytes,
+					totalTimeout);
 		}
 
 	}

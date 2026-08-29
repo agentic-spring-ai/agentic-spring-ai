@@ -21,10 +21,13 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,11 +201,13 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 		String content = this.urlCache.getIfPresent(cacheKey);
 
 		if (content != null) {
-			logger.debug("Cache hit for URL: {} with prompt hash: {}", url, prompt.hashCode());
+			logger.debug("Cache hit for URL host: {} with prompt digest: {}", URI.create(url).getHost(),
+					promptDigest(prompt));
 			return content;
 		}
 
-		logger.debug("Cache miss for URL: {} with prompt hash: {}", url, prompt.hashCode());
+		logger.debug("Cache miss for URL host: {} with prompt digest: {}", URI.create(url).getHost(),
+				promptDigest(prompt));
 
 		// Fetch HTML content with retry logic
 		String htmlContent;
@@ -240,7 +245,18 @@ public class WebFetchTool implements BiFunction<WebFetchTool.Request, ToolContex
 	}
 
 	private String buildCacheKey(String url, String prompt) {
-		return url + "::prompt::" + prompt.hashCode();
+		return url + "::prompt-sha256::" + promptDigest(prompt);
+	}
+
+	private String promptDigest(String prompt) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = digest.digest((prompt != null ? prompt : "").getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(hash);
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException("SHA-256 digest is not available", e);
+		}
 	}
 
 	private FetchResponse fetchHtmlWithRetry(String url) {

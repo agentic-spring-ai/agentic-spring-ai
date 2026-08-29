@@ -34,11 +34,14 @@ interface GraphStreamContextType {
   clearRun: () => void;
 }
 
-const GraphStreamContext = createContext<GraphStreamContextType | undefined>(undefined);
+const GraphStreamContext = createContext<GraphStreamContextType | undefined>(
+  undefined,
+);
 
 export function useGraphStream() {
   const ctx = useContext(GraphStreamContext);
-  if (!ctx) throw new Error("useGraphStream must be used within GraphStreamProvider");
+  if (!ctx)
+    throw new Error("useGraphStream must be used within GraphStreamProvider");
   return ctx;
 }
 
@@ -49,10 +52,15 @@ interface GraphStreamProviderProps {
 export function GraphStreamProvider({ children }: GraphStreamProviderProps) {
   const { graphName, userId, currentThreadId } = useGraphThreads();
   const [nodeOutputs, setNodeOutputs] = useState<GraphNodeOutput[]>([]);
-  const [currentState, setCurrentState] = useState<Record<string, unknown> | null>(null);
+  const [currentState, setCurrentState] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [accumulatedChunk, setAccumulatedChunk] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(null);
+  const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(
+    null,
+  );
   const abortRef = useRef<AbortController | null>(null);
 
   const clearRun = useCallback(() => {
@@ -88,7 +96,7 @@ export function GraphStreamProvider({ children }: GraphStreamProviderProps) {
           userId,
           activeThreadId,
           { messageType: "user", content: content.trim() },
-          abortRef.current.signal
+          abortRef.current.signal,
         )) {
           setNodeOutputs((prev) => [
             ...prev,
@@ -97,7 +105,7 @@ export function GraphStreamProvider({ children }: GraphStreamProviderProps) {
           if (event.state && Object.keys(event.state).length > 0) {
             setCurrentState(event.state as Record<string, unknown>);
           }
-          const text = event.chunk ?? (event.message?.content ?? "");
+          const text = event.chunk ?? event.message?.content ?? "";
           if (text) {
             setAccumulatedChunk((prev) => prev + text);
           }
@@ -111,7 +119,7 @@ export function GraphStreamProvider({ children }: GraphStreamProviderProps) {
         abortRef.current = null;
       }
     },
-    [graphName, userId, currentThreadId, clearRun]
+    [graphName, userId, currentThreadId, clearRun],
   );
 
   const value = useMemo(
@@ -125,10 +133,20 @@ export function GraphStreamProvider({ children }: GraphStreamProviderProps) {
       sendMessage,
       clearRun,
     }),
-    [nodeOutputs, currentState, accumulatedChunk, isStreaming, selectedNodeIndex, sendMessage, clearRun]
+    [
+      nodeOutputs,
+      currentState,
+      accumulatedChunk,
+      isStreaming,
+      selectedNodeIndex,
+      sendMessage,
+      clearRun,
+    ],
   );
 
   return (
-    <GraphStreamContext.Provider value={value}>{children}</GraphStreamContext.Provider>
+    <GraphStreamContext.Provider value={value}>
+      {children}
+    </GraphStreamContext.Provider>
   );
 }

@@ -40,6 +40,7 @@ import {
 } from "../ui/tooltip";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
+import { StudioSettingsButton } from "@/components/StudioSettingsButton";
 import {
   useArtifactOpen,
   ArtifactContent,
@@ -127,14 +128,18 @@ function ModeSelector({
   const canUseGraph = !isGraphsLoading && graphList.length > 0;
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-sm whitespace-nowrap text-muted-foreground">Agent</Label>
+      <Label className="text-muted-foreground text-sm whitespace-nowrap">
+        Agent
+      </Label>
       <Switch
         checked={mode === "graph"}
         onCheckedChange={(checked) => setMode(checked ? "graph" : "agent")}
         disabled={!canUseGraph}
         aria-label="Switch between Agent and Graph mode"
       />
-      <Label className="text-sm whitespace-nowrap text-muted-foreground">Graph</Label>
+      <Label className="text-muted-foreground text-sm whitespace-nowrap">
+        Graph
+      </Label>
     </div>
   );
 }
@@ -152,25 +157,35 @@ function AgentSelector({
 }) {
   if (isAgentsLoading) {
     return (
-      <span className="text-sm text-muted-foreground">Loading agents...</span>
+      <span className="text-muted-foreground text-sm">Loading agents...</span>
     );
   }
   if (agentList.length === 0) {
     return (
-      <span className="text-sm text-muted-foreground">No agents available</span>
+      <span className="text-muted-foreground text-sm">No agents available</span>
     );
   }
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor="agent-select" className="text-sm whitespace-nowrap">Agent</Label>
+      <Label
+        htmlFor="agent-select"
+        className="text-sm whitespace-nowrap"
+      >
+        Agent
+      </Label>
       <select
         id="agent-select"
         value={selectedAgent}
         onChange={(e) => setSelectedAgent(e.target.value)}
-        className="rounded-md border border-input bg-background px-3 py-1.5 text-sm min-w-[140px] max-w-[200px]"
+        className="border-input bg-background max-w-[200px] min-w-[140px] rounded-md border px-3 py-1.5 text-sm"
       >
         {agentList.map((name) => (
-          <option key={name} value={name}>{name}</option>
+          <option
+            key={name}
+            value={name}
+          >
+            {name}
+          </option>
         ))}
       </select>
     </div>
@@ -190,25 +205,35 @@ function GraphSelector({
 }) {
   if (isGraphsLoading) {
     return (
-      <span className="text-sm text-muted-foreground">Loading graphs...</span>
+      <span className="text-muted-foreground text-sm">Loading graphs...</span>
     );
   }
   if (graphList.length === 0) {
     return (
-      <span className="text-sm text-muted-foreground">No graphs available</span>
+      <span className="text-muted-foreground text-sm">No graphs available</span>
     );
   }
   return (
     <div className="flex items-center gap-2">
-      <Label htmlFor="graph-select" className="text-sm whitespace-nowrap">Graph</Label>
+      <Label
+        htmlFor="graph-select"
+        className="text-sm whitespace-nowrap"
+      >
+        Graph
+      </Label>
       <select
         id="graph-select"
         value={selectedGraph}
         onChange={(e) => setSelectedGraph(e.target.value)}
-        className="rounded-md border border-input bg-background px-3 py-1.5 text-sm min-w-[140px] max-w-[200px]"
+        className="border-input bg-background max-w-[200px] min-w-[140px] rounded-md border px-3 py-1.5 text-sm"
       >
         {graphList.map((name) => (
-          <option key={name} value={name}>{name}</option>
+          <option
+            key={name}
+            value={name}
+          >
+            {name}
+          </option>
         ))}
       </select>
     </div>
@@ -268,19 +293,6 @@ export function Thread() {
     setCurrentThreadId(threadId);
   }, [threadId, setCurrentThreadId]);
 
-  // Debug: Log messages whenever they change
-  useEffect(() => {
-    console.log('[Thread] Messages updated:', messages.length, messages);
-    messages.forEach((msg, idx) => {
-      console.log(`[Thread] Message ${idx}:`, {
-        id: msg.id,
-        type: msg.message.messageType,
-        content: msg.message.content?.substring(0, 50),
-        fullMessage: msg
-      });
-    });
-  }, [messages]);
-
   const lastError = useRef<string | undefined>(undefined);
 
   const setThreadId = (id: string | null) => {
@@ -325,7 +337,9 @@ export function Thread() {
         .filter((block: any) => block.type === "text")
         .map((block: any) => block.text)
         .join("\n");
-      messageContent = messageContent ? `${messageContent}\n${textBlocks}` : textBlocks;
+      messageContent = messageContent
+        ? `${messageContent}\n${textBlocks}`
+        : textBlocks;
     }
 
     if (!messageContent) return;
@@ -340,7 +354,8 @@ export function Thread() {
   const chatStarted = !!threadId || !!messages.length;
 
   // Check if current thread has a placeholder message (indicates message history loading not supported)
-  const hasPlaceholderMessage = messages.length === 1 &&
+  const hasPlaceholderMessage =
+    messages.length === 1 &&
     messages[0].message.metadata?.isPlaceholder === true;
 
   return (
@@ -397,8 +412,11 @@ export function Thread() {
           }
         >
           {!chatStarted && mode === "graph" && selectedGraph && !isLocked && (
-            <div className="absolute top-14 left-4 right-4 z-0">
-              <GraphVisualization graphName={selectedGraph} className="max-h-48" />
+            <div className="absolute top-14 right-4 left-4 z-0">
+              <GraphVisualization
+                graphName={selectedGraph}
+                className="max-h-48"
+              />
             </div>
           )}
           {!chatStarted && (
@@ -421,7 +439,10 @@ export function Thread() {
               <div className="absolute top-2 right-4 flex items-center gap-3">
                 {isLocked ? (
                   <Link href="/index.html">
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                    >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
@@ -452,6 +473,7 @@ export function Thread() {
                     )}
                   </>
                 )}
+                <StudioSettingsButton />
                 <OpenGitHubRepo />
               </div>
             </div>
@@ -475,10 +497,14 @@ export function Thread() {
                   )}
                 </div>
                 {isLocked ? (
-                  <Link href="/index.html" className="flex items-center gap-2">
-                    <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+                  <Link
+                    href="/index.html"
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowLeft className="text-muted-foreground h-5 w-5" />
                     <span className="text-xl font-semibold tracking-tight">
-                      <span className="text-green-600">Spring AI Alibaba</span> · {selectedAgent}
+                      <span className="text-green-600">Spring AI Alibaba</span>{" "}
+                      · {selectedAgent}
                     </span>
                   </Link>
                 ) : (
@@ -495,7 +521,8 @@ export function Thread() {
                     }}
                   >
                     <span className="text-xl font-semibold tracking-tight">
-                      <span className="text-green-600">Spring AI Alibaba</span> Agent Chat
+                      <span className="text-green-600">Spring AI Alibaba</span>{" "}
+                      Agent Chat
                     </span>
                   </motion.button>
                 )}
@@ -504,7 +531,10 @@ export function Thread() {
               <div className="flex items-center gap-4">
                 {isLocked ? (
                   <Link href="/index.html">
-                    <Button variant="ghost" size="sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                    >
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
@@ -536,6 +566,7 @@ export function Thread() {
                   </>
                 )}
                 <div className="flex items-center">
+                  <StudioSettingsButton />
                   <OpenGitHubRepo />
                 </div>
                 <TooltipIconButton
@@ -547,8 +578,8 @@ export function Thread() {
                     setThreadId(null);
                   }}
                 >
-                    <Plus className="size-5" />
-                  </TooltipIconButton>
+                  <Plus className="size-5" />
+                </TooltipIconButton>
               </div>
 
               <div className="from-background to-background/0 absolute inset-x-0 top-full h-5 bg-gradient-to-b" />
@@ -566,49 +597,65 @@ export function Thread() {
               content={
                 <>
                   {(() => {
-                    const filteredMessages = messages.filter((m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX));
-                    console.log('[Thread] Rendering messages:', {
-                      total: messages.length,
-                      filtered: filteredMessages.length,
-                      messages: filteredMessages.map(m => ({
-                        id: m.id,
-                        type: m.message.messageType
-                      }))
-                    });
+                    const filteredMessages = messages.filter(
+                      (m) => !m.id?.startsWith(DO_NOT_RENDER_ID_PREFIX),
+                    );
                     return filteredMessages.map((message, index) => {
-                      console.log('[Thread] Rendering message:', message.message.messageType, message);
-
                       const messageType = message.message.messageType;
                       const key = message.id || `${messageType}-${index}`;
 
                       // Hide tool-related messages if hideToolCalls is enabled
-                      if (hideToolCalls && (
-                        messageType === "tool-request" ||
-                        messageType === "tool-confirm" ||
-                        messageType === "tool"
-                      )) {
-                        console.log('[Thread] Hiding tool message due to hideToolCalls:', messageType);
+                      if (
+                        hideToolCalls &&
+                        (messageType === "tool-request" ||
+                          messageType === "tool-confirm" ||
+                          messageType === "tool")
+                      ) {
                         return null;
                       }
 
                       switch (messageType) {
                         case "user":
-                          return <HumanMessage key={key} message={message} />;
+                          return (
+                            <HumanMessage
+                              key={key}
+                              message={message}
+                            />
+                          );
 
                         case "assistant":
-                          return <AssistantMessage key={key} message={message} />;
+                          return (
+                            <AssistantMessage
+                              key={key}
+                              message={message}
+                            />
+                          );
 
                         case "tool-request":
-                          return <ToolRequestMessage key={key} message={message} />;
+                          return (
+                            <ToolRequestMessage
+                              key={key}
+                              message={message}
+                            />
+                          );
 
                         case "tool-confirm":
-                          return <ToolRequestConfirmMessage key={key} message={message} />;
+                          return (
+                            <ToolRequestConfirmMessage
+                              key={key}
+                              message={message}
+                            />
+                          );
 
                         case "tool":
-                          return <ToolResponseMessage key={key} message={message} />;
+                          return (
+                            <ToolResponseMessage
+                              key={key}
+                              message={message}
+                            />
+                          );
 
                         default:
-                          console.log('[Thread] Unknown message type:', messageType);
                           return null;
                       }
                     });
@@ -624,7 +671,10 @@ export function Thread() {
                     <div className="flex items-center gap-3">
                       {/*<SAALogoSVG className="h-8 flex-shrink-0" />*/}
                       <h1 className="text-2xl font-semibold tracking-tight">
-                        <span className="text-green-600 italic">Spring AI Alibaba</span> Agent Chat
+                        <span className="text-green-600 italic">
+                          Spring AI Alibaba
+                        </span>{" "}
+                        Agent Chat
                       </h1>
                     </div>
                   )}
@@ -665,11 +715,16 @@ export function Thread() {
                             form?.requestSubmit();
                           }
                         }}
-                        placeholder={hasPlaceholderMessage ? "Please create a new thread to start chatting..." : "Type your message..."}
+                        placeholder={
+                          hasPlaceholderMessage
+                            ? "Please create a new thread to start chatting..."
+                            : "Type your message..."
+                        }
                         disabled={hasPlaceholderMessage}
                         className={cn(
                           "field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none",
-                          hasPlaceholderMessage && "opacity-50 cursor-not-allowed"
+                          hasPlaceholderMessage &&
+                            "cursor-not-allowed opacity-50",
                         )}
                       />
 
@@ -689,7 +744,7 @@ export function Thread() {
                             </Label>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+                        <div className="flex cursor-not-allowed items-center gap-2 opacity-50">
                           <Plus className="size-5 text-gray-400" />
                           <span className="text-sm text-gray-400">
                             Upload PDF or Image

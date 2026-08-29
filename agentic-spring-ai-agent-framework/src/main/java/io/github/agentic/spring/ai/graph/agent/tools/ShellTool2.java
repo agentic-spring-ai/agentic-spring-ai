@@ -96,7 +96,7 @@ public class ShellTool2 {
 				return "Error: Command cannot be empty.";
 			}
 
-			log.info("Executing shell command: {}", command);
+			log.info("Executing shell command ({} characters)", command.length());
 			ShellSessionManager.CommandResult result = sessionManager.executeCommand(command, config);
 
 			// Format the output

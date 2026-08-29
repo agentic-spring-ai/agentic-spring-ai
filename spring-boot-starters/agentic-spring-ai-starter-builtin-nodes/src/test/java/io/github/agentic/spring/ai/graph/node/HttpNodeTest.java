@@ -32,8 +32,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.MockResponse;
@@ -72,13 +74,17 @@ public class HttpNodeTest {
 		mockWebServer.shutdown();
 	}
 
+	private HttpNode.Builder localHttpNodeBuilder() {
+		return HttpNode.builder().webClient(webClient).allowPrivateNetworkAccess(true);
+	}
+
 	@Test
 	void testHttpGetSuccess() throws Exception {
 		mockWebServer.enqueue(new MockResponse().setBody("{\"message\":\"success\"}")
 			.setHeader(HttpHeaders.CONTENT_TYPE, "application/json"));
 
 		String url = mockWebServer.url("/test").toString();
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.GET)
 			.url(url)
@@ -99,11 +105,66 @@ public class HttpNodeTest {
 	}
 
 	@Test
+	void blocksPrivateNetworkByDefault() {
+		String url = mockWebServer.url("/private").toString();
+		HttpNode node = HttpNode.builder().method(HttpMethod.GET).url(url).retryConfig(new RetryConfig(0, 0, false)).build();
+
+		assertThrows(Exception.class, () -> node.apply(new OverAllState()));
+		assertEquals(0, mockWebServer.getRequestCount());
+	}
+
+	@Test
+	void customWebClientRetainsPrivateNetworkPreflightByDefault() {
+		String url = mockWebServer.url("/private-custom-client").toString();
+		HttpNode node = HttpNode.builder()
+			.webClient(webClient)
+			.method(HttpMethod.GET)
+			.url(url)
+			.retryConfig(new RetryConfig(0, 0, false))
+			.build();
+
+		assertThrows(Exception.class, () -> node.apply(new OverAllState()));
+		assertEquals(0, mockWebServer.getRequestCount());
+	}
+
+	@Test
+	void privateNetworkOptInAppliesToDefaultWebClient() throws Exception {
+		mockWebServer.enqueue(new MockResponse().setBody("OK").setHeader(HttpHeaders.CONTENT_TYPE, "text/plain"));
+
+		HttpNode node = HttpNode.builder()
+			.method(HttpMethod.GET)
+			.url(mockWebServer.url("/private-default-client").toString())
+			.allowPrivateNetworkAccess(true)
+			.retryConfig(new RetryConfig(0, 0, false))
+			.build();
+
+		node.apply(new OverAllState());
+
+		assertEquals("/private-default-client", mockWebServer.takeRequest().getPath());
+	}
+
+	@Test
+	void failsWhenTotalRequestTimeoutExpires() {
+		mockWebServer.enqueue(new MockResponse().setBody("slow")
+			.setHeader(HttpHeaders.CONTENT_TYPE, "text/plain")
+			.setBodyDelay(1, TimeUnit.SECONDS));
+
+		HttpNode node = localHttpNodeBuilder()
+			.method(HttpMethod.GET)
+			.url(mockWebServer.url("/slow").toString())
+			.retryConfig(new RetryConfig(0, 0, false))
+			.requestTimeout(Duration.ofMillis(50))
+			.build();
+
+		assertThrows(Exception.class, () -> node.apply(new OverAllState()));
+	}
+
+	@Test
 	void testVariableReplacement() throws Exception {
 		mockWebServer.enqueue(new MockResponse().setBody("OK"));
 
 		String url = baseUrl + "${pathVar}";
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.GET)
 			.url(url)
@@ -128,7 +189,7 @@ public class HttpNodeTest {
 		mockWebServer.enqueue(new MockResponse().setBody("OK"));
 
 		String url = mockWebServer.url("/echo").toString();
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.POST)
 			.url(url)
@@ -161,7 +222,7 @@ public class HttpNodeTest {
 		formBody.setData(List.of(d1, d2));
 
 		String url = mockWebServer.url("/form").toString();
-		HttpNode node = HttpNode.builder().webClient(webClient).method(HttpMethod.POST).url(url).body(formBody).build();
+		HttpNode node = localHttpNodeBuilder().webClient(webClient).method(HttpMethod.POST).url(url).body(formBody).build();
 
 		OverAllState state = new OverAllState(Map.of("val1", "v1", "val2", "v2"));
 		node.apply(state);
@@ -178,7 +239,7 @@ public class HttpNodeTest {
 			.enqueue(new MockResponse().setBody("plain response").setHeader(HttpHeaders.CONTENT_TYPE, "text/plain"));
 
 		String url = mockWebServer.url("/plain").toString();
-		HttpNode node = HttpNode.builder().webClient(webClient).method(HttpMethod.GET).url(url).build();
+		HttpNode node = localHttpNodeBuilder().webClient(webClient).method(HttpMethod.GET).url(url).build();
 
 		Map<String, Object> result = node.apply(new OverAllState());
 		Map<String, Object> messages = (Map<String, Object>) result.get("messages");
@@ -194,7 +255,7 @@ public class HttpNodeTest {
 			.setHeader(HttpHeaders.CONTENT_TYPE, "application/json"));
 
 		String url = mockWebServer.url("/notfound").toString();
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.GET)
 			.url(url)
@@ -221,7 +282,7 @@ public class HttpNodeTest {
 		mockWebServer.enqueue(mockResponse);
 
 		String url = mockWebServer.url("/test.png").toString();
-		HttpNode node = HttpNode.builder().webClient(webClient).url(url).build();
+		HttpNode node = localHttpNodeBuilder().webClient(webClient).url(url).build();
 
 		Map<String, Object> result = node.apply(new OverAllState());
 		Map<String, Object> messages = (Map<String, Object>) result.get("messages");
@@ -246,7 +307,7 @@ public class HttpNodeTest {
 		String url = mockWebServer.url("/secure").toString();
 		AuthConfig authConfig = AuthConfig.basic("user", "pass");
 
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.GET)
 			.url(url)
@@ -268,7 +329,7 @@ public class HttpNodeTest {
 		mockWebServer.enqueue(new MockResponse().setBody("OK").setHeader(HttpHeaders.CONTENT_TYPE, "text/plain"));
 
 		String url = mockWebServer.url("/retry-fail").toString();
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.webClient(webClient)
 			.method(HttpMethod.GET)
 			.url(url)
@@ -288,7 +349,7 @@ public class HttpNodeTest {
 		mockWebServer.enqueue(new MockResponse().setBody("OK").setHeader(HttpHeaders.CONTENT_TYPE, "text/plain"));
 
 		String url = mockWebServer.url("/retry-disabled").toString();
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 				.webClient(webClient)
 				.method(HttpMethod.POST)
 				.url(url)
@@ -338,7 +399,7 @@ public class HttpNodeTest {
 		String myJson = "{" + "\"type\": \"JSON\", " + "\"data\": {" + "\"key1out\": \"${key1}\", "
 				+ "\"key2out\": \"${key2}\", " + "\"key3out\": \"${key3}\"" + "}" + "}";
 
-		HttpNode node = HttpNode.builder()
+		HttpNode node = localHttpNodeBuilder()
 			.url(mockWebServer.url("/mock").toString())
 			.method(HttpMethod.POST)
 			.header("Content-Type", "application/json")

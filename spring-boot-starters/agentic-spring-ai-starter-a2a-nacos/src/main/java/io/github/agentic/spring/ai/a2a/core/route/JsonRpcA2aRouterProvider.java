@@ -132,7 +132,7 @@ public class JsonRpcA2aRouterProvider implements A2aRouterProvider<JsonRpcA2aReq
 						try {
 							String sseBody = Utils.OBJECT_MAPPER.writeValueAsString(o);
 							if (log.isDebugEnabled()) {
-								log.debug("send sse body to agent: {}", sseBody);
+								log.debug("send sse body to agent, bytes={}", sseBody.length());
 							}
 							sseBuilder.data(sseBody);
 							if (((JSONRPCResponse<?>) o).getResult() instanceof TaskStatusUpdateEvent) {

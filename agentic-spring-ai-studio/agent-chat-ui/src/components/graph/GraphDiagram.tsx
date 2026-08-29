@@ -41,7 +41,11 @@ export function GraphDiagram({ graphName, className = "" }: GraphDiagramProps) {
     const render = async () => {
       try {
         const mermaid = (await import("mermaid")).default;
-        mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose" });
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "neutral",
+          securityLevel: "loose",
+        });
         const id = `mermaid-graph-${graphName.replace(/\W/g, "_")}-${Date.now()}`;
         const { svg } = await mermaid.render(id, mermaidSrc);
         if (containerRef.current) containerRef.current.innerHTML = svg;
@@ -60,7 +64,9 @@ export function GraphDiagram({ graphName, className = "" }: GraphDiagramProps) {
   }
   if (error || !mermaidSrc) {
     return (
-      <div className={`rounded-lg border border-dashed p-4 text-sm text-muted-foreground ${className}`}>
+      <div
+        className={`text-muted-foreground rounded-lg border border-dashed p-4 text-sm ${className}`}
+      >
         {error || "No diagram available"}
       </div>
     );
@@ -68,7 +74,7 @@ export function GraphDiagram({ graphName, className = "" }: GraphDiagramProps) {
   return (
     <div
       ref={containerRef}
-      className={`rounded-lg border bg-white overflow-auto min-h-[200px] [&_svg]:max-w-full [&_svg]:h-auto ${className}`}
+      className={`min-h-[200px] overflow-auto rounded-lg border bg-white [&_svg]:h-auto [&_svg]:max-w-full ${className}`}
     />
   );
 }

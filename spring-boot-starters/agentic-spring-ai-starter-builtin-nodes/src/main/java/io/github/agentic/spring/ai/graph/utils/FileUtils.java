@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Enumeration;
 
 /**
@@ -167,6 +168,36 @@ public class FileUtils {
 		}
 		catch (IOException e) {
 			throw new RuntimeException("Failed to delete JAR files from working directory", e);
+		}
+	}
+
+	public static Path createExecutionDirectory(String workDir) {
+		try {
+			Path root = Path.of(workDir).toAbsolutePath().normalize();
+			Files.createDirectories(root);
+			return Files.createTempDirectory(root, ".agentic-exec-");
+		}
+		catch (IOException e) {
+			throw new RuntimeException("Failed to create isolated execution directory", e);
+		}
+	}
+
+	public static void deleteRecursively(Path path) {
+		if (path == null || !Files.exists(path)) {
+			return;
+		}
+		try (var stream = Files.walk(path)) {
+			stream.sorted(Comparator.reverseOrder()).forEach(current -> {
+				try {
+					Files.deleteIfExists(current);
+				}
+				catch (IOException e) {
+					throw new RuntimeException("Failed to delete execution path: " + current, e);
+				}
+			});
+		}
+		catch (IOException e) {
+			throw new RuntimeException("Failed to clean isolated execution directory", e);
 		}
 	}
 

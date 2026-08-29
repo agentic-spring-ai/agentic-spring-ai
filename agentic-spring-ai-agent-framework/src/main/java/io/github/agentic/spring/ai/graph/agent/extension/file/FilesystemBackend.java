@@ -32,6 +32,15 @@ import java.util.List;
  */
 public interface FilesystemBackend {
 	/**
+	 * Determine whether a path is an accessible directory. Backends that cannot
+	 * distinguish missing paths from empty directories retain the legacy permissive
+	 * behavior.
+	 */
+	default boolean isDirectory(String path) {
+		return true;
+	}
+
+	/**
 	 * Read file content with line numbers and pagination.
 	 *
 	 * @param filePath Absolute or relative file path
@@ -89,4 +98,3 @@ public interface FilesystemBackend {
 	 */
 	Object grepRaw(String pattern, String path, String glob);
 }
-

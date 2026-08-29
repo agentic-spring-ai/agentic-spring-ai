@@ -22,6 +22,7 @@ import org.springframework.boot.http.converter.autoconfigure.HttpMessageConverte
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcAutoConfiguration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,7 +43,7 @@ class WebConfigConditionalTest {
 	private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
 		.withConfiguration(AutoConfigurations.of(DispatcherServletAutoConfiguration.class, WebMvcAutoConfiguration.class,
 				HttpMessageConvertersAutoConfiguration.class))
-		.withUserConfiguration(WebConfig.class, TestController.class);
+		.withUserConfiguration(WebConfig.class, StudioAsyncWebConfig.class, TestController.class);
 
 	@Test
 	void shouldRegisterWebConfigWhenPropertyMissing() {
@@ -98,6 +99,21 @@ class WebConfigConditionalTest {
 				.andExpect(status().isForbidden())
 				.andExpect(header().doesNotExist(ACCESS_CONTROL_ALLOW_ORIGIN))
 				.andExpect(header().doesNotExist(ACCESS_CONTROL_ALLOW_CREDENTIALS));
+		});
+	}
+
+	@Test
+	void shouldConfigureBoundedMvcAsyncExecutorWhenCorsIsDisabled() {
+		this.contextRunner.withPropertyValues("spring.ai.alibaba.agent.studio.web.cors.enabled=false").run(context -> {
+			assertThat(context).doesNotHaveBean(WebConfig.class);
+			assertThat(context).hasSingleBean(StudioAsyncWebConfig.class);
+			assertThat(context).hasBean("agentStudioMvcTaskExecutor");
+			ThreadPoolTaskExecutor executor = context.getBean("agentStudioMvcTaskExecutor",
+					ThreadPoolTaskExecutor.class);
+			assertThat(executor.getCorePoolSize()).isEqualTo(4);
+			assertThat(executor.getMaxPoolSize()).isEqualTo(16);
+			assertThat(executor.getQueueCapacity()).isEqualTo(100);
+			assertThat(executor.getThreadNamePrefix()).isEqualTo("agent-studio-mvc-");
 		});
 	}
 

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +32,6 @@ import com.alibaba.nacos.api.ai.model.mcp.McpServerRemoteServiceConfig;
 import com.alibaba.nacos.api.ai.model.mcp.McpServiceRef;
 import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.alibaba.nacos.api.exception.NacosException;
-import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.alibaba.nacos.shaded.com.google.common.collect.Maps;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -65,6 +65,17 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 	private static final Pattern NACOS_TEMPLATE_PATTERN = Pattern
 			.compile("\\{\\{\\s*\\$\\{nacos\\.([^}]+)\\}(\\.[\\w]+(?:\\.[\\w]+)*)?\\s*}}");
 
+	private static final String SENSITIVE_FIELD_NAMES =
+			"authorization|api[-_]?key|token|password|secret|credential|cookie|set-cookie";
+
+	private static final Pattern SENSITIVE_JSON_FIELD_PATTERN = Pattern.compile(
+			"(?i)(\"(?:" + SENSITIVE_FIELD_NAMES + ")\"\\s*:\\s*)\"(?:\\\\.|[^\"\\\\])*\"");
+
+	private static final Pattern SENSITIVE_ASSIGNMENT_PATTERN = Pattern.compile(
+			"(?i)(\\b(?:" + SENSITIVE_FIELD_NAMES + ")\\b\\s*[:=]\\s*)([^,;}\\r\\n]+)");
+
+	private static final Pattern BEARER_TOKEN_PATTERN = Pattern.compile("(?i)Bearer\\s+[-._~+/=A-Za-z0-9]+");
+
 	/**
 	 * The Object mapper.
 	 */
@@ -79,9 +90,13 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 
 	private final NacosMcpOperationService nacosMcpOperationService;
 
-	private final HashMap<String, AbstractListener> nacosConfigListeners = new HashMap<>();
+	private final Map<String, AbstractListener> nacosConfigListeners = new ConcurrentHashMap<>();
 
-	private final HashMap<String, String> nacosConfigContent = new HashMap<>();
+	private final Map<String, String> nacosConfigContent = new ConcurrentHashMap<>();
+
+	private final Object listenerLifecycleMonitor = new Object();
+
+	private volatile boolean closed;
 
 	McpServersVO.McpServerVO mcpServerVO;
 
@@ -187,14 +202,26 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 	 */
 	private String getConfigContent(String dataId, String group) throws NacosException {
 		String cacheKey = dataId + "@@" + group;
-		if (nacosConfigContent.containsKey(cacheKey)) {
-			return nacosConfigContent.get(cacheKey);
+		String cached = nacosConfigContent.get(cacheKey);
+		if (cached != null) {
+			return cached;
 		}
-		else {
+		synchronized (listenerLifecycleMonitor) {
+			if (closed) {
+				throw new IllegalStateException("Nacos MCP gateway callback is closed");
+			}
+			cached = nacosConfigContent.get(cacheKey);
+			if (cached != null) {
+				return cached;
+			}
 			AbstractListener listener = new AbstractListener() {
 				@Override
 				public void receiveConfigInfo(String configInfo) {
-					nacosConfigContent.put(cacheKey, configInfo);
+					synchronized (listenerLifecycleMonitor) {
+						if (!closed) {
+							nacosConfigContent.put(cacheKey, configInfo);
+						}
+					}
 				}
 			};
 			AbstractListener oldListener = nacosConfigListeners.putIfAbsent(cacheKey, listener);
@@ -207,8 +234,8 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 					logger.error("Failed to add listener for Nacos config: {}", e.getMessage(), e);
 				}
 			}
-			return nacosMcpOperationService.getConfigService().getConfig(dataId, group, 3000);
 		}
+		return nacosMcpOperationService.getConfigService().getConfig(dataId, group, 3000);
 	}
 
 	/**
@@ -253,11 +280,10 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 			}
 		}
 		catch (JsonProcessingException e) {
-			logger.error("[extractJsonValueFromNacos] Failed to parse JSON from Nacos config. Content: {}, Error: {}",
-					jsonString, e.getMessage());
+			logger.error("[extractJsonValueFromNacos] Failed to parse JSON from Nacos config for path '{}': {}",
+					jsonPath, e.getMessage());
 			throw new RuntimeException(
-					"Nacos config content is not valid JSON, but dot notation was used. Please ensure the config is in JSON format or remove the dot notation. Content: "
-							+ jsonString,
+					"Nacos config content is not valid JSON, but dot notation was used. Please ensure the config is in JSON format or remove the dot notation.",
 					e);
 		}
 		catch (Exception e) {
@@ -270,7 +296,10 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 	private String processTemplateString(String template, Map<String, Object> params) {
 		Map<String, Object> args = (Map<String, Object>) params.get("args");
 		String extendedData = (String) params.get("extendedData");
-		logger.debug("[processTemplateString] template: {} args: {} extendedData: {}", template, args, extendedData);
+		if (logger.isDebugEnabled()) {
+			logger.debug("[processTemplateString] template: {} args: {} extendedData: {}", sanitizeForLog(template),
+					sanitizeForLog(args), sanitizeForLog(extendedData));
+		}
 		if (template == null || template.isEmpty()) {
 			return "";
 		}
@@ -285,7 +314,9 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 		matcher.appendTail(result);
 		String finalResult = result.toString();
 		finalResult = processNacosConfigRefTemplate(finalResult);
-		logger.debug("[processTemplateString] final result: {}", finalResult);
+		if (logger.isDebugEnabled()) {
+			logger.debug("[processTemplateString] final result: {}", sanitizeForLog(finalResult));
+		}
 
 		return finalResult;
 	}
@@ -397,10 +428,8 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 	@SuppressWarnings("unchecked")
 	public String call(@NonNull final String input, final ToolContext toolContext) {
 		try {
-			try {
-				logger.info("[call] input: {} toolContext: {}", input, JacksonUtils.toJson(toolContext));
-			} catch (Exception e) {
-				// Ignore logging errors
+			if (logger.isDebugEnabled()) {
+				logger.debug("[call] input: {} toolContext: {}", sanitizeForLog(input), sanitizeForLog(toolContext));
 			}
 
 			// 参数验证
@@ -409,12 +438,16 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 			}
 
 			// input解析
-			logger.info("[call] input string: {}", input);
+			if (logger.isDebugEnabled()) {
+				logger.debug("[call] input string: {}", sanitizeForLog(input));
+			}
 			Map<String, Object> args = new HashMap<>();
 			if (!input.isEmpty()) {
 				try {
 					args = objectMapper.readValue(input, Map.class);
-					logger.info("[call] parsed args: {}", args);
+					if (logger.isDebugEnabled()) {
+						logger.debug("[call] parsed args: {}", sanitizeForLog(args));
+					}
 				}
 				catch (Exception e) {
 					logger.error("[call] Failed to parse input to args", e);
@@ -469,7 +502,9 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 				throw new RuntimeException("No available endpoint found for service: " + serviceRef.getServiceName());
 			}
 
-			logger.info("[handleMcpStreamProtocol] Tool callback instance: {}", JacksonUtils.toJson(mcpEndpointInfo));
+			if (logger.isDebugEnabled()) {
+				logger.debug("[handleMcpStreamProtocol] selected endpoint: {}", sanitizeForLog(mcpEndpointInfo));
+			}
 			String exportPath = remoteServerConfig.getExportPath();
 
 			// 构建基础URL，根据协议类型调整
@@ -483,8 +518,10 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 				baseUrl = new StringBuilder(transportProtocol + "://" + mcpEndpointInfo.getAddress() + ":" + mcpEndpointInfo.getPort());
 			}
 
-			logger.info("[handleMcpStreamProtocol] Processing {} protocol with args: {} and baseUrl: {}", protocol,
-					args, baseUrl.toString());
+			if (logger.isDebugEnabled()) {
+				logger.debug("[handleMcpStreamProtocol] Processing {} protocol with args: {} and baseUrl: {}",
+						protocol, sanitizeForLog(args), sanitizeForLog(baseUrl.toString()));
+			}
 
 			try {
 				// 获取工具名称 - 从工具定义名称中提取实际的工具名称
@@ -546,14 +583,21 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 				try {
 					// 初始化客户端
 					InitializeResult initializeResult = client.initialize();
-					logger.info("[handleMcpStreamProtocol] MCP Client initialized: {}", initializeResult);
+					if (logger.isDebugEnabled()) {
+						logger.debug("[handleMcpStreamProtocol] MCP Client initialized: {}",
+								sanitizeForLog(initializeResult));
+					}
 
 					// 调用工具
 					McpSchema.CallToolRequest request = new McpSchema.CallToolRequest(toolName, args);
-					logger.info("[handleMcpStreamProtocol] CallToolRequest: {}", request);
+					if (logger.isDebugEnabled()) {
+						logger.debug("[handleMcpStreamProtocol] CallToolRequest: {}", sanitizeForLog(request));
+					}
 
 					CallToolResult result = client.callTool(request);
-					logger.info("[handleMcpStreamProtocol] tool call result: {}", result);
+					if (logger.isDebugEnabled()) {
+						logger.debug("[handleMcpStreamProtocol] tool call result: {}", sanitizeForLog(result));
+					}
 
 					// 处理结果
 					Object content = result.content();
@@ -605,16 +649,58 @@ public class NacosMcpGatewayToolCallback implements ToolCallback {
 		return clientSpec;
 	}
 
+	private static String sanitizeForLog(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text;
+		if (value instanceof CharSequence sequence) {
+			text = sequence.toString();
+		}
+		else {
+			try {
+				text = objectMapper.writeValueAsString(value);
+			}
+			catch (Exception ex) {
+				text = String.valueOf(value);
+			}
+		}
+		return redactSensitiveText(text);
+	}
+
+	static String redactSensitiveText(String text) {
+		if (text == null) {
+			return null;
+		}
+		String redacted = BEARER_TOKEN_PATTERN.matcher(text).replaceAll("Bearer ******");
+		redacted = SENSITIVE_JSON_FIELD_PATTERN.matcher(redacted).replaceAll("$1\"******\"");
+		return SENSITIVE_ASSIGNMENT_PATTERN.matcher(redacted).replaceAll("$1******");
+	}
+
 	/**
 	 * Close.
 	 */
 	public void close() {
-
-		for (Map.Entry<String, AbstractListener> entry : nacosConfigListeners.entrySet()) {
+		Map<String, AbstractListener> listenersToRemove;
+		synchronized (listenerLifecycleMonitor) {
+			if (closed) {
+				return;
+			}
+			closed = true;
+			listenersToRemove = Map.copyOf(nacosConfigListeners);
+			nacosConfigListeners.clear();
+			nacosConfigContent.clear();
+		}
+		for (Map.Entry<String, AbstractListener> entry : listenersToRemove.entrySet()) {
 			String cacheKey = entry.getKey();
 			String dataId = cacheKey.split("@@")[0];
 			String group = cacheKey.split("@@")[1];
-			nacosMcpOperationService.getConfigService().removeListener(dataId, group, entry.getValue());
+			try {
+				nacosMcpOperationService.getConfigService().removeListener(dataId, group, entry.getValue());
+			}
+			catch (Exception e) {
+				logger.warn("Failed to remove listener for Nacos config dataId: {}, group: {}", dataId, group, e);
+			}
 		}
 	}
 

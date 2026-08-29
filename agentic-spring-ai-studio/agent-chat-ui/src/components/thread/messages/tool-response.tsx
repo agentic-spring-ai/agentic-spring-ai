@@ -1,27 +1,17 @@
 import { UIMessage, isToolResponseMessage } from "@/types/messages";
 import { ToolResult } from "./tool-calls";
 
-export function ToolResponseMessage({
-  message,
-}: {
-  message: UIMessage;
-}) {
-  console.log('[ToolResponseMessage] Rendering:', {
-    id: message.id,
-    messageType: message.message.messageType,
-    fullMessage: message
-  });
-
+export function ToolResponseMessage({ message }: { message: UIMessage }) {
   // Verify it's a tool response message
   if (!isToolResponseMessage(message.message)) {
-    console.warn('[ToolResponseMessage] Not a tool response message:', message);
+    console.warn("[ToolResponseMessage] Not a tool response message:", message);
     return null;
   }
 
   const responses = message.message.responses || [];
 
   if (responses.length === 0) {
-    console.warn('[ToolResponseMessage] No responses found');
+    console.warn("[ToolResponseMessage] No responses found");
     return null;
   }
 
@@ -36,4 +26,3 @@ export function ToolResponseMessage({
     </div>
   );
 }
-

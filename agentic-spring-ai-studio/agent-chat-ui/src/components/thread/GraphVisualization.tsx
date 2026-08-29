@@ -15,7 +15,10 @@ interface GraphVisualizationProps {
  * Fetches and displays the graph representation (Mermaid format).
  * Falls back to showing raw Mermaid source if diagram rendering is not available.
  */
-export function GraphVisualization({ graphName, className = "" }: GraphVisualizationProps) {
+export function GraphVisualization({
+  graphName,
+  className = "",
+}: GraphVisualizationProps) {
   const [mermaidSrc, setMermaidSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,14 +81,18 @@ export function GraphVisualization({ graphName, className = "" }: GraphVisualiza
 
   if (error || !mermaidSrc) {
     return (
-      <div className={`rounded-lg border border-dashed p-4 text-sm text-muted-foreground ${className}`}>
+      <div
+        className={`text-muted-foreground rounded-lg border border-dashed p-4 text-sm ${className}`}
+      >
         {error || "No graph representation available"}
       </div>
     );
   }
 
   return (
-    <div className={`rounded-lg border bg-muted/30 overflow-hidden ${className}`}>
+    <div
+      className={`bg-muted/30 overflow-hidden rounded-lg border ${className}`}
+    >
       <Button
         variant="ghost"
         size="sm"
@@ -93,12 +100,16 @@ export function GraphVisualization({ graphName, className = "" }: GraphVisualiza
         onClick={() => setExpanded((p) => !p)}
       >
         <span className="text-sm font-medium">Graph: {graphName}</span>
-        {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        {expanded ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
       </Button>
       {expanded && (
         <div
           ref={containerRef}
-          className="min-h-[120px] p-4 overflow-auto [&_svg]:max-w-full [&_svg]:h-auto"
+          className="min-h-[120px] overflow-auto p-4 [&_svg]:h-auto [&_svg]:max-w-full"
         />
       )}
     </div>

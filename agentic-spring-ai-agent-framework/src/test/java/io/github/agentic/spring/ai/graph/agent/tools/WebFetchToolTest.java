@@ -177,6 +177,39 @@ class WebFetchToolTest {
 	}
 
 	@Test
+	void cacheKeyDistinguishesPromptsWithSameJavaHashCode() throws Exception {
+		assertEquals("FB".hashCode(), "Ea".hashCode());
+		ChatModel chatModel = mock(ChatModel.class);
+		when(chatModel.getOptions()).thenReturn(ChatOptions.builder().build());
+		when(chatModel.call(any(Prompt.class))).thenReturn(
+				new ChatResponse(List.of(new Generation(new AssistantMessage("First summary")))),
+				new ChatResponse(List.of(new Generation(new AssistantMessage("Second summary")))));
+		ChatClient chatClient = ChatClient.builder(chatModel).build();
+		FakeAddressResolver resolver = new FakeAddressResolver(Map.of("example.com",
+				new InetAddress[] { InetAddress.getByName("93.184.216.34") }));
+		CapturingTransport transport = new CapturingTransport(
+				WebFetchTool.FetchResponse.of(200, URI.create("https://example.com/article"), Map.of(),
+						"<html>first</html>"),
+				WebFetchTool.FetchResponse.of(200, URI.create("https://example.com/article"), Map.of(),
+						"<html>second</html>"));
+
+		WebFetchTool tool = WebFetchTool.builder(chatClient)
+			.addressResolver(resolver)
+			.httpTransport(transport)
+			.maxRetries(0)
+			.buildWebFetchTool();
+
+		String firstResult = tool.apply(new WebFetchTool.Request("https://example.com/article", "FB"),
+				new ToolContext(Collections.emptyMap()));
+		String secondResult = tool.apply(new WebFetchTool.Request("https://example.com/article", "Ea"),
+				new ToolContext(Collections.emptyMap()));
+
+		assertEquals("First summary", firstResult);
+		assertEquals("Second summary", secondResult);
+		assertEquals(2, transport.requestedUris.size());
+	}
+
+	@Test
 	@SuppressWarnings("unchecked")
 	void testCacheRespectsMaxCacheSize() throws Exception {
 		int maxCacheSize = 10;

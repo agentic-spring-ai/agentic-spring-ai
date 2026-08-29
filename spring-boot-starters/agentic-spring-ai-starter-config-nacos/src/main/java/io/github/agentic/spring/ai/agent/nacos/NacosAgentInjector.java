@@ -17,7 +17,6 @@
 package io.github.agentic.spring.ai.agent.nacos;
 
 import io.github.agentic.spring.ai.agent.nacos.vo.AgentVO;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.exception.NacosException;
 
 public class NacosAgentInjector {
@@ -31,7 +30,7 @@ public class NacosAgentInjector {
 			String config = nacosOptions.getNacosConfigService()
 					.getConfig(dataIdT, "ai-agent-" + nacosOptions.getAgentName(),
 							3000L);
-			return JSON.parseObject(config, AgentVO.class);
+			return NacosJsonSupport.parseObject(config, dataIdT, AgentVO.class);
 		}
 		catch (NacosException e) {
 			throw new RuntimeException(e);

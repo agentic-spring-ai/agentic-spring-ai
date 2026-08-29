@@ -5,14 +5,20 @@
 
 // Base message interface matching backend MessageDTO
 export interface BaseMessage {
-  messageType: 'user' | 'assistant' | 'tool' | 'tool-request' | 'tool-confirm' | 'system';
+  messageType:
+    | "user"
+    | "assistant"
+    | "tool"
+    | "tool-request"
+    | "tool-confirm"
+    | "system";
   content: string;
   metadata?: Record<string, any>;
 }
 
 // User message - matches backend UserMessageDTO
 export interface UserMessage extends BaseMessage {
-  messageType: 'user';
+  messageType: "user";
   media?: MediaDTO[];
 }
 
@@ -23,7 +29,7 @@ export interface MediaDTO {
 
 // Assistant message - matches backend AssistantMessageDTO
 export interface AssistantMessage extends BaseMessage {
-  messageType: 'assistant';
+  messageType: "assistant";
   toolCalls?: ToolCall[];
 }
 
@@ -36,13 +42,13 @@ export interface ToolCall {
 
 // Tool request message - matches backend ToolRequestMessageDTO
 export interface ToolRequestMessage extends BaseMessage {
-  messageType: 'tool-request';
+  messageType: "tool-request";
   toolCalls?: ToolCall[];
 }
 
 // Tool request confirm message - matches backend ToolRequestConfirmMessageDTO
 export interface ToolRequestConfirmMessage extends BaseMessage {
-  messageType: 'tool-confirm';
+  messageType: "tool-confirm";
   toolFeedback?: ToolFeedback[];
   toolsAutomaticallyApproved?: ToolCall[];
 }
@@ -51,13 +57,13 @@ export interface ToolFeedback {
   id: string;
   name: string;
   arguments: string;
-  result?: 'APPROVED' | 'REJECTED' | 'EDITED';
+  result?: "APPROVED" | "REJECTED" | "EDITED";
   description?: string;
 }
 
 // Tool response message - matches backend ToolResponseMessageDTO
 export interface ToolResponseMessage extends BaseMessage {
-  messageType: 'tool';
+  messageType: "tool";
   responses?: ToolResponse[];
 }
 
@@ -84,85 +90,96 @@ export interface UIMessage {
 
 // Helper type guards
 export function isUserMessage(message: Message): message is UserMessage {
-  return message.messageType === 'user';
+  return message.messageType === "user";
 }
 
-export function isAssistantMessage(message: Message): message is AssistantMessage {
-  return message.messageType === 'assistant';
+export function isAssistantMessage(
+  message: Message,
+): message is AssistantMessage {
+  return message.messageType === "assistant";
 }
 
-export function isToolRequestMessage(message: Message): message is ToolRequestMessage {
-  return message.messageType === 'tool-request';
+export function isToolRequestMessage(
+  message: Message,
+): message is ToolRequestMessage {
+  return message.messageType === "tool-request";
 }
 
-export function isToolRequestConfirmMessage(message: Message): message is ToolRequestConfirmMessage {
-  return message.messageType === 'tool-confirm';
+export function isToolRequestConfirmMessage(
+  message: Message,
+): message is ToolRequestConfirmMessage {
+  return message.messageType === "tool-confirm";
 }
 
-export function isToolResponseMessage(message: Message): message is ToolResponseMessage {
-  return message.messageType === 'tool';
+export function isToolResponseMessage(
+  message: Message,
+): message is ToolResponseMessage {
+  return message.messageType === "tool";
 }
 
 // Helper to convert backend MessageDTO to UI Message
 export function fromMessageDTO(dto: any): Message {
   switch (dto.messageType) {
-    case 'user':
+    case "user":
       return {
-        messageType: 'user',
-        content: dto.content || '',
+        messageType: "user",
+        content: dto.content || "",
         metadata: dto.metadata || {},
-        media: dto.media || []
+        media: dto.media || [],
       } as UserMessage;
 
-    case 'assistant':
+    case "assistant":
       return {
-        messageType: 'assistant',
-        content: dto.content || '',
+        messageType: "assistant",
+        content: dto.content || "",
         metadata: dto.metadata || {},
-        toolCalls: dto.toolCalls || []
+        toolCalls: dto.toolCalls || [],
       } as AssistantMessage;
 
-    case 'tool-request':
+    case "tool-request":
       return {
-        messageType: 'tool-request',
-        content: dto.content || '',
+        messageType: "tool-request",
+        content: dto.content || "",
         metadata: dto.metadata || {},
-        toolCalls: dto.toolCalls || []
+        toolCalls: dto.toolCalls || [],
       } as ToolRequestMessage;
 
-    case 'tool-confirm':
+    case "tool-confirm":
       return {
-        messageType: 'tool-confirm',
-        content: dto.content || '',
+        messageType: "tool-confirm",
+        content: dto.content || "",
         metadata: dto.metadata || {},
         toolFeedback: dto.toolFeedback || [],
-        toolsAutomaticallyApproved: dto.toolsAutomaticallyApproved || []
+        toolsAutomaticallyApproved: dto.toolsAutomaticallyApproved || [],
       } as ToolRequestConfirmMessage;
 
-    case 'tool':
+    case "tool":
       return {
-        messageType: 'tool',
-        content: dto.content || '',
+        messageType: "tool",
+        content: dto.content || "",
         metadata: dto.metadata || {},
-        responses: dto.responses || []
+        responses: dto.responses || [],
       } as ToolResponseMessage;
 
     default:
       // Fallback to user message
       return {
-        messageType: 'user',
-        content: dto.content || '',
-        metadata: dto.metadata || {}
+        messageType: "user",
+        content: dto.content || "",
+        metadata: dto.metadata || {},
       } as UserMessage;
   }
 }
 
 // Helper to create UI message
-export function createUIMessage(message: Message, id?: string, timestamp?: number): UIMessage {
+export function createUIMessage(
+  message: Message,
+  id?: string,
+  timestamp?: number,
+): UIMessage {
   return {
     id: id || `${message.messageType}-${Date.now()}`,
     message,
-    timestamp: timestamp || Date.now()
+    timestamp: timestamp || Date.now(),
   };
 }
-

@@ -39,9 +39,9 @@ Just add the following dependency to your agent project:
 </dependency>
 ```
 
-Run your agent, visit `http:localhost:{your-port}/chatui/index.html`, and now you can chat with you agent.
+Run your agent, visit `http://localhost:{your-port}/chatui/index.html`, and now you can chat with your agent.
 
-If execution endpoints are protected, configure the backend token with:
+Studio keeps static UI assets public, but all Studio API endpoints fail closed until a backend token is configured:
 
 ```properties
 spring.ai.alibaba.agent.studio.execution.auth-token=change-me
@@ -49,7 +49,7 @@ spring.ai.alibaba.agent.studio.execution.auth-token=change-me
 
 The embedded static UI does not read this value from build-time environment variables. Open the UI
 configuration panel and set `Execution Token`; the browser stores it in `sessionStorage` for the
-current tab session and sends it as `X-Agentic-Studio-Token` only on execution requests.
+current tab session and sends it as `X-Agentic-Studio-Token` on discovery, execution, and thread requests.
 
 Checkpoint keys created by older Studio versions used only `threadId`. Migrate known legacy threads
 before accepting traffic after an upgrade; runtime reads intentionally do not fall back to unscoped

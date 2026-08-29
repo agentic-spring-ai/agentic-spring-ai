@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -110,6 +111,24 @@ class FilesystemInterceptorTest {
 	}
 
 	@Test
+	void listToolDistinguishesMissingFileAndEmptyDirectory() throws Exception {
+		Files.writeString(this.root.resolve("plain.txt"), "content");
+		Files.createDirectory(this.root.resolve("empty"));
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder()
+			.backend(new LocalFilesystemBackend(this.root.toString(), true, 10))
+			.readOnly(true)
+			.build();
+
+		String missing = tool(interceptor, "ls").call("\"/missing\"", new ToolContext(Collections.emptyMap()));
+		String file = tool(interceptor, "ls").call("\"/plain.txt\"", new ToolContext(Collections.emptyMap()));
+		String empty = tool(interceptor, "ls").call("\"/empty\"", new ToolContext(Collections.emptyMap()));
+
+		assertThat(missing).contains("Error: Directory not found: /missing").doesNotContain("Directory is empty");
+		assertThat(file).contains("Error: Directory not found: /plain.txt").doesNotContain("Directory is empty");
+		assertThat(empty).contains("Directory is empty").doesNotContain("Directory not found");
+	}
+
+	@Test
 	void backendKeepsEditToolInsideVirtualRoot() throws Exception {
 		Files.writeString(this.root.resolve("inside.txt"), "before\n");
 
@@ -127,6 +146,82 @@ class FilesystemInterceptorTest {
 		assertTrue(edited.contains("Successfully edited file"));
 		assertTrue(Files.readString(this.root.resolve("inside.txt")).contains("after"));
 		assertTrue(traversal.contains("Path traversal not allowed"));
+	}
+
+	@Test
+	void backendRejectsReadThroughIntermediateSymlinkOutsideVirtualRoot() throws Exception {
+		Path outside = Files.createTempDirectory(this.root.getParent(), "outside");
+		Files.writeString(outside.resolve("outside.txt"), "classified\n");
+		Files.createSymbolicLink(this.root.resolve("link"), outside);
+
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder()
+			.backend(new LocalFilesystemBackend(this.root.toString(), true, 10))
+			.readOnly(true)
+			.build();
+
+		String result = tool(interceptor, "read_file").call(
+				"{\"file_path\":\"/link/outside.txt\",\"offset\":0,\"limit\":10}",
+				new ToolContext(Collections.emptyMap()));
+
+		assertThat(result).contains("outside root directory");
+		assertThat(result).doesNotContain("classified");
+	}
+
+	@Test
+	void backendRejectsWriteThroughIntermediateSymlinkOutsideVirtualRoot() throws Exception {
+		Path outside = Files.createTempDirectory(this.root.getParent(), "outside");
+		Files.createSymbolicLink(this.root.resolve("link"), outside);
+
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder()
+			.backend(new LocalFilesystemBackend(this.root.toString(), true, 10))
+			.build();
+
+		String result = tool(interceptor, "write_file").call(
+				"{\"file_path\":\"/link/created.txt\",\"content\":\"escaped\"}",
+				new ToolContext(Collections.emptyMap()));
+
+		assertThat(result).contains("outside root directory");
+		assertThat(outside.resolve("created.txt")).doesNotExist();
+	}
+
+	@Test
+	void backendRejectsEditThroughIntermediateSymlinkOutsideVirtualRoot() throws Exception {
+		Path outside = Files.createTempDirectory(this.root.getParent(), "outside");
+		Path outsideFile = outside.resolve("outside.txt");
+		Files.writeString(outsideFile, "before\n");
+		Files.createSymbolicLink(this.root.resolve("link"), outside);
+
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder()
+			.backend(new LocalFilesystemBackend(this.root.toString(), true, 10))
+			.build();
+
+		String result = tool(interceptor, "edit_file").call(
+				"{\"file_path\":\"/link/outside.txt\",\"old_string\":\"before\",\"new_string\":\"after\",\"replace_all\":false}",
+				new ToolContext(Collections.emptyMap()));
+
+		assertThat(result).contains("outside root directory");
+		assertThat(Files.readString(outsideFile)).isEqualTo("before\n");
+	}
+
+	@Test
+	void backendAppliesMaxFileSizeToDirectReadAndEdit() throws Exception {
+		Path file = this.root.resolve("large.txt");
+		Files.writeString(file, "too large\n");
+
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder()
+			.backend(new LocalFilesystemBackend(this.root.toString(), true, 0))
+			.build();
+
+		String read = tool(interceptor, "read_file").call(
+				"{\"file_path\":\"/large.txt\",\"offset\":0,\"limit\":10}",
+				new ToolContext(Collections.emptyMap()));
+		String edit = tool(interceptor, "edit_file").call(
+				"{\"file_path\":\"/large.txt\",\"old_string\":\"too\",\"new_string\":\"not\",\"replace_all\":false}",
+				new ToolContext(Collections.emptyMap()));
+
+		assertThat(read).contains("exceeds maximum file size");
+		assertThat(edit).contains("exceeds maximum file size");
+		assertThat(Files.readString(file)).isEqualTo("too large\n");
 	}
 
 	private static ToolCallback tool(FilesystemInterceptor interceptor, String name) {

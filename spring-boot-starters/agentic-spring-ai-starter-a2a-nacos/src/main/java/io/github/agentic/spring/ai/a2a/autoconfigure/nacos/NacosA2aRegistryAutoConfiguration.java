@@ -44,7 +44,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 @AutoConfiguration(after = A2aServerAgentCardAutoConfiguration.class,
 		before = { A2aServerRegistryAutoConfiguration.class })
 @EnableConfigurationProperties({ NacosA2aProperties.class, NacosA2aRegistryProperties.class })
-@ConditionalOnProperty(prefix = NacosA2aRegistryProperties.PREFIX, value = ".enabled", havingValue = "true",
+@ConditionalOnProperty(prefix = NacosA2aRegistryProperties.PREFIX, value = "enabled", havingValue = "true",
 		matchIfMissing = true)
 public class NacosA2aRegistryAutoConfiguration {
 

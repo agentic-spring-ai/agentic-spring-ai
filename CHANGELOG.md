@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Spring AI Alibaba are documented in this file.
+All notable changes to Agentic for Spring AI are documented in this file.
 
 The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -10,8 +10,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Placeholder section. New changes will be listed here before the next release.
+### Changed
+- Started the `2.1.0-dev` development line.
+- Removed the retired admin module and aligned repository configuration and documentation
+  with the Agentic for Spring AI project identity.
+- Hardened execution, authentication, persistence, and build contracts.
+- Studio now requires `spring.ai.alibaba.agent.studio.execution.auth-token` for every API request;
+  static UI assets remain public.
+- Docker code execution now defaults to disabled networking, a read-only root filesystem,
+  bounded CPU/memory/PIDs, dropped capabilities, a 64 MiB writable `/tmp` tmpfs, and a 1 MiB
+  captured-output limit.
+- Local code execution uses a temporary per-invocation directory; multiple blocks in one invocation
+  share that directory, which is deleted when the invocation finishes.
+- Document extraction now restricts local files to a configured root, blocks private-network URLs by
+  default, limits response size, and enforces a total remote-fetch timeout.
+- Graph observation content capture now defaults to disabled. Set
+  `spring.ai.alibaba.graph.observation.capture-content=true` only when prompt and completion content
+  may be recorded; captured values are redacted and truncated.
+- `FileSystemStore` namespace elements and keys must each be a single safe path segment. Represent
+  hierarchy with multiple namespace elements instead of embedding `/`, absolute paths, `.` or `..`.
+- The A2A server now uses a bounded executor. Size it with the
+  `spring.ai.alibaba.a2a.server.executor-*` properties; when saturated, its caller-runs policy applies
+  backpressure on the submitting thread instead of growing an unbounded queue.
+
+## [2.0.0.0] - 2026-08-27
+
+### Changed
+- Migrated the project coordinates and repository identity to Agentic for Spring AI.
+- Established the Spring Boot 4.1 and Spring AI 2.0 generation of the project.
 
 ## [1.1.2.2] - 2026-03-10
 
@@ -77,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 See [GitHub Releases](https://github.com/agentic-spring-ai/agentic-spring-ai/releases)
 for the full history, including 1.1.0.0-RC1, 1.1.0.0-M5, 1.1.0.0-M4, 1.0.0.1, and 1.0.0.0.
 
-[Unreleased]: https://github.com/agentic-spring-ai/agentic-spring-ai/compare/v1.1.2.2...HEAD
+[Unreleased]: https://github.com/agentic-spring-ai/agentic-spring-ai/compare/v2.0.0.0...HEAD
+[2.0.0.0]: https://github.com/agentic-spring-ai/agentic-spring-ai/releases/tag/v2.0.0.0
 [1.1.2.2]: https://github.com/agentic-spring-ai/agentic-spring-ai/releases/tag/v1.1.2.2
 [1.1.2.1]: https://github.com/agentic-spring-ai/agentic-spring-ai/releases/tag/v1.1.2.1
 [1.1.2.0]: https://github.com/agentic-spring-ai/agentic-spring-ai/releases/tag/v1.1.2.0

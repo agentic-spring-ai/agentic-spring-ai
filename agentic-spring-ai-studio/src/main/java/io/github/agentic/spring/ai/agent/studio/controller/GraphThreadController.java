@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -61,10 +62,18 @@ public class GraphThreadController {
 
 	private final ThreadService threadService;
 
+	private final StudioExecutionAccess executionAccess;
+
 	@Autowired
-	public GraphThreadController(GraphLoader graphLoader, ThreadService threadService) {
+	public GraphThreadController(GraphLoader graphLoader, ThreadService threadService,
+			StudioExecutionAccess executionAccess) {
 		this.graphLoader = graphLoader;
 		this.threadService = threadService;
+		this.executionAccess = executionAccess;
+	}
+
+	public GraphThreadController(GraphLoader graphLoader, ThreadService threadService) {
+		this(graphLoader, threadService, new StudioExecutionAccess(""));
 	}
 
 	private String toAppName(String graphName) {
@@ -103,7 +112,9 @@ public class GraphThreadController {
 	public Thread getThread(
 			@PathVariable String graphName,
 			@PathVariable String userId,
-			@PathVariable String threadId) {
+			@PathVariable String threadId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		validateGraphExists(graphName);
 		return findThreadOrThrow(graphName, userId, threadId);
 	}
@@ -111,7 +122,9 @@ public class GraphThreadController {
 	@GetMapping("/graphs/{graphName}/users/{userId}/threads")
 	public List<Thread> listThreads(
 			@PathVariable String graphName,
-			@PathVariable String userId) {
+			@PathVariable String userId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		validateGraphExists(graphName);
 		String appName = toAppName(graphName);
 		ListThreadsResponse response = threadService.listThreads(appName, userId).block();
@@ -130,7 +143,9 @@ public class GraphThreadController {
 			@PathVariable String graphName,
 			@PathVariable String userId,
 			@PathVariable String threadId,
-			@RequestBody(required = false) Map<String, Object> state) {
+			@RequestBody(required = false) Map<String, Object> state,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		validateGraphExists(graphName);
 		String appName = toAppName(graphName);
 
@@ -159,7 +174,9 @@ public class GraphThreadController {
 	public Thread createThread(
 			@PathVariable String graphName,
 			@PathVariable String userId,
-			@RequestBody(required = false) Map<String, Object> state) {
+			@RequestBody(required = false) Map<String, Object> state,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		validateGraphExists(graphName);
 		String appName = toAppName(graphName);
 		Map<String, Object> initialState = (state != null && !state.isEmpty()) ? state : null;
@@ -180,7 +197,9 @@ public class GraphThreadController {
 	public ResponseEntity<Void> deleteThread(
 			@PathVariable String graphName,
 			@PathVariable String userId,
-			@PathVariable String threadId) {
+			@PathVariable String threadId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		validateGraphExists(graphName);
 		String appName = toAppName(graphName);
 		threadService.deleteThread(appName, userId, threadId).block();

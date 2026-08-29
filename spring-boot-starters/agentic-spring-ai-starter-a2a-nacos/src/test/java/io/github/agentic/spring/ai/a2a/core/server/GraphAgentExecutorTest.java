@@ -77,6 +77,42 @@ class GraphAgentExecutorTest {
 	}
 
 	@Test
+	void executeAcceptsStringStreamingMetadata() throws Exception {
+		Agent agent = mock(Agent.class);
+		when(agent.stream(eq("hello"), any(RunnableConfig.class))).thenReturn(Flux.empty());
+		GraphAgentExecutor executor = new GraphAgentExecutor(agent);
+		Message message = new Message(Message.Role.USER, List.of(new TextPart("hello")), "message-id", "context-id",
+				"task-id", null, null);
+		Task task = new Task("task-id", "context-id", new TaskStatus(TaskState.WORKING), null, List.of(message), null);
+		MessageSendParams params = new MessageSendParams(message, null,
+				Map.of(GraphAgentExecutor.STREAMING_METADATA_KEY, "true", "streamingTaskWaitTimeoutMillis", 50L));
+		RequestContext context = new RequestContext(params, "task-id", "context-id", task, List.of());
+
+		executor.execute(context, mock(EventQueue.class));
+
+		verify(agent).stream(eq("hello"), any(RunnableConfig.class));
+	}
+
+	@Test
+	void executeReportsInvalidStreamingMetadata() throws Exception {
+		Agent agent = mock(Agent.class);
+		GraphAgentExecutor executor = new GraphAgentExecutor(agent);
+		Message message = new Message(Message.Role.USER, List.of(new TextPart("hello")), "message-id", "context-id",
+				"task-id", null, null);
+		Task task = new Task("task-id", "context-id", new TaskStatus(TaskState.WORKING), null, List.of(message), null);
+		MessageSendParams params = new MessageSendParams(message, null,
+				Map.of(GraphAgentExecutor.STREAMING_METADATA_KEY, "sometimes"));
+		RequestContext context = new RequestContext(params, "task-id", "context-id", task, List.of());
+		EventQueue eventQueue = mock(EventQueue.class);
+
+		executor.execute(context, eventQueue);
+
+		ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+		verify(eventQueue).enqueueEvent(eventCaptor.capture());
+		assertTrue(eventContainsText(eventCaptor.getValue(), "Invalid A2A streaming metadata"));
+	}
+
+	@Test
 	void executeReturnsTimeoutFailureWhenStreamingTaskNeverReachesFinalState() throws Exception {
 		Agent agent = mock(Agent.class);
 		when(agent.stream(eq("hello"), any(RunnableConfig.class))).thenReturn(Flux.never());

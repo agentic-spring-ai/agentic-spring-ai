@@ -28,7 +28,17 @@ public class NacosA2aRegistryProperties {
 
 	public static final String PREFIX = "spring.ai.alibaba.a2a.nacos.registry";
 
+	private boolean enabled = true;
+
 	private boolean registerAsLatest = true;
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
 
 	public boolean isRegisterAsLatest() {
 		return registerAsLatest;

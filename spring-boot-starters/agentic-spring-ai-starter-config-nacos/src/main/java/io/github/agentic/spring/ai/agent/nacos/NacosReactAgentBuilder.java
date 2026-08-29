@@ -27,8 +27,8 @@ import io.github.agentic.spring.ai.agent.nacos.vo.PromptVO;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.graph.agent.node.AgentToolNode;
+import io.github.agentic.spring.ai.agent.nacos.tools.NacosMcpGatewayToolCallback;
 import io.github.agentic.spring.ai.observation.model.ObservationMetadataAwareOptions;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
@@ -55,6 +55,8 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 	private NacosOptions nacosOptions;
 	
 	private List<ToolCallback> localTools = new ArrayList<>();
+
+	private List<ToolCallback> dynamicMcpTools = List.of();
 
 	public NacosReactAgentBuilder nacosOptions(NacosOptions nacosOptions) {
 		this.nacosOptions = nacosOptions;
@@ -108,6 +110,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 		List<ToolCallback> allTools = new ArrayList<>();
 		this.localTools = gatherLocalTools();
 		List<ToolCallback> mcpTools = convert(nacosOptions, mcpServersVO);
+		this.dynamicMcpTools = mcpTools != null ? List.copyOf(mcpTools) : List.of();
 		allTools.addAll(localTools);
 		if (mcpTools != null) {
 			allTools.addAll(mcpTools);
@@ -165,14 +168,18 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 					.addListener(dataId, "ai-agent-" + nacosOptions.getAgentName(), new AbstractListener() {
 						@Override
 						public void receiveConfigInfo(String configInfo) {
-							McpServersVO mcpServersVO = JSON.parseObject(configInfo, McpServersVO.class);
+							McpServersVO mcpServersVO = NacosJsonSupport.parseObject(configInfo, dataId,
+									McpServersVO.class);
 							List<ToolCallback> mcpTools = convert(nacosOptions, mcpServersVO);
 							if (mcpTools != null) {
 								List<ToolCallback> allTools = new ArrayList<>();
 								allTools.addAll(localTools);
 								allTools.addAll(mcpTools);
+								List<ToolCallback> previousMcpTools = dynamicMcpTools;
 								toolNode.setToolCallbacks(allTools);
 								llmNode.setToolCallbacks(allTools);
+								dynamicMcpTools = List.copyOf(mcpTools);
+								closeGatewayCallbacks(previousMcpTools);
 							}
 
 						}
@@ -182,6 +189,14 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 			throw new RuntimeException(e);
 		}
 
+	}
+
+	private void closeGatewayCallbacks(List<ToolCallback> callbacks) {
+		for (ToolCallback callback : callbacks) {
+			if (callback instanceof NacosMcpGatewayToolCallback gatewayToolCallback) {
+				gatewayToolCallback.close();
+			}
+		}
 	}
 
 	void registerAgentWithPrompt(NacosOptions nacosOptions, AgentVO agentVO, NacosContextHolder nacosContextHolder, ReactAgent reactAgent) {
@@ -227,7 +242,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 					.addListener(dataIdT, "ai-agent-" + agentName, new AbstractListener() {
 						@Override
 						public void receiveConfigInfo(String configInfo) {
-							ModelVO modelVO = JSON.parseObject(configInfo, ModelVO.class);
+							ModelVO modelVO = NacosJsonSupport.parseObject(configInfo, dataIdT, ModelVO.class);
 							try {
 								OpenAiChatOptions openAiChatOptions = buildProxyChatOptions(modelVO, getMetadata(agentVOHolder.promptVO));
 								ChatModel chatModelNew = createModel(nacosOptions, modelVO, openAiChatOptions);
@@ -311,7 +326,7 @@ class PromptListener extends AbstractListener {
 
 	@Override
 	public void receiveConfigInfo(String configInfo) {
-		PromptVO promptVO = JSON.parseObject(configInfo, PromptVO.class);
+		PromptVO promptVO = NacosJsonSupport.parseObject(configInfo, "prompt listener update", PromptVO.class);
 
 		if (promptVO != null && promptVO.getTemplate() != null) {
 			nacosContextHolder.getObservationMetadataAwareOptions().getObservationMetadata()
@@ -343,7 +358,7 @@ class AgentBaseListener extends AbstractListener {
 			return;
 		}
 
-		AgentVO agentVO = JSON.parseObject(configInfo, AgentVO.class);
+		AgentVO agentVO = NacosJsonSupport.parseObject(configInfo, "agent-base.json", AgentVO.class);
 		String newPromptKey = agentVO.getPromptKey();
 		if (StringUtils.isBlank(newPromptKey) || newPromptKey.equals(currentPromptKey)) {
 			return;

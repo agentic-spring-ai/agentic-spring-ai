@@ -15,13 +15,19 @@
  */
 package io.github.agentic.spring.ai.agent.studio;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ComponentScan(basePackages = "io.github.agentic.spring.ai.agent.studio")
 public class SaaStudioWebModuleAutoConfiguration {
+
+	private static final Logger log = LoggerFactory.getLogger(SaaStudioWebModuleAutoConfiguration.class);
+
 	public SaaStudioWebModuleAutoConfiguration() {
-		System.out.println("✅ Spring AI Alibaba Studio module loaded!");
+		log.info("Spring AI Alibaba Studio module loaded");
 	}
 }

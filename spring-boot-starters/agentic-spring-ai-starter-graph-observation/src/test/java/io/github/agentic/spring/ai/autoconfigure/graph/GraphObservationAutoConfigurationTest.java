@@ -21,6 +21,7 @@ import io.github.agentic.spring.ai.graph.KeyStrategy;
 import io.github.agentic.spring.ai.graph.StateGraph;
 import io.github.agentic.spring.ai.graph.observation.GraphObservationLifecycleListener;
 import io.github.agentic.spring.ai.graph.state.strategy.AppendStrategy;
+import io.micrometer.common.KeyValues;
 import io.micrometer.context.ContextRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -30,6 +31,12 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.observation.ChatModelObservationContext;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -41,6 +48,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -112,7 +120,59 @@ class GraphObservationAutoConfigurationTest {
 
 			GraphObservationProperties properties = context.getBean(GraphObservationProperties.class);
 			assertThat(properties.isEnabled()).isTrue();
+			assertThat(properties.isCaptureContent()).isFalse();
+			assertThat(properties.getMaxContentLength()).isEqualTo(1000);
 		});
+	}
+
+	@Test
+	void shouldBindContentCaptureProperties() {
+		this.contextRunner.withPropertyValues("spring.ai.alibaba.graph.observation.capture-content=true",
+				"spring.ai.alibaba.graph.observation.max-content-length=32")
+			.withUserConfiguration(TestConfiguration.class)
+			.run(context -> {
+				GraphObservationProperties properties = context.getBean(GraphObservationProperties.class);
+
+				assertThat(properties.isCaptureContent()).isTrue();
+				assertThat(properties.getMaxContentLength()).isEqualTo(32);
+			});
+	}
+
+	@Test
+	void chatObservationConventionShouldNotCaptureRawContentByDefault() {
+		this.contextRunner.withUserConfiguration(TestConfiguration.class).run(context -> {
+			org.springframework.ai.chat.observation.ChatModelObservationConvention convention =
+					context.getBean(org.springframework.ai.chat.observation.ChatModelObservationConvention.class);
+
+			KeyValues keyValues = convention.getHighCardinalityKeyValues(chatContext("user secret", "assistant secret"));
+
+			assertThat(keyValues.stream().map(keyValue -> keyValue.getValue()).toList())
+				.doesNotContain("user secret", "assistant secret");
+		});
+	}
+
+	@Test
+	void chatObservationConventionShouldCaptureSanitizedContentWhenEnabled() {
+		this.contextRunner.withPropertyValues("spring.ai.alibaba.graph.observation.capture-content=true",
+				"spring.ai.alibaba.graph.observation.max-content-length=16")
+			.withUserConfiguration(TestConfiguration.class)
+			.run(context -> {
+				org.springframework.ai.chat.observation.ChatModelObservationConvention convention =
+						context.getBean(org.springframework.ai.chat.observation.ChatModelObservationConvention.class);
+
+				KeyValues keyValues = convention.getHighCardinalityKeyValues(chatContext("password=secret-value",
+						"assistant response with long suffix"));
+				List<String> values = keyValues.stream().map(keyValue -> keyValue.getValue()).toList();
+
+				assertThat(values).anySatisfy(value -> {
+					assertThat(value).contains("password=<redac");
+					assertThat(value).doesNotContain("secret-value");
+				});
+				assertThat(values).anySatisfy(value -> {
+					assertThat(value).contains("assistant respon");
+					assertThat(value).doesNotContain("assistant response with long suffix");
+				});
+			});
 	}
 
 	@Test
@@ -353,6 +413,15 @@ class GraphObservationAutoConfigurationTest {
 
 		log.info("Cross-thread context propagation verified! Thread: {}, conversation_id: {}",
 			threadName, capturedConversationId.get());
+	}
+
+	private ChatModelObservationContext chatContext(String promptText, String responseText) {
+		ChatModelObservationContext context = ChatModelObservationContext.builder()
+			.prompt(new Prompt(new UserMessage(promptText)))
+			.provider("test")
+			.build();
+		context.setResponse(new ChatResponse(List.of(new Generation(new AssistantMessage(responseText)))));
+		return context;
 	}
 
 	@Configuration(proxyBeanMethods = false)

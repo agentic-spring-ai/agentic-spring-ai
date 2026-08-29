@@ -24,7 +24,6 @@ import io.github.agentic.spring.ai.agent.nacos.vo.PromptVO;
 import io.github.agentic.spring.ai.graph.agent.DefaultBuilder;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.observation.model.ObservationMetadataAwareOptions;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
@@ -53,7 +52,8 @@ public class NacosAgentPromptBuilder extends DefaultBuilder {
 		Listener listener = new AbstractListener() {
 			@Override
 			public void receiveConfigInfo(String configInfo) {
-				PromptVO promptVO = JSON.parseObject(configInfo, PromptVO.class);
+				PromptVO promptVO = NacosJsonSupport.parseObject(configInfo, "prompt-" + promptKey + ".json",
+						PromptVO.class);
 				try {
 					Map<String, String> metadata = getMetadata(promptVO);
 					observationMetadataAwareOptions.getObservationMetadata().putAll(metadata);

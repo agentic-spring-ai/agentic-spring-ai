@@ -50,8 +50,19 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 
 	private final ObservationRegistry observationRegistry;
 
+	private final boolean captureContent;
+
+	private final int maxContentLength;
+
 	public GraphObservationLifecycleListener(ObservationRegistry observationRegistry) {
+		this(observationRegistry, false, ObservationContentSanitizer.DEFAULT_MAX_CONTENT_LENGTH);
+	}
+
+	public GraphObservationLifecycleListener(ObservationRegistry observationRegistry, boolean captureContent,
+			int maxContentLength) {
 		this.observationRegistry = observationRegistry;
+		this.captureContent = captureContent;
+		this.maxContentLength = maxContentLength;
 	}
 
 	public static class GraphObservationContext {
@@ -138,14 +149,15 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 				SpringAiAlibabaObservationMetricAttributes.GRAPH_NAME.value(),
 				"graph-execution");
 
-		// Set Input attributes
-		String input = dumpState(state);
-		graphObs.highCardinalityKeyValue(
-				SpringAiAlibabaObservationMetricAttributes.LANGFUSE_INPUT.value(),
-				input);
-		graphObs.highCardinalityKeyValue(
-				SpringAiAlibabaObservationMetricAttributes.GEN_AI_PROMPT.value(),
-				input);
+		if (captureContent) {
+			String input = dumpState(state);
+			graphObs.highCardinalityKeyValue(
+					SpringAiAlibabaObservationMetricAttributes.LANGFUSE_INPUT.value(),
+					input);
+			graphObs.highCardinalityKeyValue(
+					SpringAiAlibabaObservationMetricAttributes.GEN_AI_PROMPT.value(),
+					input);
+		}
 
 		graphObs.start();
 
@@ -171,13 +183,15 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 					SpringAiAlibabaObservationMetricAttributes.GRAPH_SUCCESS.value(),
 					"true");
 
-			String output = dumpState(state);
-			obs.highCardinalityKeyValue(
-					SpringAiAlibabaObservationMetricAttributes.LANGFUSE_OUTPUT.value(),
-					output);
-			obs.highCardinalityKeyValue(
-					SpringAiAlibabaObservationMetricAttributes.GEN_AI_COMPLETION.value(),
-					output);
+			if (captureContent) {
+				String output = dumpState(state);
+				obs.highCardinalityKeyValue(
+						SpringAiAlibabaObservationMetricAttributes.LANGFUSE_OUTPUT.value(),
+						output);
+				obs.highCardinalityKeyValue(
+						SpringAiAlibabaObservationMetricAttributes.GEN_AI_COMPLETION.value(),
+						output);
+			}
 		} else {
 			obs.lowCardinalityKeyValue(
 					SpringAiAlibabaObservationMetricAttributes.GRAPH_SUCCESS.value(),
@@ -209,12 +223,13 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 				SpringAiAlibabaObservationMetricAttributes.GRAPH_NODE_NAME.value(),
 				nodeId);
 
-		// Set node input attributes (Dump valid state as High Cardinality)
-		String nodeInput = dumpState(state);
-		nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_INPUT.value(),
-				nodeInput);
-		nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.GEN_AI_PROMPT.value(),
-				nodeInput);
+		if (captureContent) {
+			String nodeInput = dumpState(state);
+			nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_INPUT.value(),
+					nodeInput);
+			nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.GEN_AI_PROMPT.value(),
+					nodeInput);
+		}
 
 		nodeObservation.start();
 		// Open scope to propagate context
@@ -241,12 +256,13 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 					SpringAiAlibabaObservationMetricAttributes.GRAPH_NODE_SUCCESS.value(),
 					"true");
 
-			// Set node output attributes (Dump valid state)
-			String nodeOutput = dumpState(state);
-			nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_OUTPUT.value(),
-					nodeOutput);
-			nodeObservation.highCardinalityKeyValue(
-					SpringAiAlibabaObservationMetricAttributes.GEN_AI_COMPLETION.value(), nodeOutput);
+			if (captureContent) {
+				String nodeOutput = dumpState(state);
+				nodeObservation.highCardinalityKeyValue(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_OUTPUT.value(),
+						nodeOutput);
+				nodeObservation.highCardinalityKeyValue(
+						SpringAiAlibabaObservationMetricAttributes.GEN_AI_COMPLETION.value(), nodeOutput);
+			}
 
 			nodeObservation.stop();
 			log.debug("Node {} observation stopped", nodeId);
@@ -285,23 +301,6 @@ public class GraphObservationLifecycleListener implements GraphLifecycleListener
 	}
 
 	private String dumpState(Map<String, Object> state) {
-		if (state == null || state.isEmpty()) {
-			return "empty state";
-		}
-		StringBuilder sb = new StringBuilder();
-		for (Map.Entry<String, Object> entry : state.entrySet()) {
-			String key = entry.getKey();
-			// Skip internal keys and large logs
-			if (key.startsWith("_") || "logs".equals(key)) {
-				continue;
-			}
-			Object value = entry.getValue();
-			String valStr = String.valueOf(value);
-			if (valStr.length() > 1000) {
-				valStr = valStr.substring(0, 1000) + "... (truncated)";
-			}
-			sb.append(key).append("=").append(valStr).append("; ");
-		}
-		return sb.length() > 0 ? sb.toString() : "empty visible state";
+		return ObservationContentSanitizer.sanitizeState(state, maxContentLength);
 	}
 }

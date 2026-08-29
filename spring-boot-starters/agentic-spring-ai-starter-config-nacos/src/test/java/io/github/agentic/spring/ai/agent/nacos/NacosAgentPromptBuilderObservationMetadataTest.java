@@ -23,7 +23,6 @@ import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatOptions;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.observation.model.ObservationMetadataAwareOptions;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.client.config.NacosConfigService;
@@ -160,7 +159,7 @@ class NacosAgentPromptBuilderObservationMetadataTest {
 		refreshedPromptVO.setPromptKey("test-prompt");
 		refreshedPromptVO.setVersion("v2");
 		refreshedPromptVO.setTemplate("You are a refreshed test assistant");
-		listenerCaptor.getValue().receiveConfigInfo(JSON.toJSONString(refreshedPromptVO));
+		listenerCaptor.getValue().receiveConfigInfo(NacosTestJson.toJson(refreshedPromptVO));
 
 		ChatOptions requestOptions = buildRequestOptions(getChatClient(agent));
 		ObservationMetadataAwareOptions observationOptions = assertInstanceOf(ObservationMetadataAwareOptions.class,
@@ -175,7 +174,7 @@ class NacosAgentPromptBuilderObservationMetadataTest {
 		promptVO.setVersion("v1");
 		promptVO.setTemplate("You are a test assistant");
 		when(this.nacosConfigService.getConfig(eq("prompt-test-prompt.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(promptVO));
+				.thenReturn(NacosTestJson.toJson(promptVO));
 	}
 
 	private static ChatOptions getChatOptions(ReactAgent agent) throws Exception {

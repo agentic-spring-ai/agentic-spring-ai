@@ -53,6 +53,14 @@ public class A2aServerProperties implements EnvironmentAware {
 
 	private String version = A2aConstants.DEFAULT_AGENT_VERSION;
 
+	private int executorCorePoolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
+
+	private int executorMaxPoolSize = Math.max(16, executorCorePoolSize * 4);
+
+	private int executorQueueCapacity = 1000;
+
+	private String executorThreadNamePrefix = "a2a-server-";
+
 	private Environment environment;
 
 	@PostConstruct
@@ -120,6 +128,38 @@ public class A2aServerProperties implements EnvironmentAware {
 
 	public void setVersion(String version) {
 		this.version = version;
+	}
+
+	public int getExecutorCorePoolSize() {
+		return executorCorePoolSize;
+	}
+
+	public void setExecutorCorePoolSize(int executorCorePoolSize) {
+		this.executorCorePoolSize = executorCorePoolSize;
+	}
+
+	public int getExecutorMaxPoolSize() {
+		return executorMaxPoolSize;
+	}
+
+	public void setExecutorMaxPoolSize(int executorMaxPoolSize) {
+		this.executorMaxPoolSize = executorMaxPoolSize;
+	}
+
+	public int getExecutorQueueCapacity() {
+		return executorQueueCapacity;
+	}
+
+	public void setExecutorQueueCapacity(int executorQueueCapacity) {
+		this.executorQueueCapacity = executorQueueCapacity;
+	}
+
+	public String getExecutorThreadNamePrefix() {
+		return executorThreadNamePrefix;
+	}
+
+	public void setExecutorThreadNamePrefix(String executorThreadNamePrefix) {
+		this.executorThreadNamePrefix = executorThreadNamePrefix;
 	}
 
 	@Override

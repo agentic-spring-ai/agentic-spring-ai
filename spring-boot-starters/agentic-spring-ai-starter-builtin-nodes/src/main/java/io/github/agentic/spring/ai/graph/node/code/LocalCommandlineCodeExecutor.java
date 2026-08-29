@@ -29,7 +29,6 @@ import org.apache.commons.exec.PumpStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,21 +48,25 @@ public class LocalCommandlineCodeExecutor implements CodeExecutor {
 	@Override
 	public CodeExecutionResult executeCodeBlocks(List<CodeBlock> codeBlockList, CodeExecutionConfig codeExecutionConfig)
 			throws Exception {
-		StringBuilder allLogs = new StringBuilder();
-		CodeExecutionResult result;
-		for (int i = 0; i < codeBlockList.size(); i++) {
-			CodeBlock codeBlock = codeBlockList.get(i);
-			String language = codeBlock.language();
-			String code = codeBlock.code();
-			logger.info("\n>>>>>>>> EXECUTING CODE BLOCK {} (inferred language is {})...", i + 1, language);
-			// "bash", "shell", "sh", "python"
-			result = executeCode(language, code, codeExecutionConfig);
-			allLogs.append("\n").append(result.logs());
-			if (result.exitCode() != 0) {
-				return new CodeExecutionResult(result.exitCode(), allLogs.toString());
+		ExecutionOutputBuffer outputBuffer = new ExecutionOutputBuffer(codeExecutionConfig.getMaxOutputBytes());
+		Path executionWorkDir = FileUtils.createExecutionDirectory(codeExecutionConfig.getWorkDir());
+		try {
+			CodeExecutionResult result;
+			for (int i = 0; i < codeBlockList.size(); i++) {
+				CodeBlock codeBlock = codeBlockList.get(i);
+				String language = codeBlock.language();
+				String code = codeBlock.code();
+				logger.info("\n>>>>>>>> EXECUTING CODE BLOCK {} (inferred language is {})...", i + 1, language);
+				result = executeCode(language, code, codeExecutionConfig, outputBuffer, executionWorkDir);
+				if (result.exitCode() != 0) {
+					return result;
+				}
 			}
+			return new CodeExecutionResult(0, outputBuffer.text().trim());
 		}
-		return new CodeExecutionResult(0, allLogs.toString());
+		finally {
+			FileUtils.deleteRecursively(executionWorkDir);
+		}
 	}
 
 	@Override
@@ -73,35 +76,36 @@ public class LocalCommandlineCodeExecutor implements CodeExecutor {
 	}
 
 	public CodeExecutionResult executeCode(String language, String code, CodeExecutionConfig config) throws Exception {
+		Path executionWorkDir = FileUtils.createExecutionDirectory(config.getWorkDir());
+		try {
+			return executeCode(language, code, config, new ExecutionOutputBuffer(config.getMaxOutputBytes()),
+					executionWorkDir);
+		}
+		finally {
+			FileUtils.deleteRecursively(executionWorkDir);
+		}
+	}
+
+	private CodeExecutionResult executeCode(String language, String code, CodeExecutionConfig config,
+			ExecutionOutputBuffer outputBuffer, Path executionWorkDir) throws Exception {
 		if (Objects.isNull(language) || Objects.isNull(code)) {
 			throw new Exception("Either language or code must be provided.");
 		}
-		String workDir = config.getWorkDir();
+		logger.warn("Local command line code executor runs code directly on the host and must only be used with trusted input.");
+		String workDir = executionWorkDir.toString();
 		String codeHash = DigestUtils.md5Hex(code);
 		String fileExt = CodeUtils.getFileExtForLanguage(language);
 		String filename = String.format("tmp_code_%s.%s", codeHash, fileExt);
 
-		// write the code string to a file specified by the filename.
 		FileUtils.writeCodeToFile(workDir, filename, code);
-
-		// Copy required JAR files to workDir if language is Java
 		if ("java".equals(language)) {
 			FileUtils.copyResourceJarToWorkDir(workDir);
 		}
-
-		CodeExecutionResult executionResult = executeCodeLocally(language, workDir, filename, config);
-
-		FileUtils.deleteFile(workDir, filename);
-
-		// Delete JAR files if language is Java
-		if ("java".equals(language)) {
-			FileUtils.deleteResourceJarFromWorkDir(workDir);
-		}
-		return executionResult;
+		return executeCodeLocally(language, workDir, filename, config, outputBuffer);
 	}
 
 	private CodeExecutionResult executeCodeLocally(String language, String workDir, String filename,
-			CodeExecutionConfig config) throws Exception {
+			CodeExecutionConfig config, ExecutionOutputBuffer outputBuffer) throws Exception {
 		// Set up command line based on language
 		String executable = CodeUtils.getExecutableForLanguage(language);
 		CommandLine commandLine = new CommandLine(executable);
@@ -143,8 +147,8 @@ public class LocalCommandlineCodeExecutor implements CodeExecutor {
 		executor.setExitValue(0);
 
 		// Set up stream handling
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		ByteArrayOutputStream errorStream = new ByteArrayOutputStream();
+		var outputStream = outputBuffer.newStream();
+		var errorStream = outputBuffer.newStream();
 		executor.setStreamHandler(new PumpStreamHandler(outputStream, errorStream));
 
 		// Set timeout
@@ -152,10 +156,10 @@ public class LocalCommandlineCodeExecutor implements CodeExecutor {
 
 		try {
 			executor.execute(commandLine);
-			return new CodeExecutionResult(0, outputStream.toString().trim());
+			return new CodeExecutionResult(0, outputBuffer.text().trim());
 		}
 		catch (ExecuteException e) {
-			String errorOutput = errorStream.toString()
+			String errorOutput = outputBuffer.text()
 				.replace(Path.of(workDir).toAbsolutePath() + File.separator, "")
 				.trim();
 			return new CodeExecutionResult(e.getExitValue(), errorOutput);

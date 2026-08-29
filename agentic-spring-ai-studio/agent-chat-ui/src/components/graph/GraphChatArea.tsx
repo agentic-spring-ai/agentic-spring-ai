@@ -13,7 +13,13 @@ function extractTextFromState(state: Record<string, unknown> | null): string {
 }
 
 export function GraphChatArea() {
-  const { sendMessage, accumulatedChunk, currentState, nodeOutputs, isStreaming } = useGraphStream();
+  const {
+    sendMessage,
+    accumulatedChunk,
+    currentState,
+    nodeOutputs,
+    isStreaming,
+  } = useGraphStream();
   const { currentThreadId, createThread } = useGraphThreads();
   const [input, setInput] = useState("");
 
@@ -34,27 +40,39 @@ export function GraphChatArea() {
     if (accumulatedChunk) return accumulatedChunk;
     const fromState = extractTextFromState(currentState);
     if (fromState) return fromState;
-    const lastWithMessage = [...nodeOutputs].reverse().find((o) => o.message?.content);
+    const lastWithMessage = [...nodeOutputs]
+      .reverse()
+      .find((o) => o.message?.content);
     return lastWithMessage?.message?.content ?? "";
   }, [accumulatedChunk, currentState, nodeOutputs]);
 
   return (
     <div className="flex flex-col gap-2">
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-2"
+      >
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
           disabled={isStreaming}
-          className="flex-1 min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          className="border-input bg-background min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm"
         />
-        <Button type="submit" size="sm" disabled={isStreaming || !input.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isStreaming || !input.trim()}
+        >
           {isStreaming ? "..." : "Run"}
         </Button>
       </form>
       {displayText && (
-        <div className="text-xs text-muted-foreground line-clamp-2 truncate" title={displayText}>
+        <div
+          className="text-muted-foreground line-clamp-2 truncate text-xs"
+          title={displayText}
+        >
           {displayText}
         </div>
       )}

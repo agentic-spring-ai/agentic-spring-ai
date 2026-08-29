@@ -17,6 +17,7 @@ package io.github.agentic.spring.ai.graph.agent.interceptors;
 
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.hook.skills.ReadSkillTool;
+import io.github.agentic.spring.ai.graph.agent.hook.skills.SkillsAgentHook;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelRequest;
 import io.github.agentic.spring.ai.graph.agent.interceptor.ModelResponse;
 import io.github.agentic.spring.ai.graph.agent.interceptor.skills.SkillsInterceptor;
@@ -50,6 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SkillsInterceptorEnhancementsTest {
 

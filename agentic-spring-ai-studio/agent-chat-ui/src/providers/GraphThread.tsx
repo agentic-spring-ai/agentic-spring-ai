@@ -24,11 +24,14 @@ interface GraphThreadContextType {
   isLoading: boolean;
 }
 
-const GraphThreadContext = createContext<GraphThreadContextType | undefined>(undefined);
+const GraphThreadContext = createContext<GraphThreadContextType | undefined>(
+  undefined,
+);
 
 export function useGraphThreads() {
   const ctx = useContext(GraphThreadContext);
-  if (!ctx) throw new Error("useGraphThreads must be used within GraphThreadProvider");
+  if (!ctx)
+    throw new Error("useGraphThreads must be used within GraphThreadProvider");
   return ctx;
 }
 
@@ -37,7 +40,10 @@ interface GraphThreadProviderProps {
   graphName: string;
 }
 
-export function GraphThreadProvider({ children, graphName }: GraphThreadProviderProps) {
+export function GraphThreadProvider({
+  children,
+  graphName,
+}: GraphThreadProviderProps) {
   const [threads, setThreads] = useState<Session[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +56,9 @@ export function GraphThreadProvider({ children, graphName }: GraphThreadProvider
     try {
       const api = createApiClient();
       const sessions = await api.listGraphSessions(graphName, userId);
-      setThreads(sessions.sort((a, b) => a.thread_id.localeCompare(b.thread_id)));
+      setThreads(
+        sessions.sort((a, b) => a.thread_id.localeCompare(b.thread_id)),
+      );
     } catch (err: unknown) {
       console.error("Failed to load graph threads:", err);
       toast.error("Failed to load threads");
@@ -90,7 +98,7 @@ export function GraphThreadProvider({ children, graphName }: GraphThreadProvider
         toast.error("Failed to delete thread");
       }
     },
-    [graphName, userId, currentThreadId]
+    [graphName, userId, currentThreadId],
   );
 
   useEffect(() => {
@@ -118,10 +126,12 @@ export function GraphThreadProvider({ children, graphName }: GraphThreadProvider
       createThread,
       deleteThread,
       isLoading,
-    ]
+    ],
   );
 
   return (
-    <GraphThreadContext.Provider value={value}>{children}</GraphThreadContext.Provider>
+    <GraphThreadContext.Provider value={value}>
+      {children}
+    </GraphThreadContext.Provider>
   );
 }

@@ -26,7 +26,6 @@ import io.github.agentic.spring.ai.agent.nacos.vo.PromptVO;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.observation.model.ObservationMetadataAwareOptions;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.client.config.NacosConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,14 +109,14 @@ class NacosReactAgentBuilderObservationMetadataTest {
 		agentVO.setPromptKey("test-prompt");
 		agentVO.setDescription("Test agent description");
 		when(this.nacosConfigService.getConfig(eq("agent-base.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(agentVO));
+				.thenReturn(NacosTestJson.toJson(agentVO));
 
 		PromptVO promptVO = new PromptVO();
 		promptVO.setPromptKey("test-prompt");
 		promptVO.setVersion("v1");
 		promptVO.setTemplate("You are a test assistant");
 		when(this.nacosConfigService.getConfig(eq("prompt-test-prompt.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(promptVO));
+				.thenReturn(NacosTestJson.toJson(promptVO));
 
 		ModelVO modelVO = new ModelVO();
 		modelVO.setBaseUrl("https://api.openai.com/v1");
@@ -125,12 +124,12 @@ class NacosReactAgentBuilderObservationMetadataTest {
 		modelVO.setModel("gpt-4");
 		modelVO.setTemperature("0.7");
 		when(this.nacosConfigService.getConfig(eq("model.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(modelVO));
+				.thenReturn(NacosTestJson.toJson(modelVO));
 
 		McpServersVO mcpServersVO = new McpServersVO();
 		mcpServersVO.setMcpServers(Collections.emptyList());
 		when(this.nacosConfigService.getConfig(eq("mcp-servers.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(mcpServersVO));
+				.thenReturn(NacosTestJson.toJson(mcpServersVO));
 	}
 
 	private static ChatClient getChatClient(ReactAgent agent) throws Exception {

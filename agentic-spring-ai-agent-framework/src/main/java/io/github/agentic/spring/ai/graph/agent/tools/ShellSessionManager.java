@@ -274,7 +274,7 @@ public class ShellSessionManager {
 			}
 		}
 
-		log.info("Executing shell command: {}", command);
+		log.info("Executing shell command ({} characters)", command.length());
 		CommandResult result = session.execute(command, commandTimeout, maxOutputLines, maxOutputBytes);
 
 		// Apply redactions and track matches
@@ -823,4 +823,3 @@ public class ShellSessionManager {
 		}
 	}
 }
-

@@ -62,48 +62,55 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const { currentThreadId, createThread, isNewlyCreatedThread, appName, userId, mode, selectedGraph } = useThreads();
+  const {
+    currentThreadId,
+    createThread,
+    isNewlyCreatedThread,
+    appName,
+    userId,
+    mode,
+    selectedGraph,
+  } = useThreads();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadThreadMessages = async (threadId: string) => {
-    if (mode === 'agent' && !appName) return;
-    if (mode === 'graph' && !selectedGraph) return;
+    if (mode === "agent" && !appName) return;
+    if (mode === "graph" && !selectedGraph) return;
     setIsLoadingMessages(true);
     try {
-      console.log('[Stream] Loading thread messages for threadId:', threadId);
-
       const apiClient = createApiClient();
-      const session = mode === 'graph'
-        ? await apiClient.getGraphSession(selectedGraph, userId, threadId)
-        : await apiClient.getSession(appName, userId, threadId);
-
-      console.log('[Stream] Loaded session:', session);
+      const session =
+        mode === "graph"
+          ? await apiClient.getGraphSession(selectedGraph, userId, threadId)
+          : await apiClient.getSession(appName, userId, threadId);
 
       // Extract messages from session.values.messages
-      if (session.values && Array.isArray(session.values.messages) && session.values.messages.length > 0) {
+      if (
+        session.values &&
+        Array.isArray(session.values.messages) &&
+        session.values.messages.length > 0
+      ) {
         const loadedMessages = session.values.messages.map((msg, index) =>
-          createUIMessage(fromMessageDTO(msg), `${threadId}-${index}`)
+          createUIMessage(fromMessageDTO(msg), `${threadId}-${index}`),
         );
         setMessages(loadedMessages);
-        console.log('[Stream] Loaded messages:', loadedMessages);
       } else {
         // Check if this is a newly created thread
         const isNewThread = isNewlyCreatedThread(threadId);
 
         if (isNewThread) {
           // For newly created threads, just show empty - user can start chatting
-          console.log('[Stream] Newly created thread - showing empty state');
           setMessages([]);
         } else {
           // For existing threads with no messages, show development notice
-          console.log('[Stream] Existing thread with empty values - showing development notice');
           const placeholderMessage = createUIMessage(
             {
-              messageType: 'assistant',
-              content: '💡 Support for agent message loading is under development.\n\nThis thread exists but its message history cannot be displayed yet.\n\nPlease create a new thread to start a conversation.',
-              metadata: { isPlaceholder: true }
+              messageType: "assistant",
+              content:
+                "💡 Support for agent message loading is under development.\n\nThis thread exists but its message history cannot be displayed yet.\n\nPlease create a new thread to start a conversation.",
+              metadata: { isPlaceholder: true },
             },
-            `${threadId}-placeholder`
+            `${threadId}-placeholder`,
           );
           setMessages([placeholderMessage]);
         }
@@ -131,11 +138,11 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
       if (!content.trim()) {
         return;
       }
-      if (mode === 'agent' && !appName) {
+      if (mode === "agent" && !appName) {
         toast.error("No agent selected. Please select an agent from the list.");
         return;
       }
-      if (mode === 'graph' && !selectedGraph) {
+      if (mode === "graph" && !selectedGraph) {
         toast.error("No graph selected. Please select a graph from the list.");
         return;
       }
@@ -156,11 +163,11 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
       const userUIMessage: UIMessage = {
         id: `user-${Date.now()}`,
         message: {
-          messageType: 'user',
+          messageType: "user",
           content: content.trim(),
-          metadata: {}
+          metadata: {},
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       setMessages((prev) => [...prev, userUIMessage]);
@@ -177,48 +184,43 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
           messageType: "user",
           content: content.trim(),
           metadata: {},
-          media: []
+          media: [],
         };
 
-        const stream = mode === 'graph'
-          ? apiClient.runGraphStream(
-              selectedGraph,
-              userId,
-              activeThreadId,
-              userMessageForApi,
-              abortControllerRef.current.signal
-            )
-          : apiClient.runAgentStream(
-              appName,
-              userId,
-              activeThreadId,
-              userMessageForApi,
-              abortControllerRef.current.signal
-            );
+        const stream =
+          mode === "graph"
+            ? apiClient.runGraphStream(
+                selectedGraph,
+                userId,
+                activeThreadId,
+                userMessageForApi,
+                abortControllerRef.current.signal,
+              )
+            : apiClient.runAgentStream(
+                appName,
+                userId,
+                activeThreadId,
+                userMessageForApi,
+                abortControllerRef.current.signal,
+              );
 
         let isFirstChunk = true;
-        console.log('[Stream] Starting to process agent responses...');
 
         for await (const agentResponse of stream) {
-          console.log('[Stream] Received agent response:', agentResponse);
-
           // Skip heartbeat messages
           if (agentResponse.node === "heartbeat") {
-            console.log('[Stream] Skipping heartbeat message');
             continue;
           }
 
           // Use chunk for streaming updates if available
           if (agentResponse.chunk) {
-            console.log('[Stream] Processing chunk:', agentResponse.chunk);
-
             // Defensive check: if message exists, verify it's an assistant message (streaming only for assistant)
             if (agentResponse.message) {
-              if (agentResponse.message.messageType !== 'assistant') {
+              if (agentResponse.message.messageType !== "assistant") {
                 console.warn(
-                  '[Stream] Warning: chunk exists but message type is not assistant:',
+                  "[Stream] Warning: chunk exists but message type is not assistant:",
                   agentResponse.message.messageType,
-                  'This indicates a backend data format issue.'
+                  "This indicates a backend data format issue.",
                 );
               }
             }
@@ -228,15 +230,14 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
               const newAssistantMessage: UIMessage = {
                 id: `assistant-${Date.now()}`,
                 message: {
-                  messageType: 'assistant',
+                  messageType: "assistant",
                   content: agentResponse.chunk,
                   metadata: {},
-                  toolCalls: []
+                  toolCalls: [],
                 },
-                timestamp: Date.now()
+                timestamp: Date.now(),
               };
               setMessages((prev) => {
-                console.log('[Stream] Adding first chunk, prev messages:', prev.length);
                 return [...prev, newAssistantMessage];
               });
               isFirstChunk = false;
@@ -249,16 +250,13 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
                   ...lastMessage,
                   message: {
                     ...lastMessage.message,
-                    content: lastMessage.message.content + agentResponse.chunk
-                  }
+                    content: lastMessage.message.content + agentResponse.chunk,
+                  },
                 };
-                console.log('[Stream] Updated message content length:', newMessages[newMessages.length - 1].message.content.length);
                 return newMessages;
               });
             }
           } else if (agentResponse.message) {
-            console.log('[Stream] Processing message:', agentResponse.message);
-
             // Convert from backend DTO to frontend Message type
             const backendMessage = fromMessageDTO(agentResponse.message);
 
@@ -267,16 +265,15 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
             // But tool-request, tool-confirm, and tool responses come as complete messages
             const messageType = agentResponse.message.messageType;
 
-            if (messageType === 'assistant' || messageType === 'tool-request') {
+            if (messageType === "assistant" || messageType === "tool-request") {
               // Assistant and tool-request messages can be streamed or complete
               if (isFirstChunk) {
                 const newMessage: UIMessage = {
                   id: `${messageType}-${Date.now()}`,
                   message: backendMessage,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
                 };
                 setMessages((prev) => {
-                  console.log('[Stream] Adding first message, prev messages:', prev.length);
                   return [...prev, newMessage];
                 });
                 isFirstChunk = false;
@@ -287,44 +284,42 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
 
                   // IMPORTANT: In streaming scenarios, preserve existing content if new content is empty
                   // This prevents accumulated content from being cleared by empty updates
-                  const updatedContent = backendMessage.content || lastMessage.message.content;
+                  const updatedContent =
+                    backendMessage.content || lastMessage.message.content;
 
                   newMessages[newMessages.length - 1] = {
                     ...lastMessage,
                     message: {
                       ...backendMessage,
-                      content: updatedContent
-                    }
+                      content: updatedContent,
+                    },
                   };
-                  console.log('[Stream] Updated message content:', updatedContent?.length, 'chars');
                   return newMessages;
                 });
               }
-            } else if (messageType === 'tool-confirm' || messageType === 'tool') {
+            } else if (
+              messageType === "tool-confirm" ||
+              messageType === "tool"
+            ) {
               // Tool-confirm and tool response messages are always complete, add as new messages
               const newMessage: UIMessage = {
                 id: `${messageType}-${Date.now()}`,
                 message: backendMessage,
-                timestamp: Date.now()
+                timestamp: Date.now(),
               };
               setMessages((prev) => [...prev, newMessage]);
               // Reset isFirstChunk for next potential assistant message
               isFirstChunk = true;
             } else {
-              console.warn('[Stream] Unknown message type:', messageType);
+              console.warn("[Stream] Unknown message type:", messageType);
             }
-          } else {
-            console.log('[Stream] No chunk or message in response');
           }
         }
 
-        console.log('[Stream] Streaming complete');
         // Streaming complete - messages are already updated in state
         // Backend doesn't provide a separate API to fetch message history
-
       } catch (error: any) {
         if (error.name === "AbortError") {
-          console.log("Request was aborted");
           toast.info("Request cancelled");
         } else {
           console.error("Failed to send message:", error);
@@ -335,7 +330,7 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
         abortControllerRef.current = null;
       }
     },
-    [currentThreadId, createThread, appName, userId, mode, selectedGraph]
+    [currentThreadId, createThread, appName, userId, mode, selectedGraph],
   );
 
   const clearMessages = useCallback(() => {
@@ -352,17 +347,19 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
         toast.error("No active thread");
         return;
       }
-      if (mode === 'agent' && !appName) {
+      if (mode === "agent" && !appName) {
         toast.error("No agent selected.");
         return;
       }
-      if (mode === 'graph' && !selectedGraph) {
+      if (mode === "graph" && !selectedGraph) {
         toast.error("No graph selected.");
         return;
       }
 
-      if (mode === 'graph') {
-        toast.info("Resume with tool feedback is not yet supported for graphs.");
+      if (mode === "graph") {
+        toast.info(
+          "Resume with tool feedback is not yet supported for graphs.",
+        );
         return;
       }
 
@@ -374,43 +371,36 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
         const apiClient = createApiClient();
 
         const stream = apiClient.resumeAgentStream(
-              appName,
-              userId,
-              currentThreadId,
-              toolFeedbacks,
-              abortControllerRef.current.signal
-            );
+          appName,
+          userId,
+          currentThreadId,
+          toolFeedbacks,
+          abortControllerRef.current.signal,
+        );
 
         let isFirstChunk = true;
-        console.log('[Stream] Starting to process resume agent responses...');
 
         for await (const agentResponse of stream) {
-          console.log('[Stream] Received agent response:', agentResponse);
-
           // Skip heartbeat messages
           if (agentResponse.node === "heartbeat") {
-            console.log('[Stream] Skipping heartbeat message');
             continue;
           }
 
           // Use chunk for streaming updates if available
           if (agentResponse.chunk) {
-            console.log('[Stream] Processing chunk:', agentResponse.chunk);
-
             if (isFirstChunk) {
               // Create new assistant message for first chunk
               const newAssistantMessage: UIMessage = {
                 id: `assistant-${Date.now()}`,
                 message: {
-                  messageType: 'assistant',
+                  messageType: "assistant",
                   content: agentResponse.chunk,
                   metadata: {},
-                  toolCalls: []
+                  toolCalls: [],
                 },
-                timestamp: Date.now()
+                timestamp: Date.now(),
               };
               setMessages((prev) => {
-                console.log('[Stream] Adding first chunk, prev messages:', prev.length);
                 return [...prev, newAssistantMessage];
               });
               isFirstChunk = false;
@@ -423,24 +413,22 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
                   ...lastMessage,
                   message: {
                     ...lastMessage.message,
-                    content: lastMessage.message.content + agentResponse.chunk
-                  }
+                    content: lastMessage.message.content + agentResponse.chunk,
+                  },
                 };
                 return newMessages;
               });
             }
           } else if (agentResponse.message) {
-            console.log('[Stream] Processing message:', agentResponse.message);
-
             const backendMessage = fromMessageDTO(agentResponse.message);
             const messageType = agentResponse.message.messageType;
 
-            if (messageType === 'assistant' || messageType === 'tool-request') {
+            if (messageType === "assistant" || messageType === "tool-request") {
               if (isFirstChunk) {
                 const newMessage: UIMessage = {
                   id: `${messageType}-${Date.now()}`,
                   message: backendMessage,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
                 };
                 setMessages((prev) => [...prev, newMessage]);
                 isFirstChunk = false;
@@ -448,33 +436,34 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
                 setMessages((prev) => {
                   const newMessages = [...prev];
                   const lastMessage = newMessages[newMessages.length - 1];
-                  const updatedContent = backendMessage.content || lastMessage.message.content;
+                  const updatedContent =
+                    backendMessage.content || lastMessage.message.content;
                   newMessages[newMessages.length - 1] = {
                     ...lastMessage,
                     message: {
                       ...backendMessage,
-                      content: updatedContent
-                    }
+                      content: updatedContent,
+                    },
                   };
                   return newMessages;
                 });
               }
-            } else if (messageType === 'tool-confirm' || messageType === 'tool') {
+            } else if (
+              messageType === "tool-confirm" ||
+              messageType === "tool"
+            ) {
               const newMessage: UIMessage = {
                 id: `${messageType}-${Date.now()}`,
                 message: backendMessage,
-                timestamp: Date.now()
+                timestamp: Date.now(),
               };
               setMessages((prev) => [...prev, newMessage]);
               isFirstChunk = true;
             }
           }
         }
-
-        console.log('[Stream] Resume streaming complete');
       } catch (error: any) {
         if (error.name === "AbortError") {
-          console.log("Resume request was aborted");
           toast.info("Request cancelled");
         } else {
           console.error("Failed to resume with feedback:", error);
@@ -485,7 +474,7 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
         abortControllerRef.current = null;
       }
     },
-    [currentThreadId, appName, userId, mode]
+    [currentThreadId, appName, userId, mode],
   );
 
   // Cleanup on unmount
@@ -497,13 +486,16 @@ export const StreamProvider: React.FC<StreamProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const contextValue = useMemo(() => ({
-    messages,
-    isStreaming,
-    sendMessage,
-    resumeFeedback,
-    clearMessages,
-  }), [messages, isStreaming, sendMessage, resumeFeedback, clearMessages]);
+  const contextValue = useMemo(
+    () => ({
+      messages,
+      isStreaming,
+      sendMessage,
+      resumeFeedback,
+      clearMessages,
+    }),
+    [messages, isStreaming, sendMessage, resumeFeedback, clearMessages],
+  );
 
   return (
     <StreamContext.Provider value={contextValue}>
@@ -538,7 +530,7 @@ export const StreamConfigurationView = () => {
   }, []);
 
   return (
-    <div className="flex flex-col gap-4 p-4 border rounded-lg">
+    <div className="flex flex-col gap-4 rounded-lg border p-4">
       <h3 className="text-lg font-semibold">Configuration</h3>
 
       <div className="flex flex-col gap-2">
@@ -590,9 +582,9 @@ export const StreamConfigurationView = () => {
         </div>
       </div>
 
-      <div className="text-sm text-muted-foreground">
+      <div className="text-muted-foreground text-sm">
         <p>Current configuration:</p>
-        <ul className="list-disc list-inside">
+        <ul className="list-inside list-disc">
           <li>API URL: {apiUrl}</li>
           <li>App Name: {appName}</li>
           <li>User ID: {userId}</li>
@@ -602,4 +594,3 @@ export const StreamConfigurationView = () => {
     </div>
   );
 };
-

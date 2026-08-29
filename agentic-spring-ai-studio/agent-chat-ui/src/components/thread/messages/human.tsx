@@ -18,4 +18,3 @@ export function HumanMessage({
     </div>
   );
 }
-

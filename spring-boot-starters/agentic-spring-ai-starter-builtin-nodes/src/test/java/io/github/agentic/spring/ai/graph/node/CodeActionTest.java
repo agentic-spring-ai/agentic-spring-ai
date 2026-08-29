@@ -20,6 +20,7 @@ import io.github.agentic.spring.ai.graph.action.NodeAction;
 import io.github.agentic.spring.ai.graph.node.code.CodeExecutorNodeAction;
 import io.github.agentic.spring.ai.graph.node.code.LocalCommandlineCodeExecutor;
 import io.github.agentic.spring.ai.graph.node.code.entity.CodeExecutionConfig;
+import io.github.agentic.spring.ai.graph.node.code.entity.CodeBlock;
 import io.github.agentic.spring.ai.graph.node.code.entity.CodeParam;
 import io.github.agentic.spring.ai.graph.node.code.entity.CodeStyle;
 
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author HeYQ
@@ -74,6 +76,29 @@ public class CodeActionTest {
 		System.out.println(stateData);
 		assertNotNull(stateData);
 		assertEquals(Map.of("output", Map.of("result", "12")), stateData);
+	}
+
+	@Test
+	void localExecutorTruncatesOutputAtConfiguredByteLimit() throws Exception {
+		CodeExecutionConfig limitedConfig = new CodeExecutionConfig().setWorkDir(tempDir.toString()).setMaxOutputBytes(32);
+
+		var result = new LocalCommandlineCodeExecutor().executeCode("python3", "print('x' * 1024)", limitedConfig);
+
+		assertEquals(0, result.exitCode());
+		assertTrue(result.logs().contains("output truncated"));
+		assertTrue(result.logs().length() < 100);
+	}
+
+	@Test
+	void localExecutorSharesIsolatedDirectoryAcrossCodeBlocks() throws Exception {
+		CodeExecutionConfig isolatedConfig = new CodeExecutionConfig().setWorkDir(tempDir.toString());
+
+		var result = new LocalCommandlineCodeExecutor().executeCodeBlocks(List.of(
+				new CodeBlock("python3", "open('shared.txt', 'w').write('shared-value')"),
+				new CodeBlock("python3", "print(open('shared.txt').read())")), isolatedConfig);
+
+		assertEquals(0, result.exitCode());
+		assertTrue(result.logs().contains("shared-value"));
 	}
 
 	@Test

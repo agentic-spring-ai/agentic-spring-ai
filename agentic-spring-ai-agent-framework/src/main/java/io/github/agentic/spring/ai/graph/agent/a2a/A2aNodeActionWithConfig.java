@@ -48,8 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -271,9 +270,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 									break;
 								}
 								try {
-									Map<String, Object> parsed = JSON.parseObject(jsonContent,
-										new TypeReference<Map<String, Object>>() {
-										});
+									Map<String, Object> parsed = parseJsonMap(jsonContent);
 									Map<String, Object> result = (Map<String, Object>) parsed.get("result");
 									if (result != null) {
 										String text = extractResponseText(result);
@@ -293,9 +290,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 						// Non-SSE: read the full body and emit a single output
 						String body = EntityUtils.toString(entity, "UTF-8");
 						try {
-							Map<String, Object> resultMap = JSON.parseObject(body,
-								new TypeReference<Map<String, Object>>() {
-								});
+							Map<String, Object> resultMap = parseJsonMap(body);
 							Map<String, Object> result = (Map<String, Object>) resultMap.get("result");
 							String text = extractResponseText(result);
 							if (text != null && !text.isEmpty()) {
@@ -364,9 +359,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 								break;
 							}
 
-							Map<String, Object> parsed = JSON.parseObject(jsonContent,
-									new TypeReference<Map<String, Object>>() {
-									});
+							Map<String, Object> parsed = parseJsonMap(jsonContent);
 							Map<String, Object> result = (Map<String, Object>) parsed.get("result");
 
 							if (result != null) {
@@ -405,8 +398,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 		final StringBuilder accumulated = new StringBuilder();
 
 		try {
-			Map<String, Object> resultMap = JSON.parseObject(responseText, new TypeReference<Map<String, Object>>() {
-			});
+			Map<String, Object> resultMap = parseJsonMap(responseText);
 			Map<String, Object> result = (Map<String, Object>) resultMap.get("result");
 			String responseText2 = extractResponseText(result);
 
@@ -500,8 +492,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 		}
 		else {
 			// Standard JSON response
-			return JSON.parseObject(responseText, new TypeReference<Map<String, Object>>() {
-			});
+			return parseJsonMap(responseText);
 		}
 	}
 
@@ -518,9 +509,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 			if (line.startsWith("data: ")) {
 				String jsonContent = line.substring(6); // remove "data: " prefix
 				try {
-					Map<String, Object> parsed = JSON.parseObject(jsonContent,
-							new TypeReference<Map<String, Object>>() {
-							});
+					Map<String, Object> parsed = parseJsonMap(jsonContent);
 					Map<String, Object> result = (Map<String, Object>) parsed.get("result");
 					if (result != null) {
 						if (result.containsKey("artifact") || lastResult == null) {
@@ -540,6 +529,16 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("result", lastResult);
 		return resultMap;
+	}
+
+	private Map<String, Object> parseJsonMap(String json) {
+		try {
+			return this.objectMapper.readValue(json, new TypeReference<>() {
+			});
+		}
+		catch (Exception ex) {
+			throw new IllegalArgumentException("Failed to parse A2A JSON response", ex);
+		}
 	}
 
 	private String extractResponseText(Map<String, Object> result) {

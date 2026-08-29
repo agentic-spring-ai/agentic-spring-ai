@@ -4,12 +4,12 @@
 
 项目现在使用多个环境文件来自动适配不同的运行模式：
 
-| 文件名 | 用途 | 何时使用 | Git 状态 |
-|--------|------|---------|---------|
-| `.env.example` | 示例配置 | 参考模板 | ✅ 提交到Git |
-| `.env.local` | 通用配置 | 所有模式的备用 | ❌ 不提交 |
-| `.env.development.local` | 开发配置 | `pnpm dev` | ❌ 不提交 |
-| `.env.production.local` | 生产配置 | `pnpm build:static` | ❌ 不提交 |
+| 文件名                   | 用途     | 何时使用            | Git 状态     |
+| ------------------------ | -------- | ------------------- | ------------ |
+| `.env.example`           | 示例配置 | 参考模板            | ✅ 提交到Git |
+| `.env.local`             | 通用配置 | 所有模式的备用      | ❌ 不提交    |
+| `.env.development.local` | 开发配置 | `pnpm dev`          | ❌ 不提交    |
+| `.env.production.local`  | 生产配置 | `pnpm build:static` | ❌ 不提交    |
 
 ## 🎯 Next.js 环境文件优先级
 
@@ -37,6 +37,7 @@ NEXT_PUBLIC_USER_ID=user-001
 ```
 
 **效果**：
+
 - 运行 `pnpm dev` 时自动使用
 - 前端：`http://localhost:3000`
 - API请求：`http://localhost:8080/apps/...`
@@ -52,6 +53,7 @@ NEXT_PUBLIC_USER_ID=user-001
 ```
 
 **效果**：
+
 - 运行 `pnpm build:static` 时自动使用
 - 静态文件使用相对路径
 - API请求：使用当前域名和端口
@@ -160,10 +162,12 @@ NEXT_PUBLIC_USER_ID=user-123
 ### ✅ 推荐做法
 
 1. **不同环境使用不同文件**
+
    - 开发：`.env.development.local`
    - 生产：`.env.production.local`
 
 2. **不要提交 `.local` 文件到 Git**
+
    - 这些文件包含本地配置
    - 可能包含敏感信息
 
@@ -174,6 +178,7 @@ NEXT_PUBLIC_USER_ID=user-123
 ### ❌ 避免做法
 
 1. **不要在 `.env.local` 中设置 `NEXT_PUBLIC_API_URL`**
+
    - 会影响所有环境
    - 使用环境特定文件代替
 
@@ -186,6 +191,7 @@ NEXT_PUBLIC_USER_ID=user-123
 ### 问题：开发模式下 API 404
 
 **检查**:
+
 ```bash
 # 查看当前环境变量
 cat .env.development.local
@@ -195,6 +201,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 **解决**:
+
 ```bash
 # 如果文件不存在，从示例复制
 cp .env.example .env.development.local
@@ -204,6 +211,7 @@ cp .env.example .env.development.local
 ### 问题：构建后的静态文件仍然请求 localhost:8080
 
 **检查**:
+
 ```bash
 # 查看生产环境配置
 cat .env.production.local
@@ -212,6 +220,7 @@ cat .env.production.local
 ```
 
 **解决**:
+
 ```bash
 # 编辑 .env.production.local，注释掉或删除 API_URL
 # NEXT_PUBLIC_API_URL=http://localhost:8080  # ❌ 删除这行
@@ -228,9 +237,9 @@ pnpm deploy
 
 ```typescript
 export function createApiClient(): SpringAIApiClient {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  console.log('🔍 API Base URL:', baseUrl);
-  console.log('🔍 Environment:', process.env.NODE_ENV);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  console.log("🔍 API Base URL:", baseUrl);
+  console.log("🔍 Environment:", process.env.NODE_ENV);
   return new SpringAIApiClient(baseUrl);
 }
 ```
@@ -241,4 +250,3 @@ export function createApiClient(): SpringAIApiClient {
 
 - [Next.js Environment Variables](https://nextjs.org/docs/pages/building-your-application/configuring/environment-variables)
 - [Next.js Environment Variables Order of Precedence](https://nextjs.org/docs/pages/building-your-application/configuring/environment-variables#environment-variable-load-order)
-

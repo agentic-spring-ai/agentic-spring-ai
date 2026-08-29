@@ -108,9 +108,9 @@ export default function ThreadHistory() {
               <PanelRightClose className="size-5" />
             )}
           </Button>
-        <h1 className="text-xl font-semibold tracking-tight">
-          Thread History
-        </h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Thread History
+          </h1>
         </div>
         {isLoading ? (
           <ThreadHistoryLoading />

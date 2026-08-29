@@ -205,6 +205,17 @@ class ParallelAgentTest {
 	}
 
 	@Test
+	void duplicateOutputKeysAreRejectedForAllBaseAgents() {
+		BaseAgent agent1 = baseAgent("baseAgent1", "same_output");
+		BaseAgent agent2 = baseAgent("baseAgent2", "same_output");
+
+		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+			ParallelAgent.builder().name("testAgent").subAgents(List.of(agent1, agent2)).build();
+		});
+		assertTrue(exception.getMessage().contains("Duplicate output keys"));
+	}
+
+	@Test
 	void testMergeStrategies() {
 		// Test DefaultMergeStrategy
 		ParallelAgent.DefaultMergeStrategy defaultStrategy = new ParallelAgent.DefaultMergeStrategy();
@@ -416,6 +427,20 @@ class ParallelAgentTest {
 			.outputKey(outputKey)
 			.model(chatModel)
 			.build();
+	}
+
+	private static BaseAgent baseAgent(String name, String outputKey) {
+		return new BaseAgent(name, "Mock base agent", false, false, outputKey, null) {
+			@Override
+			protected StateGraph initGraph() {
+				return null;
+			}
+
+			@Override
+			public Node asNode(boolean includeContents, boolean returnReasoningContents) {
+				return null;
+			}
+		};
 	}
 
 	/**

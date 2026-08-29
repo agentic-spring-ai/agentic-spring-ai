@@ -68,23 +68,25 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./tools/github-actions/setup-deps
       - uses: ./tools/github-actions/setup-extensions
-      - run: make tools
-      - run: make build
-  studio-ui:
-    if: (github.repository == 'agentic-spring-ai/agentic-spring-ai')
-    runs-on: ubuntu-22.04
-    needs: [format, check-style]
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ./tools/github-actions/setup-deps
-      - uses: ./tools/github-actions/setup-extensions
       - run: corepack enable
       - run: corepack prepare pnpm@10.5.1 --activate
       - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui install --frozen-lockfile
       - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui audit --prod
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui run format:check
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui run lint
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui exec tsc --noEmit
+      - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui run test
       - run: pnpm --dir agentic-spring-ai-studio/agent-chat-ui run build:static
-      - run: test -f agentic-spring-ai-studio/agent-chat-ui/out/index.html
-      - run: ./mvnw -B -pl :agentic-spring-ai-studio -am -DskipTests package
+      - run: make tools
+      - run: make build
+      - name: Verify packaged Studio UI
+        shell: bash
+        run: |
+          studio_jar="$(find agentic-spring-ai-studio/target -maxdepth 1 \
+            -name 'agentic-spring-ai-studio-*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' -print -quit)"
+          test -n "$studio_jar"
+          jar tf "$studio_jar" | grep -q 'META-INF/resources/chatui/index.html'
   examples:
     if: (github.repository == 'agentic-spring-ai/agentic-spring-ai')
     runs-on: ubuntu-22.04

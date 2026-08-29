@@ -33,12 +33,39 @@ public class GraphObservationProperties {
 	 */
 	private boolean enabled = true;
 
+	/**
+	 * Whether to attach raw prompt, completion, and graph state content to
+	 * high-cardinality observation attributes.
+	 */
+	private boolean captureContent = false;
+
+	/**
+	 * Maximum length for each captured content value before truncation.
+	 */
+	private int maxContentLength = 1000;
+
 	public boolean isEnabled() {
 		return enabled;
 	}
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public boolean isCaptureContent() {
+		return captureContent;
+	}
+
+	public void setCaptureContent(boolean captureContent) {
+		this.captureContent = captureContent;
+	}
+
+	public int getMaxContentLength() {
+		return maxContentLength;
+	}
+
+	public void setMaxContentLength(int maxContentLength) {
+		this.maxContentLength = maxContentLength;
 	}
 
 }

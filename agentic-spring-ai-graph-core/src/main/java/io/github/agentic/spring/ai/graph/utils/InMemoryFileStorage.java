@@ -18,13 +18,24 @@ package io.github.agentic.spring.ai.graph.utils;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryFileStorage {
 
+	private static final String MAX_RECORDS_PROPERTY = "agentic.spring.ai.graph.in-memory-file-storage.max-records";
+
+	private static final String MAX_TOTAL_BYTES_PROPERTY = "agentic.spring.ai.graph.in-memory-file-storage.max-total-bytes";
+
+	private static final int DEFAULT_MAX_RECORDS = 1024;
+
+	private static final long DEFAULT_MAX_TOTAL_BYTES = 256L * 1024L * 1024L;
+
 	private static final Map<String, FileRecord> CACHE = new ConcurrentHashMap<>();
+
+	private static long totalBytes;
 
 	public static class FileRecord {
 
@@ -75,7 +86,16 @@ public class InMemoryFileStorage {
 
 	}
 
-	public static FileRecord save(byte[] content, String mimetype, String originalFilename) {
+	public static synchronized FileRecord save(byte[] content, String mimetype, String originalFilename) {
+		Objects.requireNonNull(content, "content must not be null");
+		int maxRecords = intProperty(MAX_RECORDS_PROPERTY, DEFAULT_MAX_RECORDS);
+		long maxTotalBytes = longProperty(MAX_TOTAL_BYTES_PROPERTY, DEFAULT_MAX_TOTAL_BYTES);
+		if (maxRecords >= 0 && CACHE.size() >= maxRecords) {
+			throw new IllegalStateException("Exceeded maximum in-memory file storage records: " + maxRecords);
+		}
+		if (maxTotalBytes >= 0 && totalBytes + content.length > maxTotalBytes) {
+			throw new IllegalStateException("Exceeded maximum total in-memory file storage size: " + maxTotalBytes);
+		}
 		String id = UUID.randomUUID().toString();
 		String extension = Optional.of(org.springframework.http.MediaType.parseMediaType(mimetype).getSubtype())
 			.orElse("bin");
@@ -83,6 +103,7 @@ public class InMemoryFileStorage {
 		String key = String.format("inmem://%s", id);
 		FileRecord record = new FileRecord(id, key, filename, mimetype, content.length, content);
 		CACHE.put(id, record);
+		totalBytes += content.length;
 		return record;
 	}
 
@@ -90,12 +111,42 @@ public class InMemoryFileStorage {
 		return CACHE.get(id);
 	}
 
-	public static void remove(String id) {
-		CACHE.remove(id);
+	public static synchronized void remove(String id) {
+		FileRecord removed = CACHE.remove(id);
+		if (removed != null) {
+			totalBytes -= removed.getSize();
+		}
 	}
 
-	public static void clear() {
+	public static synchronized void clear() {
 		CACHE.clear();
+		totalBytes = 0;
+	}
+
+	private static int intProperty(String name, int defaultValue) {
+		String value = System.getProperty(name);
+		if (!StringUtils.hasText(value)) {
+			return defaultValue;
+		}
+		try {
+			return Integer.parseInt(value);
+		}
+		catch (NumberFormatException ex) {
+			return defaultValue;
+		}
+	}
+
+	private static long longProperty(String name, long defaultValue) {
+		String value = System.getProperty(name);
+		if (!StringUtils.hasText(value)) {
+			return defaultValue;
+		}
+		try {
+			return Long.parseLong(value);
+		}
+		catch (NumberFormatException ex) {
+			return defaultValue;
+		}
 	}
 
 }

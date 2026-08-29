@@ -31,8 +31,10 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +46,8 @@ public class McpNode implements NodeAction {
 	private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{(.+?)\\}");
 
 	private static final Logger log = LoggerFactory.getLogger(McpNode.class);
+
+	private static final int MAX_LOG_VALUE_LENGTH = 128;
 
 	private final String url;
 
@@ -74,7 +78,7 @@ public class McpNode implements NodeAction {
 	public Map<String, Object> apply(OverAllState state) throws Exception {
 		log.info(
 				"[McpNode] Start executing apply, original configuration: url={}, tool={}, headers={}, inputParamKeys={}",
-				url, tool, headers, inputParamKeys);
+				redactUrlForLogging(url), tool, redactForLogging(headers), inputParamKeys);
 
 		// Build transport and client
 		String baseUrl = this.url;
@@ -93,7 +97,8 @@ public class McpNode implements NodeAction {
 		this.transport = transportBuilder.build();
 		this.client = McpClient.sync(this.transport).build();
 		InitializeResult initializeResult = this.client.initialize();
-		log.info("[McpNode] MCP Client initialized: {}", initializeResult);
+		log.info("[McpNode] MCP Client initialized: protocolVersion={}, capabilities={}",
+				initializeResult.protocolVersion(), initializeResult.capabilities());
 		// Variable replacement
 		String finalTool = replaceVariables(tool, state);
 		Map<String, Object> finalParams = new HashMap<>();
@@ -111,16 +116,18 @@ public class McpNode implements NodeAction {
 		if (replacedParams != null) {
 			finalParams.putAll(replacedParams);
 		}
-		log.info("[McpNode] after replace params: url={}, tool={}, headers={}, params={}", url, finalTool, headers,
-				finalParams);
+		log.info("[McpNode] after replace params: url={}, tool={}, headers={}, params={}", redactUrlForLogging(url), finalTool,
+				redactForLogging(headers), redactForLogging(finalParams));
 
 		// Directly use the already initialized client
 		CallToolResult result;
 		try {
 			McpSchema.CallToolRequest request = new McpSchema.CallToolRequest(finalTool, finalParams);
-			log.info("[McpNode] CallToolRequest: {}", request);
+			log.info("[McpNode] CallToolRequest: tool={}, arguments={}", request.name(),
+					redactForLogging(request.arguments()));
 			result = client.callTool(request);
-			log.info("[McpNode] tool call result: {}", result);
+			log.info("[McpNode] tool call result: contentCount={}, isError={}",
+					result.content() != null ? result.content().size() : 0, result.isError());
 		}
 		catch (Exception e) {
 			log.error("[McpNode] MCP call fail:", e);
@@ -150,7 +157,7 @@ public class McpNode implements NodeAction {
 				updatedState.put(this.outputKey, content);
 			}
 		}
-		log.info("[McpNode] update state: {}", updatedState);
+		log.info("[McpNode] update state keys: {}", updatedState.keySet());
 		return updatedState;
 	}
 
@@ -162,7 +169,7 @@ public class McpNode implements NodeAction {
 		while (matcher.find()) {
 			String key = matcher.group(1);
 			Object value = state.value(key).orElse("");
-			log.info("[McpNode] replace param: {} -> {}", key, value);
+			log.debug("[McpNode] replace param: {} -> {}", key, redactForLogging(value));
 			matcher.appendReplacement(result, value.toString());
 		}
 		matcher.appendTail(result);
@@ -182,6 +189,58 @@ public class McpNode implements NodeAction {
 			}
 		});
 		return result;
+	}
+
+	static Object redactForLogging(Object value) {
+		if (value instanceof Map<?, ?> map) {
+			Map<Object, Object> redacted = new HashMap<>();
+			map.forEach((key, entryValue) -> redacted.put(key, isSensitiveKey(key) ? "<redacted>" : redactForLogging(entryValue)));
+			return redacted;
+		}
+		if (value instanceof List<?> list) {
+			return "List(size=" + list.size() + ")";
+		}
+		if (value instanceof String text) {
+			if (text.length() <= MAX_LOG_VALUE_LENGTH) {
+				return text;
+			}
+			return text.substring(0, MAX_LOG_VALUE_LENGTH) + "...<truncated>";
+		}
+		return value;
+	}
+
+	static String redactUrlForLogging(String value) {
+		if (!StringUtils.hasText(value)) {
+			return value;
+		}
+		try {
+			URI uri = URI.create(value);
+			if (!StringUtils.hasText(uri.getScheme()) || !StringUtils.hasText(uri.getHost())) {
+				return "<invalid-url>";
+			}
+			String host = uri.getHost().contains(":") ? "[" + uri.getHost() + "]" : uri.getHost();
+			StringBuilder safe = new StringBuilder(uri.getScheme()).append("://").append(host);
+			if (uri.getPort() >= 0) {
+				safe.append(':').append(uri.getPort());
+			}
+			if (uri.getRawPath() != null) {
+				safe.append(uri.getRawPath());
+			}
+			return safe.toString();
+		}
+		catch (IllegalArgumentException ex) {
+			return "<invalid-url>";
+		}
+	}
+
+	private static boolean isSensitiveKey(Object key) {
+		if (key == null) {
+			return false;
+		}
+		String normalized = key.toString().toLowerCase(Locale.ROOT);
+		return normalized.contains("authorization") || normalized.contains("token") || normalized.contains("secret")
+				|| normalized.contains("password") || normalized.contains("api-key") || normalized.contains("apikey")
+				|| normalized.endsWith("key");
 	}
 
 	public static Builder builder() {

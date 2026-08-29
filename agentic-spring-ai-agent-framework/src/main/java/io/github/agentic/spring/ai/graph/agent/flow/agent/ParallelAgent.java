@@ -20,7 +20,6 @@ import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.StateGraph;
 import io.github.agentic.spring.ai.graph.agent.Agent;
 import io.github.agentic.spring.ai.graph.agent.BaseAgent;
-import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.flow.builder.FlowAgentBuilder;
 import io.github.agentic.spring.ai.graph.agent.flow.builder.FlowGraphBuilder;
 import io.github.agentic.spring.ai.graph.agent.flow.enums.FlowAgentEnum;
@@ -277,11 +276,10 @@ public class ParallelAgent extends FlowAgent {
 			Set<String> duplicateKeys = new HashSet<>();
 
 			for (Agent subAgent : subAgents) {
-				if (subAgent instanceof ReactAgent subReactAgent) {
-					String outputKey = subReactAgent.getOutputKey();
-					if (outputKey != null) {
+				if (subAgent instanceof BaseAgent baseAgent) {
+					String outputKey = baseAgent.getOutputKey();
+					if (outputKey != null && !outputKey.trim().isEmpty()) {
 						if (!outputKeys.add(outputKey)) {
-							// This key was already seen, it's a duplicate
 							duplicateKeys.add(outputKey);
 						}
 					}
@@ -316,10 +314,10 @@ public class ParallelAgent extends FlowAgent {
 			// Check if sub-agents have outputKeys defined (they will be used as input
 			// keys for downstream agents)
 			for (Agent subAgent : subAgents) {
-				if (!(subAgent instanceof ReactAgent)) {
+				if (!(subAgent instanceof BaseAgent baseAgent)) {
 					continue;
 				}
-				String subAgentOutputKey = ((ReactAgent)subAgent).getOutputKey();
+				String subAgentOutputKey = baseAgent.getOutputKey();
 				if (subAgentOutputKey == null) {
 					logger.warn("Sub-agent '{}' has no outputKey defined. This may cause data flow issues "
 							+ "as downstream agents won't receive data from this agent.", subAgent.name());

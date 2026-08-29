@@ -21,7 +21,6 @@ import java.util.List;
 
 import io.github.agentic.spring.ai.agent.nacos.tools.NacosMcpGatewayToolsInitializer;
 import io.github.agentic.spring.ai.agent.nacos.vo.McpServersVO;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.exception.NacosException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,7 @@ public class NacosMcpToolsInjector {
 			String dataId = (nacosOptions.isMcpServersEncrypted() ? "cipher-kms-aes-256-" : "") + "mcp-servers.json";
 			String config = nacosOptions.getNacosConfigService()
 					.getConfig(dataId, "ai-agent-" + nacosOptions.getAgentName(), 3000L);
-			return JSON.parseObject(config, McpServersVO.class);
+			return NacosJsonSupport.parseObject(config, dataId, McpServersVO.class);
 		}
 		catch (NacosException e) {
 			throw new RuntimeException(e);

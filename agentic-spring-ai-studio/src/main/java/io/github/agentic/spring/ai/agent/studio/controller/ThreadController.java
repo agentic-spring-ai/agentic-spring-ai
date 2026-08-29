@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -54,9 +55,16 @@ public class ThreadController {
 
 	private final ThreadService threadService;
 
+	private final StudioExecutionAccess executionAccess;
+
 	@Autowired
-	public ThreadController(ThreadService threadService) {
+	public ThreadController(ThreadService threadService, StudioExecutionAccess executionAccess) {
 		this.threadService = threadService;
+		this.executionAccess = executionAccess;
+	}
+
+	public ThreadController(ThreadService threadService) {
+		this(threadService, new StudioExecutionAccess(""));
 	}
 
 	/**
@@ -114,7 +122,11 @@ public class ThreadController {
 	 */
 	@GetMapping("/apps/{appName}/users/{userId}/threads/{threadId}")
 	public Thread getThread(
-			@PathVariable String appName, @PathVariable String userId, @PathVariable String threadId) {
+			@PathVariable String appName,
+			@PathVariable String userId,
+			@PathVariable String threadId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		log.info("Request received for GET /apps/{}/users/{}/threads/{}", appName, userId, threadId);
 		return findThreadOrThrow(appName, userId, threadId);
 	}
@@ -127,7 +139,11 @@ public class ThreadController {
 	 * @return A list of threads, excluding those used for evaluation.
 	 */
 	@GetMapping("/apps/{appName}/users/{userId}/threads")
-	public List<Thread> listThreads(@PathVariable String appName, @PathVariable String userId) {
+	public List<Thread> listThreads(
+			@PathVariable String appName,
+			@PathVariable String userId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		log.info("Request received for GET /apps/{}/users/{}/threads", appName, userId);
 
 		ListThreadsResponse response = threadService.listThreads(appName, userId).block();
@@ -166,13 +182,15 @@ public class ThreadController {
 			@PathVariable String appName,
 			@PathVariable String userId,
 			@PathVariable String threadId,
-			@RequestBody(required = false) Map<String, Object> state) {
+			@RequestBody(required = false) Map<String, Object> state,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		log.info(
-				"Request received for POST /apps/{}/users/{}/threads/{} with state: {}",
+				"Request received for POST /apps/{}/users/{}/threads/{} with {} state fields",
 				appName,
 				userId,
 				threadId,
-				state);
+				state == null ? 0 : state.size());
 
 		try {
 			findThreadOrThrow(appName, userId, threadId);
@@ -229,14 +247,15 @@ public class ThreadController {
 	public Thread createThread(
 			@PathVariable String appName,
 			@PathVariable String userId,
-			@RequestBody(required = false) Map<String, Object> state) {
+			@RequestBody(required = false) Map<String, Object> state,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 
 		log.info(
-				"Request received for POST /apps/{}/users/{}/threads (service generates ID) with state:"
-						+ " {}",
+				"Request received for POST /apps/{}/users/{}/threads (service generates ID) with {} state fields",
 				appName,
 				userId,
-				state);
+				state == null ? 0 : state.size());
 
 		Map<String, Object> initialState = (state != null && !state.isEmpty()) ? state : null;
 		try {
@@ -274,7 +293,11 @@ public class ThreadController {
 	 */
 	@DeleteMapping("/apps/{appName}/users/{userId}/threads/{threadId}")
 	public ResponseEntity<Void> deleteThread(
-			@PathVariable String appName, @PathVariable String userId, @PathVariable String threadId) {
+			@PathVariable String appName,
+			@PathVariable String userId,
+			@PathVariable String threadId,
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		log.info(
 				"Request received for DELETE /apps/{}/users/{}/threads/{}", appName, userId, threadId);
 		try {

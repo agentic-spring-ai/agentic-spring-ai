@@ -1,22 +1,28 @@
 // Spring AI Alibaba Studio API Client
 
-export const STUDIO_EXECUTION_AUTH_HEADER = 'X-Agentic-Studio-Token';
-export const STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY = 'agentic:studio:executionAuthToken';
+export const STUDIO_EXECUTION_AUTH_HEADER = "X-Agentic-Studio-Token";
+export const STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY =
+  "agentic:studio:executionAuthToken";
 
 export function getStudioExecutionAuthToken(): string {
-  if (typeof window === 'undefined') {
-    return '';
+  if (typeof window === "undefined") {
+    return "";
   }
-  return window.sessionStorage.getItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY) || '';
+  return (
+    window.sessionStorage.getItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY) || ""
+  );
 }
 
 export function setStudioExecutionAuthToken(token: string): void {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
   const trimmedToken = token.trim();
   if (trimmedToken) {
-    window.sessionStorage.setItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY, trimmedToken);
+    window.sessionStorage.setItem(
+      STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY,
+      trimmedToken,
+    );
   } else {
     window.sessionStorage.removeItem(STUDIO_EXECUTION_AUTH_TOKEN_STORAGE_KEY);
   }
@@ -41,7 +47,7 @@ export interface Session {
 }
 
 export interface UserMessage {
-  messageType: 'user';
+  messageType: "user";
   content: string;
   metadata?: Record<string, any>;
   media?: MediaDTO[];
@@ -68,20 +74,20 @@ export interface ToolFeedbackDTO {
   id: string;
   name: string;
   arguments: string;
-  result?: 'APPROVED' | 'REJECTED' | 'EDITED';
+  result?: "APPROVED" | "REJECTED" | "EDITED";
   description?: string;
 }
 
 // Base MessageDTO interface
 export interface MessageDTO {
-  messageType: 'assistant' | 'user' | 'tool' | 'tool-request' | 'tool-confirm';
+  messageType: "assistant" | "user" | "tool" | "tool-request" | "tool-confirm";
   content: string;
   metadata?: Record<string, any>;
 }
 
 // AssistantMessageDTO
 export interface AssistantMessageDTO extends MessageDTO {
-  messageType: 'assistant';
+  messageType: "assistant";
   toolCalls?: ToolCallDTO[];
 }
 
@@ -94,13 +100,13 @@ export interface ToolCallDTO {
 
 // ToolRequestMessageDTO - similar to AssistantMessageDTO but with different messageType
 export interface ToolRequestMessageDTO extends MessageDTO {
-  messageType: 'tool-request';
+  messageType: "tool-request";
   toolCalls?: ToolCallDTO[];
 }
 
 // ToolRequestConfirmMessageDTO - for tool execution confirmation
 export interface ToolRequestConfirmMessageDTO extends MessageDTO {
-  messageType: 'tool-confirm';
+  messageType: "tool-confirm";
   toolCalls?: ToolCallConfigDTO[];
 }
 
@@ -114,7 +120,7 @@ export interface ToolCallConfigDTO {
 
 // UserMessageDTO
 export interface UserMessageDTO extends MessageDTO {
-  messageType: 'user';
+  messageType: "user";
   media?: MediaDTO[];
 }
 
@@ -125,7 +131,7 @@ export interface MediaDTO {
 
 // ToolResponseMessageDTO
 export interface ToolResponseMessageDTO extends MessageDTO {
-  messageType: 'tool';
+  messageType: "tool";
   responses?: ToolResponseDTO[];
 }
 
@@ -180,6 +186,25 @@ export interface ApiResponse<T> {
   requestId?: string;
 }
 
+interface StudioStreamError {
+  error?: boolean;
+  errorMessage?: string;
+  message?: string;
+  errorType?: string;
+}
+
+function toStreamError(payload: StudioStreamError): Error | null {
+  if (!payload?.error) {
+    return null;
+  }
+  const message =
+    payload.errorMessage ||
+    payload.message ||
+    payload.errorType ||
+    "Studio stream failed";
+  return new Error(message);
+}
+
 class SpringAIApiClient {
   private baseUrl: string;
 
@@ -189,7 +214,9 @@ class SpringAIApiClient {
 
   // 获取应用列表
   async listApps(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/list-apps`);
+    const response = await fetch(`${this.baseUrl}/list-apps`, {
+      headers: withStudioExecutionAuth(),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch apps: ${response.statusText}`);
     }
@@ -200,7 +227,9 @@ class SpringAIApiClient {
 
   // 获取Graph列表 (returns [] if backend has no graph support, e.g. 404)
   async listGraphs(): Promise<string[]> {
-    const response = await fetch(`${this.baseUrl}/list-graphs`);
+    const response = await fetch(`${this.baseUrl}/list-graphs`, {
+      headers: withStudioExecutionAuth(),
+    });
     if (response.status === 404) {
       return [];
     }
@@ -211,18 +240,29 @@ class SpringAIApiClient {
   }
 
   // 获取Graph可视化表示 (Mermaid格式)
-  async getGraphRepresentation(graphName: string): Promise<{ mermaidSrc?: string; dotSrc?: string }> {
-    const response = await fetch(`${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/representation`);
+  async getGraphRepresentation(
+    graphName: string,
+  ): Promise<{ mermaidSrc?: string; dotSrc?: string }> {
+    const response = await fetch(
+      `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/representation`,
+      { headers: withStudioExecutionAuth() },
+    );
     if (!response.ok) {
-      throw new Error(`Failed to fetch graph representation: ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch graph representation: ${response.statusText}`,
+      );
     }
     return await response.json();
   }
 
   // 获取Graph会话列表
-  async listGraphSessions(graphName: string, userId: string): Promise<Session[]> {
+  async listGraphSessions(
+    graphName: string,
+    userId: string,
+  ): Promise<Session[]> {
     const response = await fetch(
-      `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads`
+      `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads`,
+      { headers: withStudioExecutionAuth() },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch graph sessions: ${response.statusText}`);
@@ -231,9 +271,14 @@ class SpringAIApiClient {
   }
 
   // 获取单个Graph会话
-  async getGraphSession(graphName: string, userId: string, sessionId: string): Promise<Session> {
+  async getGraphSession(
+    graphName: string,
+    userId: string,
+    sessionId: string,
+  ): Promise<Session> {
     const response = await fetch(
-      `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads/${sessionId}`
+      `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads/${sessionId}`,
+      { headers: withStudioExecutionAuth() },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch graph session: ${response.statusText}`);
@@ -245,15 +290,17 @@ class SpringAIApiClient {
   async createGraphSession(
     graphName: string,
     userId: string,
-    initialState?: Record<string, any>
+    initialState?: Record<string, any>,
   ): Promise<Session> {
     const response = await fetch(
       `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: withStudioExecutionAuth({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(initialState || {}),
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to create graph session: ${response.statusText}`);
@@ -266,27 +313,38 @@ class SpringAIApiClient {
     graphName: string,
     userId: string,
     sessionId: string,
-    initialState?: Record<string, any>
+    initialState?: Record<string, any>,
   ): Promise<Session> {
     const response = await fetch(
       `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads/${sessionId}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: withStudioExecutionAuth({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(initialState || {}),
-      }
+      },
     );
     if (!response.ok) {
-      throw new Error(`Failed to create graph session with ID: ${response.statusText}`);
+      throw new Error(
+        `Failed to create graph session with ID: ${response.statusText}`,
+      );
     }
     return await response.json();
   }
 
   // 删除Graph会话
-  async deleteGraphSession(graphName: string, userId: string, sessionId: string): Promise<void> {
+  async deleteGraphSession(
+    graphName: string,
+    userId: string,
+    sessionId: string,
+  ): Promise<void> {
     const response = await fetch(
       `${this.baseUrl}/graphs/${encodeURIComponent(graphName)}/users/${userId}/threads/${sessionId}`,
-      { method: 'DELETE' }
+      {
+        method: "DELETE",
+        headers: withStudioExecutionAuth(),
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to delete graph session: ${response.statusText}`);
@@ -299,14 +357,14 @@ class SpringAIApiClient {
     userId: string,
     threadId: string,
     message: UserMessage,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): AsyncGenerator<GraphRunResponse, void, unknown> {
     const request = {
       graphName,
       userId,
       threadId,
       newMessage: {
-        messageType: 'user',
+        messageType: "user",
         content: message.content,
         metadata: message.metadata || {},
         media: message.media || [],
@@ -315,8 +373,11 @@ class SpringAIApiClient {
     };
 
     const response = await fetch(`${this.baseUrl}/graph_run_sse`, {
-      method: 'POST',
-      headers: withStudioExecutionAuth({ 'Content-Type': 'application/json', Accept: 'text/event-stream' }),
+      method: "POST",
+      headers: withStudioExecutionAuth({
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      }),
       body: JSON.stringify(request),
       signal,
     });
@@ -329,31 +390,38 @@ class SpringAIApiClient {
   }
 
   private async *_processGraphSSEStream(
-    response: Response
+    response: Response,
   ): AsyncGenerator<GraphRunResponse, void, unknown> {
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('Response body is not readable');
+      throw new Error("Response body is not readable");
     }
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
         for (const line of lines) {
-          if (line.trim().startsWith('data:')) {
+          if (line.trim().startsWith("data:")) {
             const data = line.slice(5).trim();
             if (data) {
               try {
-                const parsed = JSON.parse(data) as GraphRunResponse & { error?: boolean };
-                if (parsed?.error) continue;
+                const parsed = JSON.parse(data) as GraphRunResponse &
+                  StudioStreamError;
+                const streamError = toStreamError(parsed);
+                if (streamError) {
+                  throw streamError;
+                }
                 yield parsed as GraphRunResponse;
-              } catch {
-                // skip invalid JSON
+              } catch (e) {
+                if (e instanceof SyntaxError) {
+                  continue;
+                }
+                throw e;
               }
             }
           }
@@ -367,7 +435,8 @@ class SpringAIApiClient {
   // 获取会话列表
   async listSessions(appName: string, userId: string): Promise<Session[]> {
     const response = await fetch(
-      `${this.baseUrl}/apps/${appName}/users/${userId}/threads`
+      `${this.baseUrl}/apps/${appName}/users/${userId}/threads`,
+      { headers: withStudioExecutionAuth() },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch sessions: ${response.statusText}`);
@@ -376,9 +445,14 @@ class SpringAIApiClient {
   }
 
   // 获取单个会话
-  async getSession(appName: string, userId: string, sessionId: string): Promise<Session> {
+  async getSession(
+    appName: string,
+    userId: string,
+    sessionId: string,
+  ): Promise<Session> {
     const response = await fetch(
-      `${this.baseUrl}/apps/${appName}/users/${userId}/threads/${sessionId}`
+      `${this.baseUrl}/apps/${appName}/users/${userId}/threads/${sessionId}`,
+      { headers: withStudioExecutionAuth() },
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch session: ${response.statusText}`);
@@ -390,17 +464,17 @@ class SpringAIApiClient {
   async createSession(
     appName: string,
     userId: string,
-    initialState?: Record<string, any>
+    initialState?: Record<string, any>,
   ): Promise<Session> {
     const response = await fetch(
       `${this.baseUrl}/apps/${appName}/users/${userId}/threads`,
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "POST",
+        headers: withStudioExecutionAuth({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(initialState || {}),
-      }
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to create session: ${response.statusText}`);
@@ -413,20 +487,22 @@ class SpringAIApiClient {
     appName: string,
     userId: string,
     sessionId: string,
-    initialState?: Record<string, any>
+    initialState?: Record<string, any>,
   ): Promise<Session> {
     const response = await fetch(
       `${this.baseUrl}/apps/${appName}/users/${userId}/threads/${sessionId}`,
       {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: "POST",
+        headers: withStudioExecutionAuth({
+          "Content-Type": "application/json",
+        }),
         body: JSON.stringify(initialState || {}),
-      }
+      },
     );
     if (!response.ok) {
-      throw new Error(`Failed to create session with ID: ${response.statusText}`);
+      throw new Error(
+        `Failed to create session with ID: ${response.statusText}`,
+      );
     }
     return await response.json();
   }
@@ -435,13 +511,14 @@ class SpringAIApiClient {
   async deleteSession(
     appName: string,
     userId: string,
-    sessionId: string
+    sessionId: string,
   ): Promise<void> {
     const response = await fetch(
       `${this.baseUrl}/apps/${appName}/users/${userId}/threads/${sessionId}`,
       {
-        method: 'DELETE',
-      }
+        method: "DELETE",
+        headers: withStudioExecutionAuth(),
+      },
     );
     if (!response.ok) {
       throw new Error(`Failed to delete session: ${response.statusText}`);
@@ -451,9 +528,9 @@ class SpringAIApiClient {
   // 执行Agent(非流式)
   async runAgent(request: AgentRunRequest): Promise<NodeOutput> {
     const response = await fetch(`${this.baseUrl}/run`, {
-      method: 'POST',
+      method: "POST",
       headers: withStudioExecutionAuth({
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       }),
       body: JSON.stringify(request),
     });
@@ -469,26 +546,26 @@ class SpringAIApiClient {
     userId: string,
     threadId: string,
     message: UserMessage,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): AsyncGenerator<AgentRunResponse, void, unknown> {
     const request: AgentRunRequest = {
       appName,
       userId,
       threadId,
       newMessage: {
-        messageType: 'user',
+        messageType: "user",
         content: message.content,
         metadata: message.metadata || {},
-        media: message.media || []
+        media: message.media || [],
       },
       streaming: true,
     };
 
     const response = await fetch(`${this.baseUrl}/run_sse`, {
-      method: 'POST',
+      method: "POST",
       headers: withStudioExecutionAuth({
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
       }),
       body: JSON.stringify(request),
       signal,
@@ -507,7 +584,7 @@ class SpringAIApiClient {
     userId: string,
     threadId: string,
     toolFeedbacks: ToolFeedbackDTO[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): AsyncGenerator<AgentRunResponse, void, unknown> {
     const request: AgentResumeRequest = {
       appName,
@@ -518,10 +595,10 @@ class SpringAIApiClient {
     };
 
     const response = await fetch(`${this.baseUrl}/resume_sse`, {
-      method: 'POST',
+      method: "POST",
       headers: withStudioExecutionAuth({
-        'Content-Type': 'application/json',
-        Accept: 'text/event-stream',
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
       }),
       body: JSON.stringify(request),
       signal,
@@ -536,73 +613,60 @@ class SpringAIApiClient {
 
   // Private helper to process SSE stream
   private async *_processSSEStream(
-    response: Response
+    response: Response,
   ): AsyncGenerator<AgentRunResponse, void, unknown> {
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('Response body is not readable');
+      throw new Error("Response body is not readable");
     }
 
     const decoder = new TextDecoder();
-    let buffer = '';
-
-    console.log('[API] Starting SSE stream reading...');
+    let buffer = "";
 
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          console.log('[API] SSE stream done');
           break;
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (line.trim().startsWith('data:')) {
+          if (line.trim().startsWith("data:")) {
             const data = line.slice(5).trim();
             if (data) {
               try {
-                console.log('[API] Received SSE data:', data);
-                const agentResponse: AgentRunResponse = JSON.parse(data);
-                console.log('[API] Parsed agent response:', agentResponse);
+                const agentResponse = JSON.parse(data) as AgentRunResponse &
+                  StudioStreamError;
+                const streamError = toStreamError(agentResponse);
+                if (streamError) {
+                  throw streamError;
+                }
                 yield agentResponse;
               } catch (e) {
-                console.error('[API] Failed to parse SSE data:', e, 'Raw data:', data);
+                if (e instanceof SyntaxError) {
+                  continue;
+                }
+                throw e;
               }
             }
-          } else if (line.trim()) {
-            // Skip non-data lines (like comments or empty event names)
-            console.log('[API] Skipping non-data line:', line);
           }
         }
       }
     } finally {
       reader.releaseLock();
-      console.log('[API] SSE stream ended');
     }
-  }
-
-  // 获取会话追踪信息
-  async getSessionTrace(threadId: string): Promise<any[]> {
-    const response = await fetch(
-      `${this.baseUrl}/debug/trace/thread/${threadId}`
-    );
-    if (!response.ok) {
-      throw new Error(`Failed to fetch session trace: ${response.statusText}`);
-    }
-    return await response.json();
   }
 }
 
 // Factory function to create API client
 export function createApiClient(): SpringAIApiClient {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
   return new SpringAIApiClient(baseUrl);
 }
 
 // Default export
 export default SpringAIApiClient;
-

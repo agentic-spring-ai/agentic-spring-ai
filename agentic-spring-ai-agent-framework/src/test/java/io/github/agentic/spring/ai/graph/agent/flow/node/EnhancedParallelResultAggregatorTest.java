@@ -20,7 +20,6 @@ import io.github.agentic.spring.ai.graph.KeyStrategy;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.agent.BaseAgent;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +41,6 @@ import static org.mockito.Mockito.when;
  *   <li>Backward compatibility with the legacy 4-arg constructor</li>
  * </ul>
  */
-@EnabledIfEnvironmentVariable(named = "AI_DASHSCOPE_API_KEY", matches = ".+")
 class EnhancedParallelResultAggregatorTest {
 
 	/**
@@ -207,6 +205,17 @@ class EnhancedParallelResultAggregatorTest {
 		assertEquals("result1", result.get("output1"));
 		// Merged output should contain sub-agent results
 		assertTrue(result.containsKey("merged_output"));
+	}
+
+	@Test
+	void duplicateOutputKeysAreRejectedBeforeAggregation() {
+		BaseAgent agent1 = mockAgent("agent1", "same_output");
+		BaseAgent agent2 = mockAgent("agent2", "same_output");
+
+		IllegalArgumentException exception = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+				() -> new EnhancedParallelResultAggregator(null, List.of(agent1, agent2), null, null));
+
+		assertTrue(exception.getMessage().contains("Duplicate output keys"));
 	}
 
 	private static BaseAgent mockAgent(String name, String outputKey) {

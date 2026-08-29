@@ -12,21 +12,12 @@ export function AssistantMessage({
   // tool-request, tool-confirm, etc. are handled by their own components
   if (!isAssistantMessage(message.message)) {
     console.warn(
-      '[AssistantMessage] Warning: Received non-assistant message type:',
+      "[AssistantMessage] Warning: Received non-assistant message type:",
       message.message.messageType,
-      'This should be handled by the appropriate component.'
+      "This should be handled by the appropriate component.",
     );
     return null;
   }
-
-  console.log('[AssistantMessage] Rendering:', {
-    id: message.id,
-    messageType: message.message.messageType,
-    content: message.message.content,
-    contentLength: message.message.content?.length,
-    toolCalls: message.message.toolCalls,
-    fullMessage: message
-  });
 
   const contentString = message.message.content;
 
@@ -41,9 +32,10 @@ export function AssistantMessage({
 
   if (message.message.toolCalls && message.message.toolCalls.length > 0) {
     console.warn(
-      '[AssistantMessage] Warning: Assistant message contains toolCalls.',
-      'This should typically be a tool-request message instead.',
-      'toolCalls:', message.message.toolCalls
+      "[AssistantMessage] Warning: Assistant message contains toolCalls.",
+      "This should typically be a tool-request message instead.",
+      "toolCalls:",
+      message.message.toolCalls,
     );
   }
 
@@ -68,10 +60,9 @@ export function AssistantMessage({
 
 export function AssistantMessageLoading() {
   return (
-    <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="text-muted-foreground flex items-center gap-2">
       <LoaderCircle className="h-4 w-4 animate-spin" />
       <span className="text-sm">Thinking...</span>
     </div>
   );
 }
-

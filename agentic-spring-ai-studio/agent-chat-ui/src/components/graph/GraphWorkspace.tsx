@@ -9,10 +9,17 @@ import { NodeTimeline } from "./NodeTimeline";
 import { StateInspector } from "./StateInspector";
 import { GraphChatArea } from "./GraphChatArea";
 import { useGraphThreads } from "@/providers/GraphThread";
+import { StudioSettingsButton } from "@/components/StudioSettingsButton";
 
 export function GraphWorkspace() {
-  const { graphName, threads, currentThreadId, setCurrentThreadId, createThread, isLoading } =
-    useGraphThreads();
+  const {
+    graphName,
+    threads,
+    currentThreadId,
+    setCurrentThreadId,
+    createThread,
+    isLoading,
+  } = useGraphThreads();
   const [diagramOpen, setDiagramOpen] = useState(true);
 
   if (!graphName) return null;
@@ -22,7 +29,10 @@ export function GraphWorkspace() {
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-white px-4">
         <div className="flex items-center gap-3">
           <Link href="/index.html">
-            <Button variant="ghost" size="sm">
+            <Button
+              variant="ghost"
+              size="sm"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
@@ -30,6 +40,7 @@ export function GraphWorkspace() {
           <span className="text-lg font-semibold">Graph: {graphName}</span>
         </div>
         <div className="flex items-center gap-2">
+          <StudioSettingsButton />
           <Button
             variant="outline"
             size="sm"
@@ -43,11 +54,14 @@ export function GraphWorkspace() {
             <select
               value={currentThreadId ?? ""}
               onChange={(e) => setCurrentThreadId(e.target.value || null)}
-              className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+              className="border-input bg-background rounded-md border px-2 py-1 text-sm"
             >
               <option value="">Select thread...</option>
               {threads.map((t) => (
-                <option key={t.thread_id} value={t.thread_id}>
+                <option
+                  key={t.thread_id}
+                  value={t.thread_id}
+                >
                   {t.thread_id.slice(0, 8)}...
                 </option>
               ))}
@@ -58,17 +72,21 @@ export function GraphWorkspace() {
 
       <div className="flex flex-1 overflow-hidden">
         {diagramOpen && (
-          <aside className="w-80 shrink-0 border-r bg-white overflow-y-auto flex flex-col">
-            <div className="flex items-center justify-between p-2 border-b">
+          <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-r bg-white">
+            <div className="flex items-center justify-between border-b p-2">
               <span className="text-sm font-medium">Graph Diagram</span>
-              <Button variant="ghost" size="sm" onClick={() => setDiagramOpen(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDiagramOpen(false)}
+              >
                 <PanelLeftClose className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto p-3">
+            <div className="min-h-0 flex-1 overflow-auto p-3">
               <GraphDiagram graphName={graphName} />
             </div>
-            <div className="p-3 border-t bg-muted/20">
+            <div className="bg-muted/20 border-t p-3">
               <GraphChatArea />
             </div>
           </aside>
@@ -77,18 +95,18 @@ export function GraphWorkspace() {
           <Button
             variant="outline"
             size="sm"
-            className="absolute left-2 top-20 z-10"
+            className="absolute top-20 left-2 z-10"
             onClick={() => setDiagramOpen(true)}
           >
             <PanelLeftOpen className="h-4 w-4" />
           </Button>
         )}
 
-        <main className="flex-1 min-w-0 overflow-hidden flex flex-col p-4 gap-4">
+        <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden p-4">
           <div className="shrink-0">
             <NodeTimeline />
           </div>
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <StateInspector />
           </div>
         </main>

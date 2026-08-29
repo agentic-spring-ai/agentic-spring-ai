@@ -218,6 +218,8 @@ class A2aNodeActionWithConfigTests {
 
 	private static final Method EXTRACT_RESPONSE_TEXT = initExtractResponseTextMethod();
 
+	private static final Method AUTO_DETECT_AND_PARSE_RESPONSE = initAutoDetectAndParseResponseMethod();
+
 	/**
 	 * Test that extractResponseText returns empty string for "submitted" state.
 	 * This is a fix for Issue #3608 - "Agent State: submitted" should not be returned.
@@ -313,13 +315,63 @@ class A2aNodeActionWithConfigTests {
 		assertEquals("This is the artifact response", response);
 	}
 
+	@Test
+	void autoDetectAndParseResponseTreatsTypeMetadataAsOrdinaryJsonField() throws Exception {
+		String responseText = """
+				{"jsonrpc":"2.0","id":"response-1","result":{"@type":"java.lang.Thread","kind":"artifact-update","artifact":{"parts":[{"text":"remote ok"}]}}}
+				""";
+
+		Map<String, Object> response = invokeAutoDetectAndParseResponse(responseText);
+
+		Map<String, Object> result = castMap(response.get("result"));
+		assertEquals("java.lang.Thread", result.get("@type"));
+		assertEquals("remote ok", invokeExtractResponseText(result));
+	}
+
+	@Test
+	void parseStreamingResponseTreatsTypeMetadataAsOrdinaryJsonField() throws Exception {
+		String responseText = """
+				event: status
+				data: {"jsonrpc":"2.0","id":"response-1","result":{"@type":"java.lang.Thread","kind":"artifact-update","artifact":{"parts":[{"text":"remote ok"}]}}}
+
+				data: [DONE]
+				""";
+
+		Map<String, Object> response = invokeAutoDetectAndParseResponse(responseText);
+
+		Map<String, Object> result = castMap(response.get("result"));
+		assertEquals("java.lang.Thread", result.get("@type"));
+		assertEquals("remote ok", invokeExtractResponseText(result));
+	}
+
 	private String invokeExtractResponseText(Map<String, Object> result) throws Exception {
 		return (String) EXTRACT_RESPONSE_TEXT.invoke(this.action, result);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> invokeAutoDetectAndParseResponse(String responseText) throws Exception {
+		return (Map<String, Object>) AUTO_DETECT_AND_PARSE_RESPONSE.invoke(this.action, responseText);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> castMap(Object value) {
+		return (Map<String, Object>) value;
 	}
 
 	private static Method initExtractResponseTextMethod() {
 		try {
 			Method method = A2aNodeActionWithConfig.class.getDeclaredMethod("extractResponseText", Map.class);
+			method.setAccessible(true);
+			return method;
+		}
+		catch (NoSuchMethodException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	private static Method initAutoDetectAndParseResponseMethod() {
+		try {
+			Method method = A2aNodeActionWithConfig.class.getDeclaredMethod("autoDetectAndParseResponse", String.class);
 			method.setAccessible(true);
 			return method;
 		}

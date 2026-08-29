@@ -17,7 +17,6 @@
 package io.github.agentic.spring.ai.agent.nacos;
 
 import io.github.agentic.spring.ai.agent.nacos.vo.PromptVO;
-import com.alibaba.fastjson.JSON;
 
 public class NacosPromptInjector {
 	
@@ -31,7 +30,7 @@ public class NacosPromptInjector {
 			String promptConfig = nacosOptions.getNacosConfigService()
 					.getConfig(dataId, "nacos-ai-meta",
 							3000L);
-			PromptVO promptVO = JSON.parseObject(promptConfig, PromptVO.class);
+			PromptVO promptVO = NacosJsonSupport.parseObject(promptConfig, dataId, PromptVO.class);
 			promptVO.setPromptKey(promptKey);
 			return promptVO;
 		}

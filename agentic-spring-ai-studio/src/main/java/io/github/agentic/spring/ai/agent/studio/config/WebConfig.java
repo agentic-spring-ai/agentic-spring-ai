@@ -26,10 +26,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 		matchIfMissing = true)
 public class WebConfig implements WebMvcConfigurer {
 
-	public WebConfig() {
-
-	}
-
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
 //		registry.addInterceptor(traceIdInterceptor).addPathPatterns("/**");

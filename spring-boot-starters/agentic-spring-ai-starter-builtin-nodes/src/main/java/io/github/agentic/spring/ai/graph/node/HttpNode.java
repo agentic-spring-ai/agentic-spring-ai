@@ -39,6 +39,10 @@ import io.github.agentic.spring.ai.graph.utils.InMemoryFileStorage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -49,6 +53,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.reactive.HttpComponentsClientHttpConnector;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -72,6 +77,12 @@ public class HttpNode implements NodeAction {
 	private static final long DEFAULT_MAX_RETRY_INTERVAL = 1000;
 
 	private static final ObjectMapper DEFAULT_MAPPER = new ObjectMapper();
+
+	private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(30);
+
+	private static final WebClient RESTRICTED_WEB_CLIENT = createWebClient(false);
+
+	private static final WebClient PRIVATE_NETWORK_WEB_CLIENT = createWebClient(true);
 
 	/**
 	 * Default string replacement function that cleans JSON template strings.
@@ -110,8 +121,13 @@ public class HttpNode implements NodeAction {
 
 	private final String outputKey;
 
+	private final boolean allowPrivateNetworkAccess;
+
+	private final Duration requestTimeout;
+
 	private HttpNode(Builder builder) {
-		this.webClient = builder.webClient;
+		this.webClient = builder.webClient != null ? builder.webClient
+				: builder.allowPrivateNetworkAccess ? PRIVATE_NETWORK_WEB_CLIENT : RESTRICTED_WEB_CLIENT;
 		this.method = builder.method;
 		this.url = builder.url;
 		this.headers = builder.headers;
@@ -122,6 +138,8 @@ public class HttpNode implements NodeAction {
 		this.outputKey = builder.outputKey;
 		this.mapper = builder.objectMapper != null ? builder.objectMapper : DEFAULT_MAPPER;
 		this.variableFilter = builder.variableFilter != null ? builder.variableFilter : DEFAULT_VARIABLE_FILTER;
+		this.allowPrivateNetworkAccess = builder.allowPrivateNetworkAccess;
+		this.requestTimeout = builder.requestTimeout;
 	}
 
 	@Override
@@ -134,6 +152,7 @@ public class HttpNode implements NodeAction {
 			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(finalUrl);
 			finalQueryParams.forEach(uriBuilder::queryParam);
 			URI finalUri = uriBuilder.build().toUri();
+			NetworkAccessPolicy.validateHttpUri(finalUri, this.allowPrivateNetworkAccess);
 
 			WebClient.RequestBodySpec requestSpec = webClient.method(method)
 				.uri(finalUri)
@@ -148,6 +167,7 @@ public class HttpNode implements NodeAction {
 				responseMono = responseMono.retryWhen(
 						Retry.backoff(retryConfig.maxRetries,Duration.ofMillis(retryConfig.maxRetryInterval)));
 			}
+			responseMono = responseMono.timeout(this.requestTimeout);
 
 			ResponseEntity<byte[]> responseEntity = responseMono.block();
 			Map<String, Object> httpResponse = processResponse(responseEntity, state);
@@ -407,9 +427,20 @@ public class HttpNode implements NodeAction {
 		return new Builder();
 	}
 
+	private static WebClient createWebClient(boolean allowPrivateNetworkAccess) {
+		PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
+			.setDnsResolver(NetworkAccessPolicy.dnsResolver(allowPrivateNetworkAccess))
+			.build();
+		CloseableHttpAsyncClient httpClient = HttpAsyncClients.custom()
+			.setConnectionManager(connectionManager)
+			.disableRedirectHandling()
+			.build();
+		return WebClient.builder().clientConnector(new HttpComponentsClientHttpConnector(httpClient)).build();
+	}
+
 	public static class Builder {
 
-		private WebClient webClient = WebClient.create();
+		private WebClient webClient;
 
 		private HttpMethod method = HttpMethod.GET;
 
@@ -431,11 +462,21 @@ public class HttpNode implements NodeAction {
 
 		private Function<Object, Object> variableFilter;
 
+		private boolean allowPrivateNetworkAccess = false;
+
+		private Duration requestTimeout = DEFAULT_REQUEST_TIMEOUT;
+
 		public Builder objectMapper(ObjectMapper objectMapper) {
 			this.objectMapper = objectMapper;
 			return this;
 		}
 
+		/**
+		 * Use a custom client connector. URI scheme and resolved-address preflight checks
+		 * still run unless private-network access is explicitly enabled. The custom
+		 * connector remains responsible for enforcing the same address policy during its
+		 * connect-time DNS resolution to prevent rebinding.
+		 */
 		public Builder webClient(WebClient webClient) {
 			this.webClient = webClient;
 			return this;
@@ -478,6 +519,16 @@ public class HttpNode implements NodeAction {
 
 		public Builder outputKey(String outputKey) {
 			this.outputKey = outputKey;
+			return this;
+		}
+
+		public Builder allowPrivateNetworkAccess(boolean allowPrivateNetworkAccess) {
+			this.allowPrivateNetworkAccess = allowPrivateNetworkAccess;
+			return this;
+		}
+
+		public Builder requestTimeout(Duration requestTimeout) {
+			this.requestTimeout = requestTimeout;
 			return this;
 		}
 
@@ -588,7 +639,7 @@ public class HttpNode implements NodeAction {
 								Object key0 = item.get("key");
 								String key = (key0 instanceof String) ? ((String) key0).trim() : null;
 								if (key == null || key.isEmpty()) {
-									logger.warn("Form data item missing or empty key, item: {}", item);
+									logger.warn("Skipping form data item with missing or empty key");
 									continue;
 								}
 								bd3.setKey(key);
@@ -630,7 +681,7 @@ public class HttpNode implements NodeAction {
 										bd3.setFileBytes(Base64.getDecoder().decode((String) fileBytes));
 									}
 									catch (IllegalArgumentException e) {
-										logger.warn("Base64 decode failed for fileBytes: {}", fileBytes);
+										logger.warn("Base64 decode failed for fileBytes field");
 									}
 								}
 

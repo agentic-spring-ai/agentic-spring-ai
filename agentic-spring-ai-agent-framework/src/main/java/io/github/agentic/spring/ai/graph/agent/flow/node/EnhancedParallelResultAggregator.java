@@ -82,7 +82,7 @@ public class EnhancedParallelResultAggregator implements NodeAction {
 	public EnhancedParallelResultAggregator(String outputKey, List<BaseAgent> subAgents, Object mergeStrategy,
 											Integer maxConcurrency, Map<String, KeyStrategy> keyStrategies) {
 		this.outputKey = outputKey;
-		this.subAgents = subAgents;
+		this.subAgents = validateSubAgents(subAgents);
 		this.mergeStrategy = mergeStrategy != null ? mergeStrategy : KeyStrategy.REPLACE;
 		this.maxConcurrency = maxConcurrency;
 		this.keyStrategies = keyStrategies != null ? keyStrategies : Map.of();
@@ -123,8 +123,7 @@ public class EnhancedParallelResultAggregator implements NodeAction {
 					} else {
 						subAgentResults.put(subAgentOutputKey, agentResult.get());
 					}
-					logger.debug("Collected result from {}: {} = {}", subAgent.name(), subAgentOutputKey,
-							agentResult.get());
+					logger.debug("Collected result from {} under output key '{}'", subAgent.name(), subAgentOutputKey);
 				}
 				else {
 					logger.warn("No output found for sub-agent: {} (outputKey: {})", subAgent.name(),
@@ -199,13 +198,13 @@ public class EnhancedParallelResultAggregator implements NodeAction {
 				KeyStrategy strategy = keyStrategies.getOrDefault(key, KeyStrategy.REPLACE);
 				Object mergedValue = strategy.apply(oldValue, newValue);
 				extraState.put(key, mergedValue);
-				logger.warn("Extra state key collision detected: key='{}', "
-						+ "oldValue='{}', newValue='{}', strategy={}, mergedValue='{}'",
-						key, oldValue, newValue, strategy.getClass().getSimpleName(), mergedValue);
+				logger.warn("Extra state key collision detected: key='{}', oldValueType={}, newValueType={}, "
+						+ "strategy={}, mergedValueType={}", key, valueType(oldValue), valueType(newValue),
+						strategy.getClass().getSimpleName(), valueType(mergedValue));
 			}
 			else {
 				extraState.put(key, entry.getValue());
-				logger.debug("Extracted extra state from sub-graph: {} = {}", key, entry.getValue());
+				logger.debug("Extracted extra state key '{}' from sub-graph", key);
 			}
 		}
 	}
@@ -217,6 +216,31 @@ public class EnhancedParallelResultAggregator implements NodeAction {
 	 */
 	private static boolean isSystemKey(String key) {
 		return key.startsWith(SYSTEM_KEY_PREFIX) || SYSTEM_STATE_KEYS.contains(key);
+	}
+
+	private static List<BaseAgent> validateSubAgents(List<BaseAgent> subAgents) {
+		if (subAgents == null) {
+			throw new IllegalArgumentException("Sub-agents must not be null");
+		}
+		Set<String> outputKeys = new HashSet<>();
+		Set<String> duplicateKeys = new HashSet<>();
+		for (BaseAgent subAgent : subAgents) {
+			String outputKey = subAgent.getOutputKey();
+			if (outputKey != null && !outputKey.trim().isEmpty() && !outputKeys.add(outputKey)) {
+				duplicateKeys.add(outputKey);
+			}
+		}
+		if (!duplicateKeys.isEmpty()) {
+			throw new IllegalArgumentException(
+					"ParallelAgent validation failed: Duplicate output keys found among sub-agents: "
+							+ duplicateKeys
+							+ ". Each sub-agent must have a unique output key to avoid conflicts during result merging.");
+		}
+		return subAgents;
+	}
+
+	private static String valueType(Object value) {
+		return value == null ? "null" : value.getClass().getName();
 	}
 
 }

@@ -34,7 +34,6 @@ import io.github.agentic.spring.ai.graph.agent.interceptor.ToolInterceptor;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.graph.agent.node.AgentToolNode;
 import io.github.agentic.spring.ai.mcp.nacos.service.NacosMcpOperationService;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.client.config.NacosConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -231,7 +230,7 @@ class NacosReactAgentBuilderInterceptorTest {
         agentVO.setPromptKey("test-prompt");
         agentVO.setDescription("Test agent description");
         when(nacosConfigService.getConfig(eq("agent-base.json"), anyString(), anyLong())).thenReturn(
-                JSON.toJSONString(agentVO));
+                NacosTestJson.toJson(agentVO));
         
         // Mock PromptVO config
         PromptVO promptVO = new PromptVO();
@@ -239,7 +238,7 @@ class NacosReactAgentBuilderInterceptorTest {
         promptVO.setVersion("1.0");
         promptVO.setTemplate("You are a test assistant");
         when(nacosConfigService.getConfig(eq("prompt-test-prompt.json"), anyString(), anyLong())).thenReturn(
-                JSON.toJSONString(promptVO));
+                NacosTestJson.toJson(promptVO));
         
         // Mock ModelVO config
         ModelVO modelVO = new ModelVO();
@@ -248,13 +247,13 @@ class NacosReactAgentBuilderInterceptorTest {
         modelVO.setModel("gpt-4");
         modelVO.setTemperature("0.7");
         when(nacosConfigService.getConfig(eq("model.json"), anyString(), anyLong())).thenReturn(
-                JSON.toJSONString(modelVO));
+                NacosTestJson.toJson(modelVO));
         
         // Mock McpServersVO config - empty MCP servers
         McpServersVO mcpServersVO = new McpServersVO();
         mcpServersVO.setMcpServers(Collections.emptyList());
         when(nacosConfigService.getConfig(eq("mcp-servers.json"), anyString(), anyLong())).thenReturn(
-                JSON.toJSONString(mcpServersVO));
+                NacosTestJson.toJson(mcpServersVO));
     }
     
     @BeforeEach

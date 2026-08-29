@@ -20,6 +20,7 @@ import io.github.agentic.spring.ai.agent.studio.loader.AgentLoader;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -37,14 +38,17 @@ public class AgentController {
 
 	private final AgentLoader agentProvider;
 
+	private final StudioExecutionAccess executionAccess;
+
 	/**
 	 * Constructs the AgentController.
 	 *
 	 * @param agentProvider The provider for loading agents.
 	 */
 	@Autowired
-	public AgentController(AgentLoader agentProvider) {
+	public AgentController(AgentLoader agentProvider, StudioExecutionAccess executionAccess) {
 		this.agentProvider = agentProvider;
+		this.executionAccess = executionAccess;
 		List<String> agentNames = this.agentProvider.listAgents();
 		log.info(
 				"AgentController initialized with {} dynamic agents: {}", agentNames.size(), agentNames);
@@ -54,13 +58,19 @@ public class AgentController {
 		}
 	}
 
+	public AgentController(AgentLoader agentProvider) {
+		this(agentProvider, new StudioExecutionAccess(""));
+	}
+
 	/**
 	 * Lists available applications. Currently returns only the configured root agent's name.
 	 *
 	 * @return A list containing the root agent's name.
 	 */
 	@GetMapping("/list-apps")
-	public List<String> listApps() {
+	public List<String> listApps(
+			@RequestHeader(name = StudioExecutionAccess.TOKEN_HEADER, required = false) String accessToken) {
+		executionAccess.assertAllowed(accessToken);
 		List<String> agentNames = agentProvider.listAgents();
 		log.info("Listing apps from dynamic registry. Found: {}", agentNames);
 		return agentNames.stream().sorted().collect(toList());

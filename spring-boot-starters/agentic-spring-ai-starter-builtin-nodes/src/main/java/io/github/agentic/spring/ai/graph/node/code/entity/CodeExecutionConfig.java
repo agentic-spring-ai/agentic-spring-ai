@@ -44,6 +44,32 @@ public class CodeExecutionConfig {
 
 	private int responseTimeout = 50;
 
+	private long maxOutputBytes = 1024L * 1024L;
+
+	private boolean disableNetwork = true;
+
+	private boolean readOnlyRootFilesystem = true;
+
+	private long memoryLimitBytes = 256L * 1024L * 1024L;
+
+	private long memorySwapBytes = 256L * 1024L * 1024L;
+
+	private long cpuPeriodMicros = 100_000L;
+
+	private long cpuQuotaMicros = 100_000L;
+
+	private long pidsLimit = 128L;
+
+	private boolean dropAllCapabilities = true;
+
+	private boolean noNewPrivileges = true;
+
+	/**
+	 * Optional container user. Leave empty for compatibility with bind-mounted work
+	 * directories that may not be readable by an arbitrary non-root uid.
+	 */
+	private String containerUser;
+
 	public String getWorkDir() {
 		return workDir;
 	}
@@ -130,6 +156,108 @@ public class CodeExecutionConfig {
 
 	public void setResponseTimeout(final int responseTimeout) {
 		this.responseTimeout = responseTimeout;
+	}
+
+	public long getMaxOutputBytes() {
+		return maxOutputBytes;
+	}
+
+	public CodeExecutionConfig setMaxOutputBytes(long maxOutputBytes) {
+		if (maxOutputBytes < 1) {
+			throw new IllegalArgumentException("maxOutputBytes must be greater than zero");
+		}
+		this.maxOutputBytes = maxOutputBytes;
+		return this;
+	}
+
+	public boolean isDisableNetwork() {
+		return disableNetwork;
+	}
+
+	public CodeExecutionConfig setDisableNetwork(boolean disableNetwork) {
+		this.disableNetwork = disableNetwork;
+		return this;
+	}
+
+	public boolean isReadOnlyRootFilesystem() {
+		return readOnlyRootFilesystem;
+	}
+
+	public CodeExecutionConfig setReadOnlyRootFilesystem(boolean readOnlyRootFilesystem) {
+		this.readOnlyRootFilesystem = readOnlyRootFilesystem;
+		return this;
+	}
+
+	public long getMemoryLimitBytes() {
+		return memoryLimitBytes;
+	}
+
+	public CodeExecutionConfig setMemoryLimitBytes(long memoryLimitBytes) {
+		this.memoryLimitBytes = memoryLimitBytes;
+		return this;
+	}
+
+	public long getMemorySwapBytes() {
+		return memorySwapBytes;
+	}
+
+	public CodeExecutionConfig setMemorySwapBytes(long memorySwapBytes) {
+		this.memorySwapBytes = memorySwapBytes;
+		return this;
+	}
+
+	public long getCpuPeriodMicros() {
+		return cpuPeriodMicros;
+	}
+
+	public CodeExecutionConfig setCpuPeriodMicros(long cpuPeriodMicros) {
+		this.cpuPeriodMicros = cpuPeriodMicros;
+		return this;
+	}
+
+	public long getCpuQuotaMicros() {
+		return cpuQuotaMicros;
+	}
+
+	public CodeExecutionConfig setCpuQuotaMicros(long cpuQuotaMicros) {
+		this.cpuQuotaMicros = cpuQuotaMicros;
+		return this;
+	}
+
+	public long getPidsLimit() {
+		return pidsLimit;
+	}
+
+	public CodeExecutionConfig setPidsLimit(long pidsLimit) {
+		this.pidsLimit = pidsLimit;
+		return this;
+	}
+
+	public boolean isDropAllCapabilities() {
+		return dropAllCapabilities;
+	}
+
+	public CodeExecutionConfig setDropAllCapabilities(boolean dropAllCapabilities) {
+		this.dropAllCapabilities = dropAllCapabilities;
+		return this;
+	}
+
+	public boolean isNoNewPrivileges() {
+		return noNewPrivileges;
+	}
+
+	public CodeExecutionConfig setNoNewPrivileges(boolean noNewPrivileges) {
+		this.noNewPrivileges = noNewPrivileges;
+		return this;
+	}
+
+	public String getContainerUser() {
+		return containerUser;
+	}
+
+	public CodeExecutionConfig setContainerUser(String containerUser) {
+		this.containerUser = containerUser;
+		return this;
 	}
 
 }

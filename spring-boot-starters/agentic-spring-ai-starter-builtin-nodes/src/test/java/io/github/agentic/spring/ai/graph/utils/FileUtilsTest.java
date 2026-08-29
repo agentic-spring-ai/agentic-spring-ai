@@ -27,6 +27,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * @author 014-code
@@ -53,6 +55,21 @@ class FileUtilsTest {
 		}
 
 		assertTrue(Files.exists(workDir.resolve("mock-dependency.jar")));
+	}
+
+	@Test
+	void createsUniqueExecutionDirectoriesAndCleansThemRecursively() throws Exception {
+		Path first = FileUtils.createExecutionDirectory(tempDir.toString());
+		Path second = FileUtils.createExecutionDirectory(tempDir.toString());
+		assertNotEquals(first, second);
+		Files.createDirectories(first.resolve("nested"));
+		Files.writeString(first.resolve("nested/code.py"), "print('ok')");
+
+		FileUtils.deleteRecursively(first);
+
+		assertFalse(Files.exists(first));
+		assertTrue(Files.exists(second));
+		FileUtils.deleteRecursively(second);
 	}
 
 	/**

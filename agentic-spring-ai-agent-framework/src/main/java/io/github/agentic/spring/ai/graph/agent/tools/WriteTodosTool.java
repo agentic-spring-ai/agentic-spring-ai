@@ -213,7 +213,7 @@ public class WriteTodosTool implements BiFunction<WriteTodosTool.Request, ToolCo
 	// @formatter:on
 
 	public WriteTodosTool() {
-		this(todos -> logger.debug("Updated Todos: {}", todos));
+		this(todos -> logger.debug("Updated {} todos", todos.size()));
 	}
 
 	protected WriteTodosTool(TodoEventHandler todoEventHandler) {
@@ -332,7 +332,7 @@ public class WriteTodosTool implements BiFunction<WriteTodosTool.Request, ToolCo
 
 		private String description = DEFAULT_TOOL_DESCRIPTION;
 
-		private TodoEventHandler todoEventHandler = todos -> logger.debug("Updated Todos: {}", todos);
+		private TodoEventHandler todoEventHandler = todos -> logger.debug("Updated {} todos", todos.size());
 
 		public Builder() {
 		}

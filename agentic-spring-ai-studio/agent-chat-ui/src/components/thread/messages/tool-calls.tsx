@@ -12,12 +12,18 @@ function isComplexValue(value: any): boolean {
 /**
  * Style variants for ToolCalls component
  */
-export type ToolCallsVariant = 'default' | 'request' | 'confirm';
+export type ToolCallsVariant = "default" | "request" | "confirm";
 
 /**
  * Component for a single collapsible tool call in default variant
  */
-function DefaultToolCallItem({ toolCall, index }: { toolCall: ToolCall | ToolFeedback; index: number }) {
+function DefaultToolCallItem({
+  toolCall,
+  index,
+}: {
+  toolCall: ToolCall | ToolFeedback;
+  index: number;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   let args;
@@ -35,9 +41,12 @@ function DefaultToolCallItem({ toolCall, index }: { toolCall: ToolCall | ToolFee
   };
 
   return (
-    <div key={toolCall.id || index} className={styles.card}>
+    <div
+      key={toolCall.id || index}
+      className={styles.card}
+    >
       <div className={styles.header}>
-        <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
           <h3 className={styles.headerText}>
             {toolCall.name}
             {toolCall.id && (
@@ -45,7 +54,7 @@ function DefaultToolCallItem({ toolCall, index }: { toolCall: ToolCall | ToolFee
                 {toolCall.id}
               </code>
             )}
-            {'type' in toolCall && (
+            {"type" in toolCall && (
               <span className="ml-2 text-xs text-gray-500">
                 Type: {toolCall.type}
               </span>
@@ -109,7 +118,7 @@ function CardToolCallItem({
   toolCall,
   index,
   itemBorder,
-  itemText
+  itemText,
 }: {
   toolCall: ToolCall | ToolFeedback;
   index: number;
@@ -126,21 +135,23 @@ function CardToolCallItem({
   }
 
   // Check if it's a ToolFeedback (has description)
-  const hasDescription = 'description' in toolCall && toolCall.description;
+  const hasDescription = "description" in toolCall && toolCall.description;
 
   return (
     <div
       key={toolCall.id || index}
       className={cn(
-        "bg-white rounded-md border overflow-hidden",
-        itemBorder || ''
+        "overflow-hidden rounded-md border bg-white",
+        itemBorder || "",
       )}
     >
       {/* Header with tool name and id */}
-      <div className="p-2 border-b border-gray-200 bg-gray-50">
+      <div className="border-b border-gray-200 bg-gray-50 p-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className={cn("font-mono text-xs font-semibold", itemText || '')}>
+            <span
+              className={cn("font-mono text-xs font-semibold", itemText || "")}
+            >
               {toolCall.name}
             </span>
             {toolCall.id && (
@@ -149,14 +160,14 @@ function CardToolCallItem({
               </code>
             )}
           </div>
-          {'type' in toolCall && (
+          {"type" in toolCall && (
             <span className="text-xs text-gray-500">{toolCall.type}</span>
           )}
         </div>
       </div>
       {/* Description if present */}
       {hasDescription && (
-        <div className="px-2 pt-1.5 text-xs text-gray-600 italic bg-white">
+        <div className="bg-white px-2 pt-1.5 text-xs text-gray-600 italic">
           {(toolCall as ToolFeedback).description}
         </div>
       )}
@@ -170,8 +181,8 @@ function CardToolCallItem({
             transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="p-2 bg-white">
-              <pre className="text-xs bg-gray-50 p-1.5 rounded overflow-x-auto">
+            <div className="bg-white p-2">
+              <pre className="overflow-x-auto rounded bg-gray-50 p-1.5 text-xs">
                 {JSON.stringify(parsedArgs, null, 2)}
               </pre>
             </div>
@@ -183,14 +194,18 @@ function CardToolCallItem({
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
           "flex w-full cursor-pointer items-center justify-center border-t-[1px] py-1 text-gray-500 transition-all duration-200 ease-in-out hover:text-gray-600",
-          itemBorder || '',
-          "hover:bg-gray-50"
+          itemBorder || "",
+          "hover:bg-gray-50",
         )}
         initial={{ scale: 1 }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
-        {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+        {isExpanded ? (
+          <ChevronUp className="size-3.5" />
+        ) : (
+          <ChevronDown className="size-3.5" />
+        )}
       </motion.button>
     </div>
   );
@@ -211,7 +226,7 @@ interface ToolCallsProps {
  */
 export function ToolCalls({
   toolCalls,
-  variant = 'default',
+  variant = "default",
   title,
   description,
 }: ToolCallsProps) {
@@ -251,29 +266,36 @@ export function ToolCalls({
   const styles = variantStyles[variant];
 
   // Render content based on variant
-  if (variant === 'default') {
+  if (variant === "default") {
     // Collapsible table-based layout for default variant
     return (
       <div className={styles.container}>
         {toolCalls.map((tc, idx) => (
-          <DefaultToolCallItem key={tc.id || idx} toolCall={tc} index={idx} />
+          <DefaultToolCallItem
+            key={tc.id || idx}
+            toolCall={tc}
+            index={idx}
+          />
         ))}
       </div>
     );
   }
 
   // Card-based layout for request and confirm variants
-  const itemBorder = 'itemBorder' in styles ? styles.itemBorder : undefined;
-  const itemText = 'itemText' in styles ? styles.itemText : undefined;
+  const itemBorder = "itemBorder" in styles ? styles.itemBorder : undefined;
+  const itemText = "itemText" in styles ? styles.itemText : undefined;
 
   return (
     <div className={styles.container}>
       <Card className={styles.card}>
-        {(title || ('icon' in styles && styles.icon)) && (
+        {(title || ("icon" in styles && styles.icon)) && (
           <div className={styles.header}>
-            {'icon' in styles && styles.icon}
+            {"icon" in styles && styles.icon}
             <span className={styles.headerText}>
-              {title || (variant === 'request' ? 'Tool Request' : 'Tool Execution Confirmation')}
+              {title ||
+                (variant === "request"
+                  ? "Tool Request"
+                  : "Tool Execution Confirmation")}
             </span>
           </div>
         )}

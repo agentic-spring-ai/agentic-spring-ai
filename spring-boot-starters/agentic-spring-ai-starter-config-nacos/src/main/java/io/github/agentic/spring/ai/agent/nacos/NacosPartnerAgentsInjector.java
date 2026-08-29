@@ -19,7 +19,6 @@ package io.github.agentic.spring.ai.agent.nacos;
 import io.github.agentic.spring.ai.agent.nacos.vo.PartnerAgentsVO;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.graph.agent.node.AgentToolNode;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.config.listener.AbstractListener;
 import com.alibaba.nacos.api.exception.NacosException;
 import org.slf4j.Logger;
@@ -38,7 +37,8 @@ public class NacosPartnerAgentsInjector {
 					.addListener(PARTNER_AGENTS_DATA_ID, "ai-agent-" + agentName, new AbstractListener() {
 						@Override
 						public void receiveConfigInfo(String configInfo) {
-							PartnerAgentsVO partnerAgentsVO = JSON.parseObject(configInfo, PartnerAgentsVO.class);
+							PartnerAgentsVO partnerAgentsVO = NacosJsonSupport.parseObject(configInfo,
+									PARTNER_AGENTS_DATA_ID, PartnerAgentsVO.class);
 							logger.debug("Received partner agents config: {}", partnerAgentsVO);
 						}
 					});
@@ -53,7 +53,7 @@ public class NacosPartnerAgentsInjector {
 		try {
 			String config = nacosOptions.getNacosConfigService()
 					.getConfig(PARTNER_AGENTS_DATA_ID, "ai-agent-" + agentName, 3000L);
-			return JSON.parseObject(config, PartnerAgentsVO.class);
+			return NacosJsonSupport.parseObject(config, PARTNER_AGENTS_DATA_ID, PartnerAgentsVO.class);
 		}
 		catch (NacosException e) {
 			throw new RuntimeException(e);

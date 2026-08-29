@@ -16,6 +16,7 @@
 package io.github.agentic.spring.ai.graph.observation.edge;
 
 import io.github.agentic.spring.ai.graph.observation.SpringAiAlibabaKind;
+import io.github.agentic.spring.ai.graph.observation.ObservationContentSanitizer;
 import io.github.agentic.spring.ai.graph.observation.edge.GraphEdgeObservationDocumentation.HighCardinalityKeyNames;
 import io.micrometer.common.KeyValue;
 import io.micrometer.common.KeyValues;
@@ -36,6 +37,10 @@ public class DefaultGraphEdgeObservationConvention implements GraphEdgeObservati
 
 	private String name;
 
+	private final boolean captureContent;
+
+	private final int maxContentLength;
+
 	/**
 	 * Constructs a default convention with the default operation name.
 	 */
@@ -48,7 +53,13 @@ public class DefaultGraphEdgeObservationConvention implements GraphEdgeObservati
 	 * @param name the custom operation name
 	 */
 	public DefaultGraphEdgeObservationConvention(String name) {
+		this(name, false, ObservationContentSanitizer.DEFAULT_MAX_CONTENT_LENGTH);
+	}
+
+	public DefaultGraphEdgeObservationConvention(String name, boolean captureContent, int maxContentLength) {
 		this.name = name;
+		this.captureContent = captureContent;
+		this.maxContentLength = maxContentLength;
 	}
 
 	@Override
@@ -88,11 +99,15 @@ public class DefaultGraphEdgeObservationConvention implements GraphEdgeObservati
 	 */
 	@Override
 	public KeyValues getHighCardinalityKeyValues(GraphEdgeObservationContext context) {
-		KeyValues keyValues = KeyValues
-			.of(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_STATE, context.getState().toString()));
+		if (!captureContent) {
+			return KeyValues.empty();
+		}
+		KeyValues keyValues = KeyValues.of(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_STATE,
+				ObservationContentSanitizer.sanitizeState(context.getState(), maxContentLength)));
 
 		if (null != context.getNextNode()) {
-			keyValues.and(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_OUTPUT, context.getNextNode()));
+			keyValues = keyValues.and(KeyValue.of(HighCardinalityKeyNames.GRAPH_NODE_OUTPUT,
+					ObservationContentSanitizer.sanitizeText(context.getNextNode(), maxContentLength)));
 		}
 		return keyValues;
 	}

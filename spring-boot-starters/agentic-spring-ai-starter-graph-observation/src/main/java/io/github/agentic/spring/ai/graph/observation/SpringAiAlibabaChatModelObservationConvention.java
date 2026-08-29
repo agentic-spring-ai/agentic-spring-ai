@@ -44,16 +44,32 @@ public class SpringAiAlibabaChatModelObservationConvention extends DefaultChatMo
 
     private static final Logger logger = LoggerFactory.getLogger(SpringAiAlibabaChatModelObservationConvention.class);
 
+    private final boolean captureContent;
+
+    private final int maxContentLength;
+
+    public SpringAiAlibabaChatModelObservationConvention() {
+        this(false, ObservationContentSanitizer.DEFAULT_MAX_CONTENT_LENGTH);
+    }
+
+    public SpringAiAlibabaChatModelObservationConvention(boolean captureContent, int maxContentLength) {
+        this.captureContent = captureContent;
+        this.maxContentLength = maxContentLength;
+    }
+
     @Override
     public KeyValues getHighCardinalityKeyValues(ChatModelObservationContext context) {
         KeyValues keyValues = super.getHighCardinalityKeyValues(context);
+        if (!captureContent) {
+            return keyValues;
+        }
 
         try {
             // Capture Input (Prompt)
             if (context.getRequest() != null && context.getRequest().getInstructions() != null) {
-                String prompt = context.getRequest().getInstructions().stream()
+                String prompt = ObservationContentSanitizer.sanitizeText(context.getRequest().getInstructions().stream()
                         .map(this::extractText)
-                        .collect(Collectors.joining("\n"));
+                        .collect(Collectors.joining("\n")), maxContentLength);
 
                 if (prompt != null && !prompt.isEmpty()) {
                     keyValues = keyValues.and(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_INPUT.value(), prompt)
@@ -65,7 +81,7 @@ public class SpringAiAlibabaChatModelObservationConvention extends DefaultChatMo
             if (context.getResponse() != null && context.getResponse().getResult() != null) {
                 AssistantMessage outputMsg = context.getResponse().getResult().getOutput();
                 if (outputMsg != null) {
-                    String output = extractText(outputMsg);
+                    String output = ObservationContentSanitizer.sanitizeText(extractText(outputMsg), maxContentLength);
                     if (output != null && !output.isEmpty()) {
                         keyValues = keyValues
                                 .and(SpringAiAlibabaObservationMetricAttributes.LANGFUSE_OUTPUT.value(), output)

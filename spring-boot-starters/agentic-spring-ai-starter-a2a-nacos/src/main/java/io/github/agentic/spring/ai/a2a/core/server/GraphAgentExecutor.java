@@ -27,6 +27,7 @@ import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,8 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.a2a.A2A;
 import io.a2a.server.agentexecution.AgentExecutor;
 import io.a2a.server.agentexecution.RequestContext;
@@ -62,6 +63,8 @@ public class GraphAgentExecutor implements AgentExecutor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GraphAgentExecutor.class);
 
 	private static final Set<String> IGNORE_NODE_TYPE = Set.of("preLlm", "postLlm", "preTool", "tool", "postTool");
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	public static final String STREAMING_METADATA_KEY = "isStreaming";
 
@@ -128,7 +131,20 @@ public class GraphAgentExecutor implements AgentExecutor {
 		if (!params.metadata().containsKey(STREAMING_METADATA_KEY)) {
 			return false;
 		}
-		return (boolean) params.metadata().get(STREAMING_METADATA_KEY);
+		Object value = params.metadata().get(STREAMING_METADATA_KEY);
+		if (value instanceof Boolean streaming) {
+			return streaming;
+		}
+		if (value instanceof String text && StringUtils.hasText(text)) {
+			if ("true".equalsIgnoreCase(text)) {
+				return true;
+			}
+			if ("false".equalsIgnoreCase(text)) {
+				return false;
+			}
+		}
+		throw new IllegalArgumentException(
+				"Invalid A2A streaming metadata: " + value + ". It must be a boolean value.");
 	}
 
 	private RunnableConfig getRunnableConfig(RequestContext context) {
@@ -310,10 +326,15 @@ public class GraphAgentExecutor implements AgentExecutor {
 		}
 
 		private String buildDebugDetailInfo(NodeOutput nodeOutput) {
-			JSONObject outputJson = new JSONObject();
+			Map<String, Object> outputJson = new HashMap<>();
 			outputJson.put("data", nodeOutput.state().data());
 			outputJson.put("node", nodeOutput.node());
-			return JSON.toJSONString(outputJson);
+			try {
+				return OBJECT_MAPPER.writeValueAsString(outputJson);
+			}
+			catch (JsonProcessingException ex) {
+				return outputJson.toString();
+			}
 		}
 
 	}

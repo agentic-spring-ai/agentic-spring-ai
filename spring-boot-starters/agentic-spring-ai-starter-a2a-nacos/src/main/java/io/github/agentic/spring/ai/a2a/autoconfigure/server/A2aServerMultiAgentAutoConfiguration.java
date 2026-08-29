@@ -98,8 +98,10 @@ public class A2aServerMultiAgentAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public A2aServerExecutorProvider multiAgentA2aServerExecutorProvider() {
-		return new DefaultA2aServerExecutorProvider();
+	public A2aServerExecutorProvider multiAgentA2aServerExecutorProvider(A2aServerProperties properties) {
+		return new DefaultA2aServerExecutorProvider(properties.getExecutorCorePoolSize(),
+				properties.getExecutorMaxPoolSize(), properties.getExecutorQueueCapacity(),
+				properties.getExecutorThreadNamePrefix());
 	}
 
 	@Bean

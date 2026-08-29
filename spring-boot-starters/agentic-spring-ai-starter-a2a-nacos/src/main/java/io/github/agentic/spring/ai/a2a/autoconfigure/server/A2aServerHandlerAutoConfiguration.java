@@ -64,8 +64,10 @@ public class A2aServerHandlerAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public A2aServerExecutorProvider a2aServerExecutorProvider() {
-		return new DefaultA2aServerExecutorProvider();
+	public A2aServerExecutorProvider a2aServerExecutorProvider(A2aServerProperties properties) {
+		return new DefaultA2aServerExecutorProvider(properties.getExecutorCorePoolSize(),
+				properties.getExecutorMaxPoolSize(), properties.getExecutorQueueCapacity(),
+				properties.getExecutorThreadNamePrefix());
 	}
 
 	@Bean

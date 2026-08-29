@@ -20,7 +20,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import io.github.agentic.spring.ai.agent.nacos.vo.ModelVO;
-import com.alibaba.fastjson.JSON;
 import com.alibaba.nacos.api.exception.NacosException;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -35,7 +34,7 @@ public class NacosModelInjector {
 			String dataIdT = (nacosOptions.isModelEncrypted() ? "cipher-kms-aes-256-" : "") + "model.json";
 			String config = nacosOptions.getNacosConfigService()
 					.getConfig(dataIdT, "ai-agent-" + nacosOptions.getAgentName(), 3000L);
-			return JSON.parseObject(config, ModelVO.class);
+			return NacosJsonSupport.parseObject(config, dataIdT, ModelVO.class);
 		}
 		catch (NacosException e) {
 			throw new RuntimeException(e);

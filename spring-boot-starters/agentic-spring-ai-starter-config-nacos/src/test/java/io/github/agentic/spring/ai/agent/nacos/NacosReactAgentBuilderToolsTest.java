@@ -23,13 +23,21 @@ import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.hook.Hook;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.graph.agent.node.AgentToolNode;
+import io.github.agentic.spring.ai.agent.nacos.tools.NacosMcpGatewayToolCallback;
 import io.github.agentic.spring.ai.mcp.nacos.service.NacosMcpOperationService;
-import com.alibaba.fastjson.JSON;
+import com.alibaba.nacos.api.ai.model.mcp.McpServerDetailInfo;
+import com.alibaba.nacos.api.ai.model.mcp.McpTool;
+import com.alibaba.nacos.api.ai.model.mcp.McpToolMeta;
+import com.alibaba.nacos.api.ai.model.mcp.McpToolSpecification;
+import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.client.config.NacosConfigService;
+import com.alibaba.nacos.api.ai.model.mcp.registry.ServerVersionDetail;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -55,6 +63,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -201,7 +210,7 @@ class NacosReactAgentBuilderToolsTest {
 		agentVO.setPromptKey("test-prompt");
 		agentVO.setDescription("Test agent description");
 		when(nacosConfigService.getConfig(eq("agent-base.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(agentVO));
+				.thenReturn(NacosTestJson.toJson(agentVO));
 
 		// Mock PromptVO config
 		PromptVO promptVO = new PromptVO();
@@ -209,7 +218,7 @@ class NacosReactAgentBuilderToolsTest {
 		promptVO.setVersion("1.0");
 		promptVO.setTemplate("You are a test assistant");
 		when(nacosConfigService.getConfig(eq("prompt-test-prompt.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(promptVO));
+				.thenReturn(NacosTestJson.toJson(promptVO));
 
 		// Mock ModelVO config
 		ModelVO modelVO = new ModelVO();
@@ -218,13 +227,13 @@ class NacosReactAgentBuilderToolsTest {
 		modelVO.setModel("gpt-4");
 		modelVO.setTemperature("0.7");
 		when(nacosConfigService.getConfig(eq("model.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(modelVO));
+				.thenReturn(NacosTestJson.toJson(modelVO));
 
 		// Mock McpServersVO config - empty MCP servers
 		McpServersVO mcpServersVO = new McpServersVO();
 		mcpServersVO.setMcpServers(Collections.emptyList());
 		when(nacosConfigService.getConfig(eq("mcp-servers.json"), anyString(), anyLong()))
-				.thenReturn(JSON.toJSONString(mcpServersVO));
+				.thenReturn(NacosTestJson.toJson(mcpServersVO));
 	}
 
 	@BeforeEach
@@ -551,6 +560,52 @@ class NacosReactAgentBuilderToolsTest {
 				"localTools should contain localTool2");
 	}
 
+	@Test
+	void mcpServerRefreshClosesPreviousGatewayCallbackListeners() throws Exception {
+		McpServersVO mcpServersVO = new McpServersVO();
+		McpServersVO.McpServerVO serverVO = new McpServersVO.McpServerVO();
+		serverVO.setMcpServerName("order-service");
+		mcpServersVO.setMcpServers(List.of(serverVO));
+		when(nacosConfigService.getConfig(eq("mcp-servers.json"), anyString(), anyLong()))
+				.thenReturn(NacosTestJson.toJson(mcpServersVO));
+		McpServerDetailInfo detailInfo = mcpServerDetailInfo();
+		when(mcpOperationService.getServerDetail("order-service")).thenReturn(detailInfo);
+		injectMcpOperationService(nacosOptions, mcpOperationService);
+		ConfigService referencedConfigService = mock(ConfigService.class);
+		when(mcpOperationService.getConfigService()).thenReturn(referencedConfigService);
+		when(referencedConfigService.getConfig("secrets.json", "DEFAULT_GROUP", 3000))
+				.thenReturn("{\"token\":\"old-token\"}");
+
+		NacosReactAgentBuilder builder = new NacosReactAgentBuilder();
+		ReactAgent agent = builder.nacosOptions(nacosOptions).name("agent_with_mcp").build();
+		AgentToolNode toolNode = getToolNode(agent);
+		NacosMcpGatewayToolCallback oldCallback = (NacosMcpGatewayToolCallback) toolNode.getToolCallbacks()
+			.stream()
+			.filter(NacosMcpGatewayToolCallback.class::isInstance)
+			.findFirst()
+			.orElseThrow();
+		oldCallback.processNacosConfigRefTemplate("{{ ${nacos.secrets.json/DEFAULT_GROUP}.token }}");
+
+		ArgumentCaptor<Listener> mcpServersListenerCaptor = ArgumentCaptor.forClass(Listener.class);
+		verify(nacosConfigService).addListener(eq("mcp-servers.json"), eq("ai-agent-test-agent"),
+				mcpServersListenerCaptor.capture());
+		ArgumentCaptor<Listener> referencedListenerCaptor = ArgumentCaptor.forClass(Listener.class);
+		verify(referencedConfigService).addListener(eq("secrets.json"), eq("DEFAULT_GROUP"),
+				referencedListenerCaptor.capture());
+
+		mcpServersListenerCaptor.getValue().receiveConfigInfo(NacosTestJson.toJson(mcpServersVO));
+
+		verify(referencedConfigService).removeListener("secrets.json", "DEFAULT_GROUP",
+				referencedListenerCaptor.getValue());
+	}
+
+	private static void injectMcpOperationService(NacosOptions nacosOptions,
+			NacosMcpOperationService mcpOperationService) throws Exception {
+		Field field = NacosOptions.class.getDeclaredField("mcpOperationService");
+		field.setAccessible(true);
+		field.set(nacosOptions, mcpOperationService);
+	}
+
 	/**
 	 * Test case: Using hooks() method with tools - both AgentToolNode and AgentLlmNode should have hook tools
 	 */
@@ -724,6 +779,29 @@ class NacosReactAgentBuilderToolsTest {
 		@SuppressWarnings("unchecked")
 		List<ToolCallback> toolCallbacks = (List<ToolCallback>) toolCallbacksField.get(llmNode);
 		return toolCallbacks;
+	}
+
+	private static McpServerDetailInfo mcpServerDetailInfo() {
+		McpTool tool = new McpTool();
+		tool.setName("query");
+		tool.setDescription("Query orders");
+		tool.setInputSchema(Map.of("type", "object", "properties", Map.of()));
+
+		McpToolMeta toolMeta = new McpToolMeta();
+		toolMeta.setEnabled(true);
+
+		McpToolSpecification toolSpecification = new McpToolSpecification();
+		toolSpecification.setTools(List.of(tool));
+		toolSpecification.setToolsMeta(Map.of("query", toolMeta));
+
+		McpServerDetailInfo detailInfo = new McpServerDetailInfo();
+		detailInfo.setName("order-service");
+		detailInfo.setProtocol("mcp-sse");
+		detailInfo.setToolSpec(toolSpecification);
+		ServerVersionDetail versionDetail = mock(ServerVersionDetail.class);
+		when(versionDetail.getVersion()).thenReturn("1.0.0");
+		detailInfo.setVersionDetail(versionDetail);
+		return detailInfo;
 	}
 
 }

@@ -26,7 +26,9 @@ import com.github.dockerjava.api.command.CreateContainerCmd;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.Bind;
+import com.github.dockerjava.api.model.Capability;
 import com.github.dockerjava.api.model.Frame;
+import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.transport.DockerHttpClient;
@@ -42,7 +44,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.dockerjava.api.model.HostConfig.newHostConfig;
@@ -59,8 +63,11 @@ public class DockerCodeExecutor implements CodeExecutor {
 	@Override
 	public CodeExecutionResult executeCodeBlocks(List<CodeBlock> codeBlockList, CodeExecutionConfig codeExecutionConfig)
 			throws Exception {
-		StringBuilder allLogs = new StringBuilder();
+		ExecutionOutputBuffer outputBuffer = new ExecutionOutputBuffer(codeExecutionConfig.getMaxOutputBytes());
 		CodeExecutionResult result;
+		Path executionWorkDir = FileUtils.createExecutionDirectory(codeExecutionConfig.getWorkDir());
+		String hostWorkDir = executionWorkDir.toString();
+		String executionId = UUID.randomUUID().toString();
 
 		// Create Docker client
 		DockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()
@@ -82,7 +89,6 @@ public class DockerCodeExecutor implements CodeExecutor {
 				String filename = String.format("tmp_code_%s.%s", codeHash, fileExt);
 
 				// Write code to working directory
-				String hostWorkDir = codeExecutionConfig.getWorkDir();
 				FileUtils.writeCodeToFile(hostWorkDir, filename, code);
 
 				// Copy required JAR files to workDir if language is Java
@@ -95,10 +101,15 @@ public class DockerCodeExecutor implements CodeExecutor {
 				Volume containerVolume = new Volume("/workspace");
 				Bind volumeBind = new Bind(hostWorkDir, containerVolume);
 
+				HostConfig hostConfig = buildHostConfig(codeExecutionConfig, volumeBind);
 				CreateContainerCmd createContainerCmd = dockerClient.createContainerCmd(codeExecutionConfig.getDocker())
-					.withName(codeExecutionConfig.getContainerName() + "_" + codeBlockList.indexOf(codeBlock))
+					.withName(codeExecutionConfig.getContainerName() + "_" + executionId + "_"
+							+ codeBlockList.indexOf(codeBlock))
 					.withWorkingDir("/workspace")
-					.withHostConfig(newHostConfig().withBinds(volumeBind));
+					.withHostConfig(hostConfig);
+				if (codeExecutionConfig.getContainerUser() != null && !codeExecutionConfig.getContainerUser().isBlank()) {
+					createContainerCmd.withUser(codeExecutionConfig.getContainerUser());
+				}
 
 				if ("java".equals(language)) {
 					StringBuilder classPathBuilder = new StringBuilder();
@@ -152,7 +163,7 @@ public class DockerCodeExecutor implements CodeExecutor {
 					String logs = dockerClient.logContainerCmd(container.getId())
 						.withStdOut(true)
 						.withStdErr(true)
-						.exec(new LogContainerResultCallback())
+						.exec(new LogContainerResultCallback(outputBuffer))
 						.toString();
 
 					// Get container exit code
@@ -160,18 +171,16 @@ public class DockerCodeExecutor implements CodeExecutor {
 					int exitCode = Objects.requireNonNull(containerInfo.getState().getExitCodeLong()).intValue();
 
 					// Append logs
-					allLogs.append("\n").append(logs.trim());
-
 					// If execution failed, return result immediately
 					if (exitCode != 0) {
-						return new CodeExecutionResult(exitCode, allLogs.toString());
+						return new CodeExecutionResult(exitCode, outputBuffer.text().trim());
 					}
 				}
 				finally {
 					// Clean up container
 					dockerClient.removeContainerCmd(container.getId()).withForce(true).exec();
 					// Delete temporary file
-					FileUtils.deleteFile(codeExecutionConfig.getWorkDir(), filename);
+					FileUtils.deleteFile(hostWorkDir, filename);
 
 					// Delete JAR files if language is Java
 					if ("java".equals(language)) {
@@ -180,11 +189,14 @@ public class DockerCodeExecutor implements CodeExecutor {
 				}
 			}
 
-			return new CodeExecutionResult(0, allLogs.toString());
+			return new CodeExecutionResult(0, outputBuffer.text().trim());
 		}
 		catch (Exception e) {
 			logger.error("Error executing code in Docker container", e);
 			throw new RuntimeException("Error executing code in Docker container: " + e.getMessage(), e);
+		}
+		finally {
+			FileUtils.deleteRecursively(executionWorkDir);
 		}
 	}
 
@@ -193,13 +205,54 @@ public class DockerCodeExecutor implements CodeExecutor {
 
 	}
 
+	private HostConfig buildHostConfig(CodeExecutionConfig codeExecutionConfig, Bind volumeBind) {
+		HostConfig hostConfig = newHostConfig().withBinds(volumeBind);
+		if (codeExecutionConfig.isDisableNetwork()) {
+			hostConfig.withNetworkMode("none");
+		}
+		if (codeExecutionConfig.isReadOnlyRootFilesystem()) {
+			hostConfig.withReadonlyRootfs(true).withTmpFs(Map.of("/tmp", "rw,nosuid,size=64m,mode=1777"));
+		}
+		if (codeExecutionConfig.getMemoryLimitBytes() > 0) {
+			hostConfig.withMemory(codeExecutionConfig.getMemoryLimitBytes());
+		}
+		if (codeExecutionConfig.getMemorySwapBytes() > 0) {
+			hostConfig.withMemorySwap(codeExecutionConfig.getMemorySwapBytes());
+		}
+		if (codeExecutionConfig.getCpuPeriodMicros() > 0) {
+			hostConfig.withCpuPeriod(codeExecutionConfig.getCpuPeriodMicros());
+		}
+		if (codeExecutionConfig.getCpuQuotaMicros() > 0) {
+			hostConfig.withCpuQuota(codeExecutionConfig.getCpuQuotaMicros());
+		}
+		if (codeExecutionConfig.getPidsLimit() > 0) {
+			hostConfig.withPidsLimit(codeExecutionConfig.getPidsLimit());
+		}
+		if (codeExecutionConfig.isDropAllCapabilities()) {
+			hostConfig.withCapDrop(Capability.ALL);
+		}
+		if (codeExecutionConfig.isNoNewPrivileges()) {
+			hostConfig.withSecurityOpts(List.of("no-new-privileges"));
+		}
+		return hostConfig;
+	}
+
 	private static class LogContainerResultCallback extends ResultCallbackTemplate<LogContainerResultCallback, Frame> {
 
-		private final StringBuilder log = new StringBuilder();
+		private final java.io.OutputStream log;
+
+		private LogContainerResultCallback(ExecutionOutputBuffer outputBuffer) {
+			this.log = outputBuffer.newStream();
+		}
 
 		@Override
 		public void onNext(Frame frame) {
-			log.append(new String(frame.getPayload()));
+			try {
+				log.write(frame.getPayload());
+			}
+			catch (IOException e) {
+				throw new IllegalStateException("Failed to capture container output", e);
+			}
 		}
 
 		@Override
