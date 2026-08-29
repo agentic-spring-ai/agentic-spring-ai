@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the [2.1.0 migration and compatibility guide](docs/2.1.0-migration.md), an isolated
   Extensions source-compatibility check, and CI compilation coverage for JDK 17 and JDK 21.
 
+The prepared release notes are available at [docs/releases/2.1.0.md](docs/releases/2.1.0.md).
+
 ## [2.0.0.0] - 2026-08-27
 
 ### Changed
