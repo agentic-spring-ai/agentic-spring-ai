@@ -18,15 +18,11 @@ on:
   push:
     branches:
       - main
-      - 2.x
     paths-ignore:
       - '**.md'
-  pull_request:
-    branches:
-      - main
-      - 2.x
-    paths-ignore:
-      - '**.md'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 env:
   ENABLE_TEST_CI: true
 permissions:
