@@ -123,7 +123,7 @@ public final class ToolMultimodalResult {
 	 * @param base64 Base64-encoded data (raw string, not data URL; may be null)
 	 */
 	public static Media mediaFromUrlAndBase64(String url, String base64, MimeType mimeType) {
-		return Media.builder().mimeType(mimeType).data(new MediaFormats(url, base64)).build();
+		return Media.builder().mimeType(mimeType).data(new MediaFormats(url, base64).serialize()).build();
 	}
 
 	/**
@@ -132,14 +132,49 @@ public final class ToolMultimodalResult {
 	 * @param base64 Base64-encoded data (raw string, not data URL)
 	 */
 	public static Media mediaFromBase64(String base64, MimeType mimeType) {
-		return Media.builder().mimeType(mimeType).data(new MediaFormats(null, base64)).build();
+		return Media.builder().mimeType(mimeType).data(new MediaFormats(null, base64).serialize()).build();
 	}
 
 	/**
-	 * Holds both URL and base64 when available. Used by {@link MultimodalToolCallResultConverter}
-	 * to prefer the format matching OutputFormat without unnecessary conversion.
+	 * Holds both URL and Base64 data so {@link MultimodalToolCallResultConverter}
+	 * can select the requested output format without unnecessary downloads or encoding.
+	 *
+	 * <p>The length-prefixed string representation is accepted and preserved by Spring AI
+	 * 2.0.1 while avoiding another Base64 encoding pass for potentially large payloads.
 	 */
 	public record MediaFormats(String url, String base64) {
+
+		private static final String PREFIX = "agentic-media-formats:";
+
+		private String serialize() {
+			String serializedUrl = this.url != null ? this.url : "";
+			String serializedBase64 = this.base64 != null ? this.base64 : "";
+			return PREFIX + serializedUrl.length() + ":" + serializedUrl + serializedBase64;
+		}
+
+		static MediaFormats deserialize(String data) {
+			if (data == null || !data.startsWith(PREFIX)) {
+				return null;
+			}
+			int lengthEnd = data.indexOf(':', PREFIX.length());
+			if (lengthEnd < 0) {
+				return null;
+			}
+			try {
+				int urlLength = Integer.parseInt(data.substring(PREFIX.length(), lengthEnd));
+				int urlStart = lengthEnd + 1;
+				int base64Start = urlStart + urlLength;
+				if (urlLength < 0 || base64Start > data.length()) {
+					return null;
+				}
+				String url = data.substring(urlStart, base64Start);
+				String base64 = data.substring(base64Start);
+				return new MediaFormats(url.isEmpty() ? null : url, base64.isEmpty() ? null : base64);
+			}
+			catch (NumberFormatException ex) {
+				return null;
+			}
+		}
 	}
 
 	public static class Builder {
