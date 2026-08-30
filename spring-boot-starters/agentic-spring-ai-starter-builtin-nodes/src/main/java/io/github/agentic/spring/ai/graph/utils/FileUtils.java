@@ -24,6 +24,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -175,10 +176,23 @@ public class FileUtils {
 		try {
 			Path root = Path.of(workDir).toAbsolutePath().normalize();
 			Files.createDirectories(root);
-			return Files.createTempDirectory(root, ".agentic-exec-");
+			Path executionDirectory = Files.createTempDirectory(root, ".agentic-exec-");
+			makeContainerReadable(executionDirectory);
+			return executionDirectory;
 		}
 		catch (IOException e) {
 			throw new RuntimeException("Failed to create isolated execution directory", e);
+		}
+	}
+
+	private static void makeContainerReadable(Path executionDirectory) throws IOException {
+		try {
+			// The container drops DAC_OVERRIDE, so the bind mount must be traversable by
+			// a UID that differs from the host process owner.
+			Files.setPosixFilePermissions(executionDirectory, PosixFilePermissions.fromString("rwxr-xr-x"));
+		}
+		catch (UnsupportedOperationException ignored) {
+			// Non-POSIX hosts do not expose Unix mode bits to the container runtime.
 		}
 	}
 
