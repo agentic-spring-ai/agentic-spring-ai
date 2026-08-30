@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 
@@ -62,6 +63,10 @@ class FileUtilsTest {
 		Path first = FileUtils.createExecutionDirectory(tempDir.toString());
 		Path second = FileUtils.createExecutionDirectory(tempDir.toString());
 		assertNotEquals(first, second);
+		if (Files.getFileStore(first).supportsFileAttributeView("posix")) {
+			assertTrue(Files.getPosixFilePermissions(first).contains(PosixFilePermission.OTHERS_EXECUTE));
+			assertTrue(Files.getPosixFilePermissions(first).contains(PosixFilePermission.OTHERS_READ));
+		}
 		Files.createDirectories(first.resolve("nested"));
 		Files.writeString(first.resolve("nested/code.py"), "print('ok')");
 

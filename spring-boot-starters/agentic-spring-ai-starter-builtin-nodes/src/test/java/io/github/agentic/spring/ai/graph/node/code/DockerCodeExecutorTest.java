@@ -243,28 +243,29 @@ class DockerCodeExecutorTest {
 	@EnabledIf(value = "isCI", disabledReason = "this test is designed to run only in the GitHub CI environment.")
 	@Test
 	void testPython3Sum() throws Exception {
-		// 1. 构造 DockerCodeExecutor
+		// Create the Docker code executor.
 		DockerCodeExecutor executor = new DockerCodeExecutor();
 
-		// 2. 构造代码块（Python3 求和）
+		// Create a Python code block that sums its inputs.
 		String code = """
 				def main(inputs):
 				    return {\"result\": sum(inputs)}
 				""";
 		CodeBlock codeBlock = new CodeBlock("python3", code);
 
-		// 3. 构造执行配置
+		// Configure the execution environment.
 		Path workDir = Files.createTempDirectory("docker-code-exec-test");
 		CodeExecutionConfig config = new CodeExecutionConfig().setDocker("python:3.10")
 			.setWorkDir(workDir.toAbsolutePath().toString())
 			.setContainerName("docker-code-exec-test")
+			.setDockerHost(System.getenv().getOrDefault("DOCKER_HOST", "unix:///var/run/docker.sock"))
 			.setTimeout(60);
 
-		// 4. 执行
+		// Execute the code block.
 		CodeExecutionResult result = executor.executeCodeBlocks(List.of(codeBlock), config);
 
-		// 5. 断言
-		assertEquals(0, result.exitCode(), "Exit code should be 0");
+		// Verify that the container completed successfully.
+		assertEquals(0, result.exitCode(), () -> "Container logs: " + result.logs());
 	}
 
 }
