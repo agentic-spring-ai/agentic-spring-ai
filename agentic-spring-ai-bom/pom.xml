@@ -289,32 +289,36 @@
                                 <year>2024</year>
                             </properties>
                             <quiet>true</quiet>
-                            <header>HEADER</header>
-                            <excludes>
-                                <exclude>**/.antlr/**</exclude>
-                                <exclude>**/aot.factories</exclude>
-                                <exclude>**/.sdkmanrc</exclude>
-                                <exclude>**/*.adoc</exclude>
-                                <exclude>**/*.puml</exclude>
-                                <exclude>**/pom.xml</exclude>
-                                <exclude>**/*.properties</exclude>
-                                <exclude>**/*.yaml</exclude>
-                                <exclude>**/*.yml</exclude>
-                                <exclude>**/*.map</exclude>
-                                <exclude>**/*.html</exclude>
-                                <exclude>**/*.xhtml</exclude>
-                                <exclude>**/*.jsp</exclude>
-                                <exclude>**/*.js</exclude>
-                                <exclude>**/*.css</exclude>
-                                <exclude>**/*.txt</exclude>
-                                <exclude>**/*.xjb</exclude>
-                                <exclude>**/*.ftl</exclude>
-                                <exclude>**/*.xsd</exclude>
-                                <exclude>**/*.xml</exclude>
-                                <exclude>**/*.sh</exclude>
-                                <exclude>**/generated/**</exclude>
-                                <exclude>**/Dockerfile</exclude>
-                            </excludes>
+                            <licenseSets>
+                                <licenseSet>
+                                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+                                    <excludes>
+                                        <exclude>**/.antlr/**</exclude>
+                                        <exclude>**/aot.factories</exclude>
+                                        <exclude>**/.sdkmanrc</exclude>
+                                        <exclude>**/*.adoc</exclude>
+                                        <exclude>**/*.puml</exclude>
+                                        <exclude>**/pom.xml</exclude>
+                                        <exclude>**/*.properties</exclude>
+                                        <exclude>**/*.yaml</exclude>
+                                        <exclude>**/*.yml</exclude>
+                                        <exclude>**/*.map</exclude>
+                                        <exclude>**/*.html</exclude>
+                                        <exclude>**/*.xhtml</exclude>
+                                        <exclude>**/*.jsp</exclude>
+                                        <exclude>**/*.js</exclude>
+                                        <exclude>**/*.css</exclude>
+                                        <exclude>**/*.txt</exclude>
+                                        <exclude>**/*.xjb</exclude>
+                                        <exclude>**/*.ftl</exclude>
+                                        <exclude>**/*.xsd</exclude>
+                                        <exclude>**/*.xml</exclude>
+                                        <exclude>**/*.sh</exclude>
+                                        <exclude>**/generated/**</exclude>
+                                        <exclude>**/Dockerfile</exclude>
+                                    </excludes>
+                                </licenseSet>
+                            </licenseSets>
                         </configuration>
                     </plugin>
 
