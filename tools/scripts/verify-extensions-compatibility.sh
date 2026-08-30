@@ -5,7 +5,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 core_dir="$(cd "$script_dir/../.." && pwd)"
-extensions_dir="${1:-$(cd "$core_dir/../agentic-for-spring-ai-extensions" 2>/dev/null && pwd || true)}"
+extensions_dir="${1:-$(cd "$core_dir/../agentic-spring-ai-extensions" 2>/dev/null && pwd || true)}"
 
 if [[ -z "$extensions_dir" || ! -f "$extensions_dir/pom.xml" ]]; then
   echo "Usage: $0 /path/to/agentic-spring-ai-extensions" >&2

@@ -24,6 +24,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ObservationMetadataOpenAiChatOptionsTest {
 
@@ -32,6 +33,7 @@ class ObservationMetadataOpenAiChatOptionsTest {
 		OpenAiChatOptions options = ObservationMetadataOpenAiChatOptions.from(OpenAiChatOptions.builder()
 				.model("configured-model")
 				.temperature(0.3)
+				.strict(true)
 				.build(), Map.of("promptKey", "prompt-a", "promptVersion", "v1"));
 
 		OpenAiChatOptions mutatedOptions = options.mutate()
@@ -42,6 +44,7 @@ class ObservationMetadataOpenAiChatOptionsTest {
 				mutatedOptions);
 		assertEquals("configured-model", mutatedOptions.getModel());
 		assertEquals(0.7, mutatedOptions.getTemperature());
+		assertTrue(mutatedOptions.getStrict());
 		assertEquals(Map.of("promptKey", "prompt-a", "promptVersion", "v1"),
 				observationOptions.getObservationMetadata());
 	}

@@ -95,15 +95,15 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- Spring version -->
-        <spring-ai.version>2.0.0</spring-ai.version>
+        <spring-ai.version>2.0.1</spring-ai.version>
         <agentic-spring-ai-extensions.version>2.1.0-dev</agentic-spring-ai-extensions.version>
-        <spring-boot.version>4.1.0</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
 
         <!-- DashScope SDK Version -->
         <dashscope-sdk-java.version>2.15.1</dashscope-sdk-java.version>
 
         <!-- Nacos -->
-        <nacos3.version>3.1.0</nacos3.version>
+        <nacos3.version>3.2.3</nacos3.version>
 
         <!-- Redis -->
         <redisson.version>3.52.0</redisson.version>
@@ -117,17 +117,17 @@
 
         <ojdbc-provider-oson.version>1.0.6</ojdbc-provider-oson.version>
 
-        <commons-io.version>2.21.0</commons-io.version>
+        <commons-io.version>2.22.0</commons-io.version>
 
         <commons-lang3.version>3.20.0</commons-lang3.version>
 
-        <mcp.sdk.version>2.0.0</mcp.sdk.version>
+        <mcp.sdk.version>2.0.1</mcp.sdk.version>
         <a2a-sdk.version>0.2.5.Beta2</a2a-sdk.version>
 
         <!-- JSpecify Version -->
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
 
-        <graalvm.polyglot.version>24.2.1</graalvm.polyglot.version>
+        <graalvm.polyglot.version>24.2.2</graalvm.polyglot.version>
 
         <!-- Unit Test Config -->
         <surefireArgLine>-Xms512m -Xmx1024m</surefireArgLine>
@@ -136,26 +136,26 @@
         <maven-enforcer-plugin.version>3.6.2</maven-enforcer-plugin.version>
         <!-- The version (range) of the JDK we want to use to compile. -->
         <compiler.jdk.version>[17,)</compiler.jdk.version>
-        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
-        <maven-site-plugin.version>4.0.0-M13</maven-site-plugin.version>
-        <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
-        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <maven-site-plugin.version>4.0.0-M16</maven-site-plugin.version>
+        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
         <jacoco-maven-plugin.version>0.8.10</jacoco-maven-plugin.version>
-        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+        <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
         <maven-javadoc-plugin.version>3.5.0</maven-javadoc-plugin.version>
         <maven-failsafe-plugin.version>3.1.2</maven-failsafe-plugin.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-        <springdoc-openapi-maven-plugin.version>1.4</springdoc-openapi-maven-plugin.version>
+        <springdoc-openapi-maven-plugin.version>1.5</springdoc-openapi-maven-plugin.version>
         <spring-javaformat-maven-plugin.version>0.0.39</spring-javaformat-maven-plugin.version>
         <sorter-maven-plugin.version>1.0.1</sorter-maven-plugin.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <maven.deploy.skip>false</maven.deploy.skip>
 
         <!-- CheckStyle Maven Plugin -->
-        <maven-checkstyle-plugin.version>3.5.0</maven-checkstyle-plugin.version>
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <puppycrawl-tools-checkstyle.version>9.3</puppycrawl-tools-checkstyle.version>
-        <spotless.version>2.44.5</spotless.version>
+        <spotless.version>2.46.1</spotless.version>
 
         <central.publishing.maven.version>0.11.0</central.publishing.maven.version>
 
