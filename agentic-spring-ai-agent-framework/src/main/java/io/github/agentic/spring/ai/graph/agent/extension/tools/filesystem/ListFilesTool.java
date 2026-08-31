@@ -38,6 +38,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
 /**
  * Tool for listing files in a directory.
  */
@@ -235,9 +238,17 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	public static ToolCallback createListFilesToolCallback(String description, FilesystemBackend backend) {
-		return FunctionToolCallback.builder("ls", new ListFilesTool(backend))
+		ListFilesTool tool = new ListFilesTool(backend);
+		BiFunction<ListFilesRequest, ToolContext, String> function =
+				(request, toolContext) -> tool.apply(request.path(), toolContext);
+		return FunctionToolCallback.builder("ls", function)
 				.description(description)
-				.inputType(String.class)
+				.inputType(ListFilesRequest.class)
 				.build();
+	}
+
+	public record ListFilesRequest(
+			@JsonProperty(required = true, value = "path")
+			@JsonPropertyDescription("The directory path to list files from") String path) {
 	}
 }

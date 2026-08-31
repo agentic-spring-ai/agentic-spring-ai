@@ -32,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
 /**
  * Tool for finding files matching a glob pattern.
  */
@@ -98,9 +101,17 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	public static ToolCallback createGlobToolCallback(String description, FilesystemBackend backend) {
-		return FunctionToolCallback.builder("glob", new GlobTool(backend))
+		GlobTool tool = new GlobTool(backend);
+		BiFunction<GlobRequest, ToolContext, String> function =
+				(request, toolContext) -> tool.apply(request.pattern(), toolContext);
+		return FunctionToolCallback.builder("glob", function)
 				.description(description)
-				.inputType(String.class)
+				.inputType(GlobRequest.class)
 				.build();
+	}
+
+	public record GlobRequest(
+			@JsonProperty(required = true, value = "pattern")
+			@JsonPropertyDescription("The glob pattern to match files") String pattern) {
 	}
 }
