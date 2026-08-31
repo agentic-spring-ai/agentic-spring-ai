@@ -99,8 +99,8 @@ class FilesystemInterceptorTest {
 			.readOnly(true)
 			.build();
 
-		String listed = tool(interceptor, "ls").call("\"/\"", new ToolContext(Collections.emptyMap()));
-		String globbed = tool(interceptor, "glob").call("\"**/*.txt\"", new ToolContext(Collections.emptyMap()));
+		String listed = tool(interceptor, "ls").call("{\"path\":\"/\"}", new ToolContext(Collections.emptyMap()));
+		String globbed = tool(interceptor, "glob").call("{\"pattern\":\"**/*.txt\"}", new ToolContext(Collections.emptyMap()));
 		String grep = tool(interceptor, "grep").call(
 				"{\"pattern\":\"needle\",\"path\":\"/\",\"glob\":\"*.txt\",\"output_mode\":\"content\"}",
 				new ToolContext(Collections.emptyMap()));
@@ -108,6 +108,19 @@ class FilesystemInterceptorTest {
 		assertTrue(listed.contains("/dir/"));
 		assertTrue(globbed.contains("/dir/inside.txt"));
 		assertTrue(grep.contains("/dir/inside.txt:1: needle"));
+	}
+
+	@Test
+	void filesystemListAndGlobCallbacksExposeObjectSchemas() {
+		FilesystemInterceptor interceptor = FilesystemInterceptor.builder().readOnly(true).build();
+
+		String lsSchema = tool(interceptor, "ls").getToolDefinition().inputSchema();
+		String globSchema = tool(interceptor, "glob").getToolDefinition().inputSchema();
+
+		assertTrue(lsSchema.contains("\"type\":\"object\""));
+		assertTrue(lsSchema.contains("\"path\""));
+		assertTrue(globSchema.contains("\"type\":\"object\""));
+		assertTrue(globSchema.contains("\"pattern\""));
 	}
 
 	@Test
@@ -119,9 +132,9 @@ class FilesystemInterceptorTest {
 			.readOnly(true)
 			.build();
 
-		String missing = tool(interceptor, "ls").call("\"/missing\"", new ToolContext(Collections.emptyMap()));
-		String file = tool(interceptor, "ls").call("\"/plain.txt\"", new ToolContext(Collections.emptyMap()));
-		String empty = tool(interceptor, "ls").call("\"/empty\"", new ToolContext(Collections.emptyMap()));
+		String missing = tool(interceptor, "ls").call("{\"path\":\"/missing\"}", new ToolContext(Collections.emptyMap()));
+		String file = tool(interceptor, "ls").call("{\"path\":\"/plain.txt\"}", new ToolContext(Collections.emptyMap()));
+		String empty = tool(interceptor, "ls").call("{\"path\":\"/empty\"}", new ToolContext(Collections.emptyMap()));
 
 		assertThat(missing).contains("Error: Directory not found: /missing").doesNotContain("Directory is empty");
 		assertThat(file).contains("Error: Directory not found: /plain.txt").doesNotContain("Directory is empty");

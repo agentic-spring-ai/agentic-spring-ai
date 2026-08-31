@@ -38,6 +38,9 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
+
 /**
  * Tool for listing files in a directory.
  */
@@ -64,9 +67,12 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	@Override
-	public String apply(
-			@ToolParam(description = "The directory path to list files from") String path,
+	public String apply(@ToolParam(description = "The directory path to list files from") String path,
 			ToolContext toolContext) {
+		return list(path, toolContext);
+	}
+
+	private String list(String path, ToolContext toolContext) {
 		try {
 			if (this.backend != null) {
 				if (!this.backend.isDirectory(path)) {
@@ -235,9 +241,26 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	public static ToolCallback createListFilesToolCallback(String description, FilesystemBackend backend) {
-		return FunctionToolCallback.builder("ls", new ListFilesTool(backend))
+		BiFunction<ListFilesRequest, ToolContext, String> function =
+				(request, context) -> new ListFilesTool(backend).apply(request.path, context);
+		return FunctionToolCallback.builder("ls", function)
 				.description(description)
-				.inputType(String.class)
+				.inputType(ListFilesRequest.class)
 				.build();
+	}
+
+	/** Request structure for listing a directory. */
+	public static class ListFilesRequest {
+
+		@JsonProperty(required = true)
+		@JsonPropertyDescription("The absolute directory path to list files from")
+		public String path;
+
+		public ListFilesRequest() {
+		}
+
+		public ListFilesRequest(String path) {
+			this.path = path;
+		}
 	}
 }
