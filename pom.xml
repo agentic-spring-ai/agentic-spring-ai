@@ -115,7 +115,7 @@
 
         <json-schema-validator.version>3.0.1</json-schema-validator.version>
 
-        <ojdbc-provider-oson.version>1.0.6</ojdbc-provider-oson.version>
+        <ojdbc-provider-oson.version>1.1.0</ojdbc-provider-oson.version>
 
         <commons-io.version>2.22.0</commons-io.version>
 
