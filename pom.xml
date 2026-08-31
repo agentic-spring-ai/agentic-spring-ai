@@ -147,7 +147,7 @@
         <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <springdoc-openapi-maven-plugin.version>1.5</springdoc-openapi-maven-plugin.version>
-        <spring-javaformat-maven-plugin.version>0.0.39</spring-javaformat-maven-plugin.version>
+        <spring-javaformat-maven-plugin.version>0.0.48</spring-javaformat-maven-plugin.version>
         <sorter-maven-plugin.version>1.0.1</sorter-maven-plugin.version>
         <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
         <maven.deploy.skip>false</maven.deploy.skip>
