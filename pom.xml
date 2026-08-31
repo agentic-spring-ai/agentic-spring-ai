@@ -100,7 +100,7 @@
         <spring-boot.version>4.1.1</spring-boot.version>
 
         <!-- DashScope SDK Version -->
-        <dashscope-sdk-java.version>2.15.1</dashscope-sdk-java.version>
+        <dashscope-sdk-java.version>2.22.31</dashscope-sdk-java.version>
 
         <!-- Nacos -->
         <nacos3.version>3.2.3</nacos3.version>
