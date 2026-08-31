@@ -103,7 +103,7 @@
         <dashscope-sdk-java.version>2.15.1</dashscope-sdk-java.version>
 
         <!-- Nacos -->
-        <nacos3.version>3.2.3</nacos3.version>
+        <nacos3.version>3.2.4</nacos3.version>
 
         <!-- Redis -->
         <redisson.version>3.52.0</redisson.version>
