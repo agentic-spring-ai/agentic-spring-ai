@@ -18,9 +18,10 @@ package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 import io.github.agentic.spring.ai.graph.agent.extension.file.FileInfo;
 import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ import java.util.stream.Stream;
 /**
  * Tool for listing files in a directory.
  */
-public class ListFilesTool implements BiFunction<String, ToolContext, String> {
+public class ListFilesTool implements BiFunction<ListFilesTool.ListFilesRequest, ToolContext, String> {
 
 	private final FilesystemBackend backend;
 
@@ -64,9 +65,8 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	@Override
-	public String apply(
-			@ToolParam(description = "The directory path to list files from") String path,
-			ToolContext toolContext) {
+	public String apply(ListFilesRequest request, ToolContext toolContext) {
+		String path = request.path;
 		try {
 			if (this.backend != null) {
 				return formatFileInfoPaths(this.backend.lsInfo(path), "Directory is empty");
@@ -234,7 +234,24 @@ public class ListFilesTool implements BiFunction<String, ToolContext, String> {
 	public static ToolCallback createListFilesToolCallback(String description, FilesystemBackend backend) {
 		return FunctionToolCallback.builder("ls", new ListFilesTool(backend))
 				.description(description)
-				.inputType(String.class)
+				.inputType(ListFilesRequest.class)
 				.build();
+	}
+
+	/**
+	 * Request structure for listing files.
+	 */
+	public static class ListFilesRequest {
+
+		@JsonProperty(required = true, value = "path")
+		@JsonPropertyDescription("The directory path to list files from")
+		public String path;
+
+		public ListFilesRequest() {
+		}
+
+		public ListFilesRequest(String path) {
+			this.path = path;
+		}
 	}
 }

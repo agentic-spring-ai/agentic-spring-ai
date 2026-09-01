@@ -17,9 +17,10 @@ package io.github.agentic.spring.ai.graph.agent.extension.tools.filesystem;
 
 import io.github.agentic.spring.ai.graph.agent.extension.file.FilesystemBackend;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ import java.util.function.BiFunction;
 /**
  * Tool for finding files matching a glob pattern.
  */
-public class GlobTool implements BiFunction<String, ToolContext, String> {
+public class GlobTool implements BiFunction<GlobTool.GlobRequest, ToolContext, String> {
 
 	private final FilesystemBackend backend;
 
@@ -61,9 +62,8 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 	}
 
 	@Override
-	public String apply(
-			@ToolParam(description = "The glob pattern to match files") String pattern,
-			ToolContext toolContext) {
+	public String apply(GlobRequest request, ToolContext toolContext) {
+		String pattern = request.pattern;
 		try {
 			if (this.backend != null) {
 				return ListFilesTool.formatFileInfoPaths(this.backend.globInfo(pattern, "/"),
@@ -100,7 +100,24 @@ public class GlobTool implements BiFunction<String, ToolContext, String> {
 	public static ToolCallback createGlobToolCallback(String description, FilesystemBackend backend) {
 		return FunctionToolCallback.builder("glob", new GlobTool(backend))
 				.description(description)
-				.inputType(String.class)
+				.inputType(GlobRequest.class)
 				.build();
+	}
+
+	/**
+	 * Request structure for glob pattern matching.
+	 */
+	public static class GlobRequest {
+
+		@JsonProperty(required = true, value = "pattern")
+		@JsonPropertyDescription("The glob pattern to match files")
+		public String pattern;
+
+		public GlobRequest() {
+		}
+
+		public GlobRequest(String pattern) {
+			this.pattern = pattern;
+		}
 	}
 }
