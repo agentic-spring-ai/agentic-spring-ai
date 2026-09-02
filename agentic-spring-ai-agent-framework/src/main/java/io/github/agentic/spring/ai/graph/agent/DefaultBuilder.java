@@ -45,6 +45,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DefaultBuilder extends Builder {
 
@@ -138,6 +140,12 @@ public class DefaultBuilder extends Builder {
 			llmNodeBuilder.enableReasoningLog(true);
 		}
 
+		// Shared in-memory registry for tool callbacks disclosed dynamically at model-call
+		// time. AgentLlmNode fills it; AgentToolNode falls back to it when the config context
+		// no longer carries the callbacks (e.g. after a Human-in-the-Loop resumption).
+		Map<String, ToolCallback> dynamicToolCallbacksRegistry = new ConcurrentHashMap<>();
+		llmNodeBuilder.dynamicToolCallbacksRegistry(dynamicToolCallbacksRegistry);
+
 		AgentLlmNode llmNode = llmNodeBuilder.build();
 
 		// Setup tool node with all available tools
@@ -147,7 +155,8 @@ public class DefaultBuilder extends Builder {
 				.parallelToolExecution(this.parallelToolExecution)
 				.maxParallelTools(this.maxParallelTools)
 				.toolExecutionTimeout(this.toolExecutionTimeout)
-				.wrapSyncToolsAsAsync(this.wrapSyncToolsAsAsync);
+				.wrapSyncToolsAsAsync(this.wrapSyncToolsAsAsync)
+				.dynamicToolCallbacksRegistry(dynamicToolCallbacksRegistry);
 
 		if (resolver != null) {
 			toolBuilder.toolCallbackResolver(resolver);

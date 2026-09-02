@@ -74,6 +74,13 @@ public class AgentLlmNode implements NodeActionWithConfig {
 	// FIXME: toolCallbacks should be managed in chatOptions only. Currently it's guaranteed immutable with unmodifiableList.
 	private List<ToolCallback> toolCallbacks = new ArrayList<>();
 
+	/**
+	 * Shared in-memory registry (with {@link AgentToolNode}) of tool callbacks disclosed
+	 * dynamically at model-call time. It keeps the callbacks resolvable after a
+	 * Human-in-the-Loop resumption, where the config context is cleared.
+	 */
+	private Map<String, ToolCallback> dynamicToolCallbacksRegistry;
+
 	private List<ModelInterceptor> modelInterceptors = new ArrayList<>();
 
 	private List<StreamingModelInterceptor> streamingInterceptors = new ArrayList<>();
@@ -107,6 +114,7 @@ public class AgentLlmNode implements NodeActionWithConfig {
 		if (builder.toolCallbacks != null) {
 			this.toolCallbacks = builder.toolCallbacks;
 		}
+		this.dynamicToolCallbacksRegistry = builder.dynamicToolCallbacksRegistry;
 		if (builder.modelInterceptors != null) {
 			this.modelInterceptors = builder.modelInterceptors;
 		}
@@ -492,6 +500,7 @@ public class AgentLlmNode implements NodeActionWithConfig {
 			filteredToolCallbacks = ToolCallbackUtils.deduplicateByName(filteredToolCallbacks, dynamicToolCallbacks);
 			// FIXME, use RunnableConfig to pass dynamic tool callbacks to tool node via config context (internal use)
 			config.context().put(RunnableConfig.DYNAMIC_TOOL_CALLBACKS_METADATA_KEY, dynamicToolCallbacks);
+			registerDynamicToolCallbacks(dynamicToolCallbacks);
 		}
 		else {
 			config.context().remove(RunnableConfig.DYNAMIC_TOOL_CALLBACKS_METADATA_KEY);
@@ -514,6 +523,16 @@ public class AgentLlmNode implements NodeActionWithConfig {
         return promptSpec;
 	}
 
+	private void registerDynamicToolCallbacks(List<ToolCallback> dynamicToolCallbacks) {
+		if (dynamicToolCallbacksRegistry == null) {
+			return;
+		}
+		dynamicToolCallbacksRegistry.clear();
+		for (ToolCallback callback : dynamicToolCallbacks) {
+			dynamicToolCallbacksRegistry.put(callback.getToolDefinition().name(), callback);
+		}
+	}
+
 	public String getName() {
 		return AGENT_MODEL_NAME;
 	}
@@ -534,6 +553,8 @@ public class AgentLlmNode implements NodeActionWithConfig {
 		private List<Advisor> advisors;
 
 		private List<ToolCallback> toolCallbacks;
+
+		private Map<String, ToolCallback> dynamicToolCallbacksRegistry;
 
 		private List<ModelInterceptor> modelInterceptors;
 
@@ -577,6 +598,11 @@ public class AgentLlmNode implements NodeActionWithConfig {
 
 		public Builder toolCallbacks(List<ToolCallback> toolCallbacks) {
 			this.toolCallbacks = toolCallbacks;
+			return this;
+		}
+
+		public Builder dynamicToolCallbacksRegistry(Map<String, ToolCallback> dynamicToolCallbacksRegistry) {
+			this.dynamicToolCallbacksRegistry = dynamicToolCallbacksRegistry;
 			return this;
 		}
 
