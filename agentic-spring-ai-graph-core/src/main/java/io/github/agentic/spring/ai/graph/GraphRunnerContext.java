@@ -24,6 +24,7 @@ import io.github.agentic.spring.ai.graph.internal.node.ParallelNode;
 import io.github.agentic.spring.ai.graph.internal.node.ResumableSubGraphAction;
 import io.github.agentic.spring.ai.graph.state.StateSnapshot;
 import io.github.agentic.spring.ai.graph.streaming.OutputType;
+import io.github.agentic.spring.ai.graph.state.ReplaceAllWith;
 import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
 import io.github.agentic.spring.ai.graph.utils.SystemClock;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
@@ -464,6 +465,11 @@ public class GraphRunnerContext {
 		if (updateStates != null && !updateStates.isEmpty()) {
 			// Check if "messages" key exists and is a List
 			Object messagesObj = updateStates.get("messages");
+			// Hook updates use ReplaceAllWith (UpdatePolicy.REPLACE) for "messages"; unwrap it so
+			// the last message can be surfaced in the streaming output.
+			if (messagesObj instanceof ReplaceAllWith<?> replaceAll) {
+				messagesObj = replaceAll.newValues();
+			}
 			if (messagesObj instanceof List<?> messagesList && !messagesList.isEmpty()) {
 				// Iterate backwards to find the last Message, skipping non-Message
 				// markers such as RemoveByHash that may be appended after the actual
