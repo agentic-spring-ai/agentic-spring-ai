@@ -121,6 +121,15 @@ public class AgentToolNode implements NodeActionWithConfig {
 
 	private ToolExecutionExceptionProcessor toolExecutionExceptionProcessor;
 
+	/**
+	 * In-memory registry of tool callbacks disclosed dynamically at model-call time
+	 * (e.g. skill tools injected by a progressive-disclosure model interceptor). The same
+	 * compiled graph instance is reused when a run resumes after a Human-in-the-Loop
+	 * interruption, so this registry survives resumption even though
+	 * {@code config.context()} is cleared.
+	 */
+	private final Map<String, ToolCallback> dynamicToolCallbacks;
+
 	public AgentToolNode(Builder builder) {
 		this.agentName = builder.agentName;
 		this.enableActingLog = builder.enableActingLog;
@@ -128,6 +137,8 @@ public class AgentToolNode implements NodeActionWithConfig {
 		this.toolCallbacks = builder.toolCallbacks;
 		this.toolContext = builder.toolContext;
 		this.toolExecutionExceptionProcessor = builder.toolExecutionExceptionProcessor;
+		this.dynamicToolCallbacks = builder.dynamicToolCallbacksRegistry != null ? builder.dynamicToolCallbacksRegistry
+				: new ConcurrentHashMap<>();
 		this.parallelToolExecution = builder.parallelToolExecution;
 		this.maxParallelTools = builder.maxParallelTools;
 		this.toolExecutionTimeout = builder.toolExecutionTimeout;
@@ -144,6 +155,24 @@ public class AgentToolNode implements NodeActionWithConfig {
 
 	void setToolCallbackResolver(ToolCallbackResolver toolCallbackResolver) {
 		this.toolCallbackResolver = toolCallbackResolver;
+	}
+
+	/**
+	 * Registers tool callbacks disclosed dynamically (for example by a progressive-disclosure
+	 * model interceptor) so they stay resolvable when a run resumes after an interruption and
+	 * {@code config.context()} no longer carries them. Called by {@link AgentLlmNode} whenever
+	 * it computes the dynamic tool callbacks for a model call.
+	 */
+	void registerDynamicToolCallbacks(List<ToolCallback> callbacks) {
+		dynamicToolCallbacks.clear();
+		if (callbacks == null) {
+			return;
+		}
+		for (ToolCallback callback : callbacks) {
+			if (callback != null) {
+				dynamicToolCallbacks.put(callback.getToolDefinition().name(), callback);
+			}
+		}
 	}
 
 	public List<ToolCallback> getToolCallbacks() {
@@ -852,6 +881,13 @@ public class AgentToolNode implements NodeActionWithConfig {
 		if (fromDynamic != null) {
 			return fromDynamic;
 		}
+		// Fall back to the in-memory registry populated by AgentLlmNode: the config context is
+		// cleared when a subgraph resumes after a Human-in-the-Loop interruption, while the
+		// registry lives on the reused compiled graph instance.
+		ToolCallback fromRegistry = dynamicToolCallbacks.get(toolName);
+		if (fromRegistry != null) {
+			return fromRegistry;
+		}
 		return toolCallbackResolver == null ? null : toolCallbackResolver.resolve(toolName);
 	}
 
@@ -891,6 +927,8 @@ public class AgentToolNode implements NodeActionWithConfig {
 		private List<ToolCallback> toolCallbacks = new ArrayList<>();
 
 		private Map<String, Object> toolContext = new HashMap<>();
+
+		private Map<String, ToolCallback> dynamicToolCallbacksRegistry;
 
 		private ToolCallbackResolver toolCallbackResolver;
 
@@ -976,6 +1014,11 @@ public class AgentToolNode implements NodeActionWithConfig {
 
 		public Builder toolCallbackResolver(ToolCallbackResolver toolCallbackResolver) {
 			this.toolCallbackResolver = toolCallbackResolver;
+			return this;
+		}
+
+		public Builder dynamicToolCallbacksRegistry(Map<String, ToolCallback> dynamicToolCallbacksRegistry) {
+			this.dynamicToolCallbacksRegistry = dynamicToolCallbacksRegistry;
 			return this;
 		}
 
