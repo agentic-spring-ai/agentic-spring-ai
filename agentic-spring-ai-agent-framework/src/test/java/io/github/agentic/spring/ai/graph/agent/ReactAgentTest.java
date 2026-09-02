@@ -15,10 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatOptions;
-import io.github.agentic.spring.ai.dashscope.chat.MessageFormat;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.GraphRepresentation;
 import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.OverAllState;
@@ -43,6 +40,7 @@ import org.springframework.ai.content.Media;
 import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.ai.converter.ListOutputConverter;
 import org.springframework.ai.converter.MapOutputConverter;
+import org.springframework.ai.openai.OpenAiChatOptions;
 
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
@@ -84,11 +82,7 @@ class ReactAgentTest {
 
 	@BeforeEach
 	void setUp() {
-		// Create DashScopeApi instance using the API key from environment variable
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-
-		// Create DashScope ChatModel instance
-		this.chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		this.chatModel = OpenAiCompatibleTestModels.chatModel();
 	}
 
 	@Test
@@ -462,7 +456,7 @@ class ReactAgentTest {
 				.saver(new MemorySaver())
 				.stateSerializer(serializer)
 				.enableLogging(true)
-				.chatOptions(DashScopeChatOptions.builder().enableThinking(true).build())
+				.chatOptions(OpenAiChatOptions.builder().model("qwen-plus").build())
 				.build();
 
 		// Test streaming
@@ -1047,7 +1041,7 @@ class ReactAgentTest {
 	void testChatOptionsImmutability() {
 		ToolCallback tool1 = ToolCallbacks.from(new TestTools())[0];
 
-		DashScopeChatOptions originalOptions = DashScopeChatOptions.builder()
+		OpenAiChatOptions originalOptions = OpenAiChatOptions.builder()
 			.model("qwen-plus")
 			.temperature(0.7)
 			.toolCallbacks(List.of(tool1))
@@ -1081,7 +1075,7 @@ class ReactAgentTest {
 
 	@Test
 	void testSharedChatOptionsAcrossAgents() {
-		DashScopeChatOptions sharedOptions = DashScopeChatOptions.builder()
+		OpenAiChatOptions sharedOptions = OpenAiChatOptions.builder()
 			.model("qwen-plus")
 			.temperature(0.7)
 			.build();
@@ -1115,13 +1109,8 @@ class ReactAgentTest {
 
 	@Test
 	void testVisionReact() throws GraphRunnerException {
-		DashScopeChatModel chatModel = DashScopeChatModel.builder()
-				.dashScopeApi(DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build())
-				.defaultOptions(DashScopeChatOptions.builder()
-						.model("qwen3.6-flash")
-						.multiModel(true)
-						.build())
-				.build();
+		ChatModel chatModel = OpenAiCompatibleTestModels.chatModel(options -> options
+				.model(System.getenv().getOrDefault("AI_DASHSCOPE_VISION_MODEL", "qwen-vl-plus")));
 
 		ReactAgent agent = ReactAgent.builder()
 				.name("vision-model-agent")
@@ -1138,7 +1127,6 @@ class ReactAgentTest {
 				.builder()
 				.text("图中描绘的是什么景象?")
 				.media(media)
-				.metadata(Map.of("messageFormat", MessageFormat.IMAGE))
 				.build();
 
 		List<String> results = agent.streamMessages(userMessage)

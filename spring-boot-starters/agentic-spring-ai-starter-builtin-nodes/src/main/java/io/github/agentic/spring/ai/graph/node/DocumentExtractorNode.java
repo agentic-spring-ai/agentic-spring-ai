@@ -15,14 +15,12 @@
  */
 package io.github.agentic.spring.ai.graph.node;
 
+import io.github.agentic.spring.ai.document.DocumentParser;
+import io.github.agentic.spring.ai.document.DocumentParserProvider;
 import io.github.agentic.spring.ai.document.JsonDocumentParser;
 import io.github.agentic.spring.ai.document.TextDocumentParser;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.action.NodeAction;
-import io.github.agentic.spring.ai.parser.bshtml.BsHtmlDocumentParser;
-import io.github.agentic.spring.ai.parser.markdown.MarkdownDocumentParser;
-import io.github.agentic.spring.ai.parser.tika.TikaDocumentParser;
-import io.github.agentic.spring.ai.parser.yaml.YamlDocumentParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -36,8 +34,6 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.util.Timeout;
-import org.springframework.ai.document.Document;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -52,11 +48,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ScheduledFuture;
-import java.util.function.Function;
 
 /**
  * @author HeYQ
@@ -102,17 +99,18 @@ public class DocumentExtractorNode implements NodeAction {
 
 	private final Duration totalTimeout;
 
-	private final Map<String, Function<InputStream, List<Document>>> extractors = new HashMap<>();
+	private final Map<String, DocumentParser> extractors = new HashMap<>();
 
 	public DocumentExtractorNode(String paramsKey, String outputKey, List<String> fileList, boolean inputIsArray) {
 		this(paramsKey, outputKey, fileList, inputIsArray, Paths.get(""), false, true, false,
 				NetworkAccessPolicy.DEFAULT_CONNECT_TIMEOUT_MILLIS, NetworkAccessPolicy.DEFAULT_READ_TIMEOUT_MILLIS,
-				NetworkAccessPolicy.DEFAULT_MAX_BYTES, NetworkAccessPolicy.DEFAULT_TOTAL_TIMEOUT);
+				NetworkAccessPolicy.DEFAULT_MAX_BYTES, NetworkAccessPolicy.DEFAULT_TOTAL_TIMEOUT, Map.of());
 	}
 
 	private DocumentExtractorNode(String paramsKey, String outputKey, List<String> fileList, boolean inputIsArray,
 			Path localRoot, boolean allowAnyLocalPath, boolean allowRemoteAccess, boolean allowPrivateNetworkAccess,
-			int connectTimeoutMillis, int readTimeoutMillis, long maxBytes, Duration totalTimeout) {
+			int connectTimeoutMillis, int readTimeoutMillis, long maxBytes, Duration totalTimeout,
+			Map<String, DocumentParser> documentParsers) {
 		this.paramsKey = paramsKey;
 		this.outputKey = outputKey;
 		this.fileList = fileList;
@@ -125,23 +123,32 @@ public class DocumentExtractorNode implements NodeAction {
 		this.readTimeoutMillis = readTimeoutMillis;
 		this.maxBytes = maxBytes;
 		this.totalTimeout = totalTimeout;
-		extractors.put("txt", inputStream -> new TextDocumentParser().parse(inputStream));
-		extractors.put("markdown", inputStream -> new MarkdownDocumentParser().parse(inputStream));
-		extractors.put("md", inputStream -> new MarkdownDocumentParser().parse(inputStream));
-		extractors.put("html", inputStream -> new BsHtmlDocumentParser().parse(inputStream));
-		extractors.put("htm", inputStream -> new BsHtmlDocumentParser().parse(inputStream));
-		extractors.put("xml", inputStream -> new BsHtmlDocumentParser().parse(inputStream));
-		extractors.put("json", inputStream -> new JsonDocumentParser().parse(inputStream));
-		extractors.put("yaml", inputStream -> new YamlDocumentParser().parse(inputStream));
-		extractors.put("yml", inputStream -> new YamlDocumentParser().parse(inputStream));
-		extractors.put("pdf", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("doc", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("docx", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("csv", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("xls", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("xlsx", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("ppt", inputStream -> new TikaDocumentParser().parse(inputStream));
-		extractors.put("pptx", inputStream -> new TikaDocumentParser().parse(inputStream));
+		registerDefaultDocumentParsers();
+		registerServiceLoadedDocumentParsers();
+		registerDocumentParsers(documentParsers);
+	}
+
+	private void registerDefaultDocumentParsers() {
+		registerDocumentParser("txt", new TextDocumentParser());
+		registerDocumentParser("json", new JsonDocumentParser());
+	}
+
+	private void registerServiceLoadedDocumentParsers() {
+		ServiceLoader.load(DocumentParserProvider.class).forEach(this::registerDocumentParserProvider);
+	}
+
+	private void registerDocumentParserProvider(DocumentParserProvider provider) {
+		DocumentParser parser = Objects.requireNonNull(provider.createParser(), "document parser must not be null");
+		provider.getSupportedExtensions().forEach(extension -> registerDocumentParser(extension, parser));
+	}
+
+	private void registerDocumentParsers(Map<String, DocumentParser> documentParsers) {
+		documentParsers.forEach(this::registerDocumentParser);
+	}
+
+	private void registerDocumentParser(String extension, DocumentParser parser) {
+		this.extractors.put(normalizeExtension(extension),
+				Objects.requireNonNull(parser, "document parser must not be null"));
 	}
 
 	/**
@@ -302,12 +309,12 @@ public class DocumentExtractorNode implements NodeAction {
 
 	private String extractTextByFileExtension(InputStream fileContent, String fileExtension) {
 
-		Function<InputStream, List<Document>> extractor = this.extractors.get(fileExtension);
+		DocumentParser extractor = this.extractors.get(normalizeExtension(fileExtension));
 		if (extractor == null) {
 			throw new RuntimeException("Unsupported Extension Type: " + fileExtension);
 		}
 
-		return extractor.apply(fileContent).get(0).getText();
+		return extractor.parse(fileContent).get(0).getText();
 	}
 
 	private String getFileExtension(String filePath) {
@@ -320,6 +327,13 @@ public class DocumentExtractorNode implements NodeAction {
 		int dotIndex = fileName.lastIndexOf('.');
 
 		return (dotIndex == -1) ? "" : fileName.substring(dotIndex + 1);
+	}
+
+	private static String normalizeExtension(String extension) {
+		if (extension == null || extension.isBlank()) {
+			return "";
+		}
+		return DocumentParserProvider.normalizeExtension(extension);
 	}
 
 	public static Builder builder() {
@@ -351,6 +365,8 @@ public class DocumentExtractorNode implements NodeAction {
 		private long maxBytes = NetworkAccessPolicy.DEFAULT_MAX_BYTES;
 
 		private Duration totalTimeout = NetworkAccessPolicy.DEFAULT_TOTAL_TIMEOUT;
+
+		private final Map<String, DocumentParser> documentParsers = new HashMap<>();
 
 		public Builder paramsKey(String paramsKey) {
 			this.paramsKey = paramsKey;
@@ -415,10 +431,22 @@ public class DocumentExtractorNode implements NodeAction {
 			return this;
 		}
 
+		public Builder documentParser(String extension, DocumentParser documentParser) {
+			this.documentParsers.put(normalizeExtension(extension),
+					Objects.requireNonNull(documentParser, "document parser must not be null"));
+			return this;
+		}
+
+		public Builder documentParsers(Map<String, DocumentParser> documentParsers) {
+			Objects.requireNonNull(documentParsers, "document parsers must not be null");
+			documentParsers.forEach(this::documentParser);
+			return this;
+		}
+
 		public DocumentExtractorNode build() {
 			return new DocumentExtractorNode(paramsKey, outputKey, fileList, inputIsArray, localRoot, allowAnyLocalPath,
 					allowRemoteAccess, allowPrivateNetworkAccess, connectTimeoutMillis, readTimeoutMillis, maxBytes,
-					totalTimeout);
+					totalTimeout, this.documentParsers);
 		}
 
 	}

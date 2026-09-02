@@ -15,11 +15,11 @@
  */
 package io.github.agentic.spring.ai.graph.agent.interceptors;
 
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
 
 /**
  * Shared base class for creating a DashScope ChatModel through the OpenAI-compatible API.
@@ -34,11 +34,6 @@ import org.springframework.ai.openai.OpenAiChatOptions;
  */
 abstract class AbstractDashscopeChatModelTest {
 
-	// Base URL only. Spring AI's OpenAI client appends the chat-completions path.
-	private static final String DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode";
-
-	private static final String DEFAULT_MODEL = "qwen-plus";
-
 	protected ChatModel chatModel;
 
 	@BeforeEach
@@ -47,15 +42,6 @@ abstract class AbstractDashscopeChatModelTest {
 		Assumptions.assumeTrue(apiKey != null && !apiKey.isBlank(),
 				"Skipping: AI_DASHSCOPE_API_KEY environment variable is not set");
 
-		final String baseUrl = System.getenv().getOrDefault("AI_DASHSCOPE_BASE_URL", DEFAULT_BASE_URL);
-		final String model = System.getenv().getOrDefault("AI_DASHSCOPE_MODEL", DEFAULT_MODEL);
-
-		chatModel = OpenAiChatModel.builder()
-				.options(OpenAiChatOptions.builder()
-						.baseUrl(baseUrl)
-						.apiKey(apiKey)
-						.model(model)
-						.build())
-				.build();
+		chatModel = OpenAiCompatibleTestModels.chatModel();
 	}
 }

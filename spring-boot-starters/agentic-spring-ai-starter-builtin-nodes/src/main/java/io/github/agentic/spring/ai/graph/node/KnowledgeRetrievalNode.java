@@ -15,10 +15,10 @@
  */
 package io.github.agentic.spring.ai.graph.node;
 
-import io.github.agentic.spring.ai.dashscope.rerank.DashScopeRerankOptions;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.action.NodeAction;
 import io.github.agentic.spring.ai.model.RerankModel;
+import io.github.agentic.spring.ai.model.RerankOptions;
 import io.github.agentic.spring.ai.model.RerankRequest;
 import io.github.agentic.spring.ai.model.RerankResponse;
 import org.jspecify.annotations.NonNull;
@@ -71,7 +71,7 @@ public class KnowledgeRetrievalNode implements NodeAction {
 
 	private String rerankOptionsKey;
 
-	private DashScopeRerankOptions rerankOptions;
+	private RerankOptions rerankOptions;
 
 	private String vectorStoreKey;
 
@@ -101,7 +101,7 @@ public class KnowledgeRetrievalNode implements NodeAction {
 
 	public KnowledgeRetrievalNode(String userPrompt, Integer topK, Double similarityThreshold,
 			Filter.Expression filterExpression, Boolean enableRanker, RerankModel rerankModel,
-			DashScopeRerankOptions rerankOptions, VectorStore vectorStore, String outputKey) {
+			RerankOptions rerankOptions, VectorStore vectorStore, String outputKey) {
 		this.userPrompt = userPrompt;
 		this.topK = topK;
 		this.similarityThreshold = similarityThreshold;
@@ -193,7 +193,7 @@ public class KnowledgeRetrievalNode implements NodeAction {
 			this.rerankModel = (RerankModel) state.value(rerankModelKey).orElse(this.rerankModel);
 		}
 		if (check(this.rerankOptions, this.rerankOptionsKey)) {
-			this.rerankOptions = (DashScopeRerankOptions) state.value(rerankOptionsKey).orElse(this.rerankOptions);
+			this.rerankOptions = (RerankOptions) state.value(rerankOptionsKey).orElse(this.rerankOptions);
 		}
 		if (check(this.vectorStore, this.vectorStoreKey)) {
 			this.vectorStore = (VectorStore) state.value(vectorStoreKey).orElse(this.vectorStore);
@@ -219,9 +219,9 @@ public class KnowledgeRetrievalNode implements NodeAction {
 
 		private RerankModel rerankModel;
 
-		private DashScopeRerankOptions rerankOptions;
+		private RerankOptions rerankOptions;
 
-		public KnowledgeRetrievalDocumentRanker(RerankModel rerankModel, DashScopeRerankOptions rerankOptions) {
+		public KnowledgeRetrievalDocumentRanker(RerankModel rerankModel, RerankOptions rerankOptions) {
 			this.rerankModel = rerankModel;
 			this.rerankOptions = rerankOptions;
 		}
@@ -294,7 +294,7 @@ public class KnowledgeRetrievalNode implements NodeAction {
 
 		private String rerankOptionsKey;
 
-		private DashScopeRerankOptions rerankOptions;
+		private RerankOptions rerankOptions;
 
 		private String vectorStoreKey;
 
@@ -382,7 +382,7 @@ public class KnowledgeRetrievalNode implements NodeAction {
 			return this;
 		}
 
-		public Builder rerankOptions(DashScopeRerankOptions rerankOptions) {
+		public Builder rerankOptions(RerankOptions rerankOptions) {
 			this.rerankOptions = rerankOptions;
 			return this;
 		}

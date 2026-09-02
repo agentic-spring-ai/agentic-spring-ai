@@ -15,8 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent.hooks;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
@@ -408,12 +407,7 @@ public class InterruptionHookTest {
 	@EnabledIfEnvironmentVariable(named = "AI_DASHSCOPE_API_KEY", matches = ".+")
 	public void testInterruptLongRunningTask_WithoutParameters() throws Exception {
 		// Setup: Create ChatModel
-		DashScopeApi dashScopeApi = DashScopeApi.builder()
-				.apiKey(System.getenv("AI_DASHSCOPE_API_KEY"))
-				.build();
-		ChatModel chatModel = DashScopeChatModel.builder()
-				.dashScopeApi(dashScopeApi)
-				.build();
+		ChatModel chatModel = OpenAiCompatibleTestModels.chatModel();
 
 		// Setup: Create ReactAgent with InterruptionHook and tools for multi-round reasoning
 		ReactAgent agent = ReactAgent.builder()
@@ -502,12 +496,7 @@ public class InterruptionHookTest {
 	@EnabledIfEnvironmentVariable(named = "AI_DASHSCOPE_API_KEY", matches = ".+")
 	public void testInterruptLongRunningTask_WithParameters() throws Exception {
 		// Setup: Create ChatModel
-		DashScopeApi dashScopeApi = DashScopeApi.builder()
-				.apiKey(System.getenv("AI_DASHSCOPE_API_KEY"))
-				.build();
-		ChatModel chatModel = DashScopeChatModel.builder()
-				.dashScopeApi(dashScopeApi)
-				.build();
+		ChatModel chatModel = OpenAiCompatibleTestModels.chatModel();
 
 		// Setup: Create ReactAgent with InterruptionHook and tools for multi-round reasoning
 		ReactAgent agent = ReactAgent.builder()
@@ -594,4 +583,3 @@ public class InterruptionHookTest {
 		streamThread.join(10000);
 	}
 }
-

@@ -48,17 +48,14 @@
 
     <modules>
         <module>agentic-spring-ai-bom</module>
+        <module>agentic-spring-ai-model</module>
         <module>agentic-spring-ai-graph-core</module>
         <module>agentic-spring-ai-agent-framework</module>
         <module>agentic-spring-ai-studio</module>
-        <module>agentic-spring-ai-sandbox</module>
 
         <!-- Spring AI Alibaba Spring Boot Starters -->
-        <module>spring-boot-starters/agentic-spring-ai-starter-a2a-nacos</module>
-        <module>spring-boot-starters/agentic-spring-ai-starter-config-nacos</module>
         <module>spring-boot-starters/agentic-spring-ai-starter-graph-observation</module>
         <module>spring-boot-starters/agentic-spring-ai-starter-builtin-nodes</module>
-        <module>spring-boot-starters/agentic-spring-ai-starter-agentscope</module>
     </modules>
 
     <scm>
@@ -96,7 +93,6 @@
 
         <!-- Spring version -->
         <spring-ai.version>2.0.1</spring-ai.version>
-        <agentic-spring-ai-extensions.version>2.1.0-dev</agentic-spring-ai-extensions.version>
         <spring-boot.version>4.1.1</spring-boot.version>
 
         <!-- DashScope SDK Version -->
@@ -209,31 +205,6 @@
                 <version>${spring-ai.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.github.agentic-spring-ai</groupId>
-                <artifactId>agentic-spring-ai-extensions-bom</artifactId>
-                <version>${agentic-spring-ai-extensions.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- A2A SDK Dependencies -->
-            <dependency>
-                <groupId>io.github.a2asdk</groupId>
-                <artifactId>a2a-java-reference-server</artifactId>
-                <version>${a2a-sdk.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.jboss.slf4j</groupId>
-                        <artifactId>slf4j-jboss-logmanager</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.github.a2asdk</groupId>
-                <artifactId>a2a-java-sdk-server-common</artifactId>
-                <version>${a2a-sdk.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.a2asdk</groupId>

@@ -15,8 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent.hooks.modelcalllimit;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.hook.modelcalllimit.ModelCallLimitExceededException;
@@ -43,11 +42,7 @@ public class ModelCallLimitTest {
 
     @BeforeEach
     void setUp() {
-        // Create DashScopeApi instance using the API key from environment variable
-        DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-
-        // Create DashScope ChatModel instance
-        this.chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		this.chatModel = OpenAiCompatibleTestModels.chatModel();
     }
 
     @Test

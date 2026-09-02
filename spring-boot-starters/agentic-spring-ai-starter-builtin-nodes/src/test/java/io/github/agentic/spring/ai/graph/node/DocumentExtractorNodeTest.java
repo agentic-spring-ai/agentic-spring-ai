@@ -22,9 +22,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.springframework.ai.document.Document;
 import org.springframework.http.HttpHeaders;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,6 +66,57 @@ class DocumentExtractorNodeTest {
 		Map<String, Object> result = node.apply(new OverAllState());
 
 		assertEquals("hello from root", result.get("text"));
+	}
+
+	@Test
+	void readsJsonFileWithBuiltInParser() throws Exception {
+		Path localRoot = Files.createTempDirectory("document-extractor-root");
+		Path document = Files.writeString(localRoot.resolve("sample.json"), "{\"text\":\"hello json\"}");
+		DocumentExtractorNode node = DocumentExtractorNode.builder()
+			.fileList(List.of(document.toString()))
+			.localRoot(localRoot)
+			.build();
+
+		Map<String, Object> result = node.apply(new OverAllState());
+
+		assertTrue(result.get("text").toString().contains("hello json"));
+	}
+
+	@Test
+	void explicitParserOverridesDocumentExtension() throws Exception {
+		Path localRoot = Files.createTempDirectory("document-extractor-root");
+		Path document = Files.writeString(localRoot.resolve("sample.custom"), "original");
+		DocumentExtractorNode node = DocumentExtractorNode.builder()
+			.fileList(List.of(document.toString()))
+			.localRoot(localRoot)
+			.documentParser("custom", (inputStream) -> {
+				try {
+					String text = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+					return List.of(new Document("custom:" + text));
+				}
+				catch (IOException ex) {
+					throw new RuntimeException(ex);
+				}
+			})
+			.build();
+
+		Map<String, Object> result = node.apply(new OverAllState());
+
+		assertEquals("custom:original", result.get("text"));
+	}
+
+	@Test
+	void rejectsUnsupportedDocumentExtension() throws Exception {
+		Path localRoot = Files.createTempDirectory("document-extractor-root");
+		Path document = Files.writeString(localRoot.resolve("sample.md"), "# markdown");
+		DocumentExtractorNode node = DocumentExtractorNode.builder()
+			.fileList(List.of(document.toString()))
+			.localRoot(localRoot)
+			.build();
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> node.apply(new OverAllState()));
+
+		assertTrue(exception.getCause().getMessage().contains("Unsupported Extension Type: md"));
 	}
 
 	@Test

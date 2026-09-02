@@ -15,8 +15,6 @@
  */
 package io.github.agentic.spring.ai.agentic;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.agent.extension.interceptor.FilesystemInterceptor;
 import io.github.agentic.spring.ai.graph.agent.extension.interceptor.LargeResultEvictionInterceptor;
@@ -33,7 +31,11 @@ import io.github.agentic.spring.ai.graph.agent.interceptor.todolist.TodoListInte
 import io.github.agentic.spring.ai.graph.agent.interceptor.toolretry.ToolRetryInterceptor;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
 
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.ToolCallback;
 
 import java.util.List;
@@ -67,10 +69,7 @@ public class DeepResearchAgent {
 //	private ShellTool shellTool = ShellTool.builder().build();
 
 	public DeepResearchAgent() {
-		// Create DashScopeApi instance using the API key from environment variable
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-		// Create DashScope ChatModel instance
-		this.chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		this.chatModel = new FixedResponseChatModel("test response");
 
 		this.systemPrompt = researchInstructions + "\n\n" + BASE_AGENT_PROMPT;
 
@@ -179,6 +178,21 @@ public class DeepResearchAgent {
 				.includeGeneralPurpose(true)
 				.addSubAgent(critiqueAgent);
 		return subAgentBuilder.build();
+	}
+
+	private static final class FixedResponseChatModel implements ChatModel {
+
+		private final String responseText;
+
+		private FixedResponseChatModel(String responseText) {
+			this.responseText = responseText;
+		}
+
+		@Override
+		public ChatResponse call(Prompt prompt) {
+			return new ChatResponse(List.of(new Generation(new AssistantMessage(responseText))));
+		}
+
 	}
 
 }

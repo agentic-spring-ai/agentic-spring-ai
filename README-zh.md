@@ -12,7 +12,7 @@ Agentic Spring AI 是面向 Java 开发者的智能体应用框架，用于构�
 - **智能体编排**：提供 `ReactAgent`、`SequentialAgent`、`ParallelAgent`、`RoutingAgent` 和 `LoopAgent`。
 - **上下文工程**：支持上下文压缩与编辑、调用限制、工具重试、规划和动态工具选择。
 - **图工作流**：支持条件路由、并行执行、嵌套图、状态持久化和中断恢复。
-- **多模态与实时语音**：支持图像理解、媒体生成和 WebSocket 流式语音交互。
+- **智能体运行时基础**：提供模型无关的智能体编排、工作流状态和可嵌入调试支持。
 - **开放集成**：兼容 DashScope、OpenAI 等模型，以及工具调用、MCP、A2A 和 Nacos。
 - **可视化调试**：提供可嵌入 Spring Boot 应用的 Agent Chat UI。
 
@@ -38,12 +38,14 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 
 | 模块 | 说明 |
 | --- | --- |
+| [Model](agentic-spring-ai-model) | 与模型厂商无关的模型契约和文档解析 SPI |
 | [Agent Framework](agentic-spring-ai-agent-framework) | 智能体开发与多智能体编排 |
 | [Graph Core](agentic-spring-ai-graph-core) | 状态管理、持久化和工作流运行时 |
 | [Studio](agentic-spring-ai-studio) | Agent 可视化调试界面 |
-| [Sandbox](agentic-spring-ai-sandbox) | 工具调用的隔离执行环境 |
-| [Spring Boot Starters](spring-boot-starters) | A2A、Nacos 配置、内置节点和可观测性集成 |
-| [Examples](examples) | Chatbot、多智能体、图工程、多模态和语音示例 |
+| [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | 工具调用的可选隔离执行环境，由 Extensions 维护 |
+| [Spring Boot Starters](spring-boot-starters) | 内置图节点和图可观测性 |
+| [Extension Starters](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/starters) | A2A、Nacos、AgentScope、模型、存储等可选集成 |
+| [Examples](examples) | Chatbot、多智能体、图工程和文档示例 |
 
 ## 文档
 
@@ -53,6 +55,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 - [Graph Core 快速开始](https://agentic-spring-ai.github.io/website/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering 指南](docs/graph-engineering.md)
 - [示例项目](examples)
+- [模型厂商相关示例](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 
 ## 参与贡献
 

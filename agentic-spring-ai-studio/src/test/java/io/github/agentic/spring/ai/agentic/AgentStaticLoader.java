@@ -17,15 +17,17 @@
 package io.github.agentic.spring.ai.agentic;
 
 import io.github.agentic.spring.ai.agent.studio.loader.AgentLoader;
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
 import io.github.agentic.spring.ai.graph.GraphRepresentation;
 import io.github.agentic.spring.ai.graph.agent.BaseAgent;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
 
 import org.jspecify.annotations.NonNull;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 
@@ -56,10 +58,7 @@ public class AgentStaticLoader implements AgentLoader {
 	private final Map<String, BaseAgent> agents = new ConcurrentHashMap<>();
 
 	public AgentStaticLoader(@Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
-		// Create DashScopeApi instance using the API key from environment variable
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-		// Create DashScope ChatModel instance
-		ChatModel chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		ChatModel chatModel = new FixedResponseChatModel("test response");
 
 		ReactAgent agent = ReactAgent.builder()
 				.name("single_agent")
@@ -99,5 +98,20 @@ public class AgentStaticLoader implements AgentLoader {
 		}
 
 		return agent;
+	}
+
+	private static final class FixedResponseChatModel implements ChatModel {
+
+		private final String responseText;
+
+		private FixedResponseChatModel(String responseText) {
+			this.responseText = responseText;
+		}
+
+		@Override
+		public ChatResponse call(Prompt prompt) {
+			return new ChatResponse(List.of(new Generation(new AssistantMessage(responseText))));
+		}
+
 	}
 }

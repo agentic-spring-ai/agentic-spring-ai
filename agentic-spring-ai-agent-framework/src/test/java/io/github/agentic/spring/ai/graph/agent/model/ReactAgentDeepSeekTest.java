@@ -87,7 +87,6 @@ class ReactAgentDeepSeekTest {
 
 	@BeforeEach
 	void setUp() {
-		// Create DashScopeApi instance using the API key from environment variable
 		DeepSeekApi deepSeekApi = DeepSeekApi.builder()
 			.apiKey(System.getenv("AI_DEEPSEEK_API_KEY"))
 //			.baseUrl(System.getenv("AI_DEEPSEEK_API_BASE_URL"))
@@ -99,7 +98,6 @@ class ReactAgentDeepSeekTest {
 						.build())
 				.deepSeekApi(deepSeekApi).build();
 
-		// Create DashScope ChatModel instance
 		this.chatModel = deepSeekChatModel;
 	}
 

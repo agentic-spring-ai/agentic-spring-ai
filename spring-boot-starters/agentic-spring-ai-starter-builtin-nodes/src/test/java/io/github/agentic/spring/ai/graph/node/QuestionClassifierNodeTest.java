@@ -16,29 +16,28 @@
 
 package io.github.agentic.spring.ai.graph.node;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@EnabledIfEnvironmentVariable(named = "AI_DASHSCOPE_API_KEY", matches = ".+")
 public class QuestionClassifierNodeTest {
 
 	private ChatClient chatClient;
 
 	@BeforeEach
 	public void setUp() {
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-		ChatModel chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		ChatModel chatModel = new QuestionClassifierChatModel();
 		chatClient = ChatClient.builder(chatModel).build();
 	}
 
@@ -63,10 +62,8 @@ public class QuestionClassifierNodeTest {
 		QuestionClassifierNode node = createNode(Map.of("1", "正面评价", "2", "负面评价", "3", "中立评价"),
 				List.of("请根据输入的评价内容，给出评价的分类结果。"));
 		Map<String, Object> apply = node.apply(createState(Map.of("input", "你们的服务做的真好！")));
-		System.out.println(apply);
 		assertEquals("1", apply.get("output"));
 		Map<String, Object> apply1 = node.apply(createState(Map.of("input", "你们服务做的真差！")));
-		System.out.println(apply1);
 		assertEquals("2", apply1.get("output"));
 	}
 
@@ -76,11 +73,9 @@ public class QuestionClassifierNodeTest {
 				List.of("请根据输入的评价内容，给出评价的分类结果。"));
 		Map<String, Object> apply = node
 			.apply(createState(Map.of("input", "你们的服务做的真好！", "category1", "正面", "category2", "负面")));
-		System.out.println(apply);
 		assertEquals("1", apply.get("output"));
 		Map<String, Object> apply1 = node
 			.apply(createState(Map.of("input", "你们服务做的真差！", "category2", "正面", "category1", "负面")));
-		System.out.println(apply1);
 		assertEquals("1", apply1.get("output"));
 	}
 
@@ -89,8 +84,19 @@ public class QuestionClassifierNodeTest {
 		QuestionClassifierNode node = createNode(Map.of("1", "正面评价", "2", "负面评价"), List.of("{instruction}"));
 		Map<String, Object> apply = node
 			.apply(createState(Map.of("input", "你们的服务做的真差！", "instruction", "请根据输入的评价内容，给出评价的分类结果。")));
-		System.out.println(apply);
 		assertEquals("2", apply.get("output"));
+	}
+
+	private static final class QuestionClassifierChatModel implements ChatModel {
+
+		@Override
+		public ChatResponse call(Prompt prompt) {
+			String promptText = prompt.toString();
+			String category = promptText.contains("服务做的真差") ? "负面评价" : "正面评价";
+			return new ChatResponse(List.of(new Generation(new AssistantMessage(
+					"{\"keywords\": [\"服务\"], \"category_name\": \"" + category + "\"}"))));
+		}
+
 	}
 
 }

@@ -15,13 +15,24 @@
 #
 name: setup-extensions
 description: Install the unpublished Agentic Spring AI extension artifacts required by this repository
+inputs:
+  ref:
+    description: Agentic Spring AI Extensions git ref
+    required: false
+    default: main
 runs:
   using: composite
   steps:
+    - name: Install core artifacts required by extensions
+      shell: bash
+      run: |
+        ./mvnw -B \
+          -pl :agentic-spring-ai-bom,:agentic-spring-ai-model,:agentic-spring-ai-graph-core,:agentic-spring-ai-agent-framework,:agentic-spring-ai-studio \
+          -am -DskipTests install
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         repository: agentic-spring-ai/agentic-spring-ai-extensions
-        ref: 3aa691dd3da2b75da3a4378306e85927a124b0d5
+        ref: ${{ inputs.ref }}
         path: target/agentic-spring-ai-extensions
     - name: Install required extension artifacts
       shell: bash
@@ -29,12 +40,8 @@ runs:
         extensions_modules=(
           :agentic-spring-ai-extensions-bom
           :agentic-spring-ai-starter-dashscope
-          :agentic-spring-ai-starter-document-parser-bshtml
-          :agentic-spring-ai-starter-document-parser-markdown
-          :agentic-spring-ai-starter-document-parser-tika
-          :agentic-spring-ai-starter-document-parser-yaml
-          :agentic-spring-ai-mcp-registry
-          :agentic-spring-ai-observation
+          :agentic-spring-ai-starter-agentscope
+          :agentic-spring-ai-starter-a2a-nacos
         )
         extensions_module_list=$(IFS=,; echo "${extensions_modules[*]}")
         mvn -B -DskipTests \

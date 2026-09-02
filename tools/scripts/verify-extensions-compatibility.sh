@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Verify Core against a source-built Extensions BOM in an isolated Maven repository.
+# Verify Core and Extensions in dependency order using an isolated Maven repository.
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,14 +27,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "Installing Extensions from $extensions_dir into $maven_repo"
+echo "Testing and installing Core into $maven_repo"
+cd "$core_dir"
+./mvnw -B -Dmaven.repo.local="$maven_repo" clean install
+
+echo "Testing Extensions from $extensions_dir against the isolated repository"
 if [[ -x "$extensions_dir/mvnw" ]]; then
   extensions_maven="$extensions_dir/mvnw"
 else
   extensions_maven="${MAVEN_CMD:-mvn}"
 fi
-"$extensions_maven" -B -f "$extensions_dir/pom.xml" -Dmaven.repo.local="$maven_repo" -DskipTests install
-
-echo "Verifying Core against the isolated repository"
-cd "$core_dir"
-./mvnw -B -Dmaven.repo.local="$maven_repo" test
+"$extensions_maven" -B -f "$extensions_dir/pom.xml" -Dmaven.repo.local="$maven_repo" clean test

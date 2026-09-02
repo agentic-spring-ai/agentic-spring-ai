@@ -88,12 +88,6 @@
         </dependency>
 
         <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-dashscope</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
             <scope>test</scope>

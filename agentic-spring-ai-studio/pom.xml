@@ -54,11 +54,6 @@
 
         <dependency>
             <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-dashscope</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
             <artifactId>agentic-spring-ai-agent-framework</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

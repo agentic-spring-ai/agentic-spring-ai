@@ -93,21 +93,6 @@
         <dependencies>
             <dependency>
                 <groupId>io.github.agentic-spring-ai</groupId>
-                <artifactId>agentic-spring-ai-starter-agentscope</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.agentic-spring-ai</groupId>
-                <artifactId>agentic-spring-ai-starter-a2a-nacos</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.agentic-spring-ai</groupId>
-                <artifactId>agentic-spring-ai-starter-config-nacos</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.agentic-spring-ai</groupId>
                 <artifactId>agentic-spring-ai-starter-graph-observation</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -125,6 +110,12 @@
 
             <dependency>
                 <groupId>io.github.agentic-spring-ai</groupId>
+                <artifactId>agentic-spring-ai-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.agentic-spring-ai</groupId>
                 <artifactId>agentic-spring-ai-graph-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -133,12 +124,6 @@
             <dependency>
                 <groupId>io.github.agentic-spring-ai</groupId>
                 <artifactId>agentic-spring-ai-studio</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.github.agentic-spring-ai</groupId>
-                <artifactId>agentic-spring-ai-sandbox</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

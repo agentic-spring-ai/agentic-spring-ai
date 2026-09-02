@@ -40,7 +40,6 @@
       - any-glob-to-any-file:
           - "agentic-spring-ai-agent-framework/**/*"
           - "agentic-spring-ai-bom/**/*"
-          - "agentic-spring-ai-sandbox/**/*"
           - "spring-boot-starters/**/*"
 "area/studio":
   - changed-files:

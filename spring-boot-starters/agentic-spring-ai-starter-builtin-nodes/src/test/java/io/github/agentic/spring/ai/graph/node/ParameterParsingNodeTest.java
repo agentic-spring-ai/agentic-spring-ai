@@ -16,14 +16,15 @@
 
 package io.github.agentic.spring.ai.graph.node;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 
 import java.util.List;
 import java.util.Map;
@@ -33,15 +34,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@EnabledIfEnvironmentVariable(named = "AI_DASHSCOPE_API_KEY", matches = ".+")
 public class ParameterParsingNodeTest {
 
 	private ChatClient chatClient;
 
 	@BeforeEach
 	public void setUp() {
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-		ChatModel chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		ChatModel chatModel = new ParameterParsingChatModel();
 		chatClient = ChatClient.builder(chatModel).build();
 	}
 
@@ -66,7 +65,6 @@ public class ParameterParsingNodeTest {
 			.build();
 		OverAllState state = createState(Map.of("input", "My name is Kanbe Kotori and I am 20 years old."));
 		Map<String, Object> result = node.apply(state);
-		System.out.println(result);
 		assertNotNull(result);
 		assertEquals(Map.of("success", true, "data", Map.of("name", "Kanbe Kotori", "age", 20), "reason", "success"),
 				result);
@@ -87,12 +85,21 @@ public class ParameterParsingNodeTest {
 			.build();
 		OverAllState state = createState(Map.of());
 		Map<String, Object> result = node.apply(state);
-		System.out.println(result);
 		assertNotNull(result);
 		assertTrue(result.containsKey("success"));
 		assertTrue(result.containsKey("reason"));
 		assertFalse(result.containsKey("data"));
 		assertFalse((Boolean) result.get("success"));
+	}
+
+	private static final class ParameterParsingChatModel implements ChatModel {
+
+		@Override
+		public ChatResponse call(Prompt prompt) {
+			return new ChatResponse(List.of(new Generation(new AssistantMessage(
+					"{\"is_success\": true, \"data\": {\"name\": \"Kanbe Kotori\", \"age\": 20}, \"reason\": \"success\"}"))));
+		}
+
 	}
 
 }

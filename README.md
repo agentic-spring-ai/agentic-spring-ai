@@ -12,7 +12,7 @@ Agentic Spring AI is a framework for Java developers building agents, workflows,
 - **Agent orchestration**: `ReactAgent`, `SequentialAgent`, `ParallelAgent`, `RoutingAgent`, and `LoopAgent`.
 - **Context engineering**: context compaction and editing, call limits, tool retries, planning, and dynamic tool selection.
 - **Graph workflows**: conditional routing, parallel execution, nested graphs, state persistence, and interruption recovery.
-- **Multimodal and voice**: image understanding, media generation, and real-time voice interaction over WebSocket.
+- **Agent runtime foundation**: provider-neutral agent orchestration, workflow state, and embeddable debugging support.
 - **Open integrations**: DashScope, OpenAI, tool calling, MCP, A2A, and Nacos.
 - **Visual debugging**: an embeddable Agent Chat UI for Spring Boot applications.
 
@@ -38,12 +38,14 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 
 | Module | Description |
 | --- | --- |
+| [Model](agentic-spring-ai-model) | Provider-neutral model contracts and document parser SPI |
 | [Agent Framework](agentic-spring-ai-agent-framework) | Agent development and multi-agent orchestration |
 | [Graph Core](agentic-spring-ai-graph-core) | State management, persistence, and workflow runtime |
 | [Studio](agentic-spring-ai-studio) | Visual debugging UI for agents |
-| [Sandbox](agentic-spring-ai-sandbox) | Isolated execution environment for tool calls |
-| [Spring Boot Starters](spring-boot-starters) | A2A, Nacos configuration, built-in nodes, and observability integrations |
-| [Examples](examples) | Chatbot, multi-agent, graph engineering, multimodal, and voice examples |
+| [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | Optional isolated execution environment for tool calls, maintained in Extensions |
+| [Spring Boot Starters](spring-boot-starters) | Built-in graph nodes and graph observability |
+| [Extension Starters](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/starters) | A2A, Nacos, AgentScope, model, storage, and other optional integrations |
+| [Examples](examples) | Chatbot, multi-agent, graph engineering, and documentation examples |
 
 ## Documentation
 
@@ -53,6 +55,7 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 - [Graph Core Quick Start](https://agentic-spring-ai.github.io/website/en/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering guide](docs/graph-engineering.md)
 - [Examples](examples)
+- [Provider-specific examples](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 
 ## Contributing
 

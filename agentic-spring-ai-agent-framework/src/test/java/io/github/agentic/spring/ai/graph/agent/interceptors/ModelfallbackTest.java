@@ -15,8 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent.interceptors;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.CompileConfig;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.agent.ReactAgent;
@@ -62,11 +61,8 @@ class ModelfallbackTest {
 				.build();
 		this.chatModel = new ChatModelCallCounter(openAiChatModel, "OpenAI");
 
-		// Create DashScopeApi instance using the API key from environment variable
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-		// Create DashScope ChatModel instance
-		ChatModel dashScopeChatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
-		this.fallbackModel = new ChatModelCallCounter(dashScopeChatModel, "DashScope");
+		ChatModel fallbackChatModel = OpenAiCompatibleTestModels.chatModel();
+		this.fallbackModel = new ChatModelCallCounter(fallbackChatModel, "OpenAI Compatible");
 
 	}
 

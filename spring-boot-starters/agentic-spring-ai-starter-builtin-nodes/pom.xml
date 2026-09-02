@@ -106,9 +106,14 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-dashscope</artifactId>
-            <optional>true</optional>
+            <artifactId>agentic-spring-ai-model</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
 
         <dependency>
@@ -120,26 +125,6 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-client-chat</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-document-parser-tika</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-document-parser-markdown</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-document-parser-bshtml</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.agentic-spring-ai</groupId>
-            <artifactId>agentic-spring-ai-starter-document-parser-yaml</artifactId>
         </dependency>
 
         <dependency>

@@ -15,8 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.NodeOutput;
 import io.github.agentic.spring.ai.graph.agent.flow.agent.LlmRoutingAgent;
 
@@ -42,11 +41,7 @@ class StreamAgentTest {
 
 	@BeforeEach
 	void setUp() {
-		// 先创建 DashScopeApi 实例
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(System.getenv("AI_DASHSCOPE_API_KEY")).build();
-
-		// 创建 DashScope ChatModel 实例
-		this.chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		this.chatModel = OpenAiCompatibleTestModels.chatModel();
 	}
 
 	@Test

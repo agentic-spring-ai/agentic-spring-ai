@@ -15,8 +15,7 @@
  */
 package io.github.agentic.spring.ai.graph.agent;
 
-import io.github.agentic.spring.ai.dashscope.api.DashScopeApi;
-import io.github.agentic.spring.ai.dashscope.chat.DashScopeChatModel;
+import io.github.agentic.spring.ai.graph.agent.support.OpenAiCompatibleTestModels;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.agent.tools.ToolContextHelper;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
@@ -280,14 +279,13 @@ public class ToolContextHelperExample {
 		log.info("Real scenario: Tool execution → Store result → Validate");
 		log.info("========================================\n");
 
-		// Create ChatModel using DashScope
+		// Create ChatModel using an OpenAI-compatible endpoint.
 		String apiKey = System.getenv("AI_DASHSCOPE_API_KEY");
 		if (apiKey == null || apiKey.isEmpty()) {
 			throw new IllegalStateException("Please set environment variable AI_DASHSCOPE_API_KEY");
 		}
 
-		DashScopeApi dashScopeApi = DashScopeApi.builder().apiKey(apiKey).build();
-		ChatModel chatModel = DashScopeChatModel.builder().dashScopeApi(dashScopeApi).build();
+		ChatModel chatModel = OpenAiCompatibleTestModels.chatModel();
 
 		// Create validation Agent
 		ReactAgent agent = createValidationAgent(chatModel);
