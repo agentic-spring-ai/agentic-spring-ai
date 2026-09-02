@@ -19,7 +19,7 @@ inputs:
   ref:
     description: Agentic Spring AI Extensions git ref
     required: false
-    default: main
+    default: b084be422ed6e3c77aa81d518c850815fc30be2a
 runs:
   using: composite
   steps:
