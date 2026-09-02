@@ -15,6 +15,8 @@
  */
 package io.github.agentic.spring.ai.graph.agent.extension.interceptor;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.agentic.spring.ai.graph.agent.extension.file.LocalFilesystemBackend;
 
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -111,16 +114,17 @@ class FilesystemInterceptorTest {
 	}
 
 	@Test
-	void filesystemListAndGlobCallbacksExposeObjectSchemas() {
+	void filesystemListAndGlobCallbacksExposeObjectSchemas() throws Exception {
 		FilesystemInterceptor interceptor = FilesystemInterceptor.builder().readOnly(true).build();
+		ObjectMapper objectMapper = new ObjectMapper();
 
-		String lsSchema = tool(interceptor, "ls").getToolDefinition().inputSchema();
-		String globSchema = tool(interceptor, "glob").getToolDefinition().inputSchema();
+		JsonNode lsSchema = objectMapper.readTree(tool(interceptor, "ls").getToolDefinition().inputSchema());
+		JsonNode globSchema = objectMapper.readTree(tool(interceptor, "glob").getToolDefinition().inputSchema());
 
-		assertTrue(lsSchema.contains("\"type\":\"object\""));
-		assertTrue(lsSchema.contains("\"path\""));
-		assertTrue(globSchema.contains("\"type\":\"object\""));
-		assertTrue(globSchema.contains("\"pattern\""));
+		assertEquals("object", lsSchema.path("type").asText());
+		assertTrue(lsSchema.path("properties").has("path"));
+		assertEquals("object", globSchema.path("type").asText());
+		assertTrue(globSchema.path("properties").has("pattern"));
 	}
 
 	@Test
