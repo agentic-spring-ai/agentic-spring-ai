@@ -26,25 +26,36 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * MessagesAgentHook that injects the ReactAgent's instruction into messages before each agent run.
  * <p>
  * When this hook is active, it runs at {@link HookPosition#BEFORE_AGENT} and reads
  * {@link ReactAgent#instruction()} from {@link #getAgent()}. If the instruction is non-empty,
- * it prepends an {@link AgentInstructionMessage} to the given messages and returns an
+ * it appends an {@link AgentInstructionMessage} to the given messages and returns an
  * {@link AgentCommand} with {@link io.github.agentic.spring.ai.graph.agent.hook.messages.UpdatePolicy#REPLACE}.
  * This allows ReactAgent to avoid adding instruction again in the subgraph adapter when used as a subgraph node.
  * <p>
- * The hook is idempotent: if the incoming messages already contain an identical
- * {@link AgentInstructionMessage} (e.g. placed there manually by a caller such as AgentTool),
- * it is not duplicated — the output keeps exactly one copy of the current instruction (issue #77).
+ * The hook is idempotent: a copy of this agent's own instruction is never duplicated. A copy is
+ * considered stale when it carries this agent's {@link #AGENT_NAME_METADATA_KEY} metadata (tagged by
+ * this hook; the tag survives template rendering and checkpoint serialization), or when it is an
+ * untagged copy with the exact same text (e.g. injected manually by a caller). Copies belonging to
+ * other agents are left untouched, so exactly one copy of the current instruction stays in the
+ * model context (issue #77).
  * <p>
  * This hook is added by default in ReactAgent when no other hook is an InstructionAgentHook.
  * It runs first among beforeAgent hooks (lowest order).
  */
 @HookPositions(HookPosition.BEFORE_AGENT)
 public class InstructionAgentHook extends MessagesAgentHook {
+
+	/**
+	 * Metadata key that marks an {@link AgentInstructionMessage} with the name of the agent that
+	 * injected it, so this hook can recognize its own copies even after template rendering has
+	 * changed their text.
+	 */
+	public static final String AGENT_NAME_METADATA_KEY = "instructionAgentName";
 
 	private ReactAgent reactAgent;
 
@@ -58,16 +69,27 @@ public class InstructionAgentHook extends MessagesAgentHook {
 			return new AgentCommand(previousMessages);
 		}
 		// Idempotent injection: keep exactly one copy of the current instruction even when
-		// a caller (e.g. AgentTool) already placed it into the messages (see issue #77).
+		// a caller already placed it into the messages (see issue #77).
 		List<Message> newMessages = new ArrayList<>();
 		for (Message message : previousMessages) {
-			if (message instanceof AgentInstructionMessage existing && instruction.equals(existing.getText())) {
+			if (message instanceof AgentInstructionMessage existing && isOwnStaleCopy(existing, instruction)) {
 				continue;
 			}
 			newMessages.add(message);
 		}
-		newMessages.add(AgentInstructionMessage.builder().text(instruction).build());
+		newMessages.add(AgentInstructionMessage.builder()
+				.text(instruction)
+				.metadata(Map.of(AGENT_NAME_METADATA_KEY, reactAgent.name()))
+				.build());
 		return new AgentCommand(newMessages);
+	}
+
+	private boolean isOwnStaleCopy(AgentInstructionMessage existing, String instruction) {
+		Map<String, Object> metadata = existing.getMetadata();
+		if (metadata != null && reactAgent.name().equals(metadata.get(AGENT_NAME_METADATA_KEY))) {
+			return true;
+		}
+		return instruction.equals(existing.getText());
 	}
 
 	@Override

@@ -34,7 +34,6 @@ import org.springframework.ai.util.JsonHelper;
 import org.springframework.ai.util.json.schema.JsonSchemaGenerator;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,10 +197,7 @@ public class AgentTool {
 
 			// Instruction is injected exactly once by the child agent's default
 			// InstructionAgentHook (see issue #77); only the user input is added here.
-			// Note: we add all messages at once because cloneState doesn't copy keyStrategies,
-			// so multiple updateState calls would overwrite instead of append
-			List<Message> messagesToAdd = new ArrayList<>();
-			messagesToAdd.add(new UserMessage(actualInput));
+			List<Message> messagesToAdd = List.of(new UserMessage(actualInput));
 
 			Optional<OverAllState> resultState;
 			Optional<RunnableConfig> parentConfigOpt = ToolContextHelper.getConfig(toolContext);

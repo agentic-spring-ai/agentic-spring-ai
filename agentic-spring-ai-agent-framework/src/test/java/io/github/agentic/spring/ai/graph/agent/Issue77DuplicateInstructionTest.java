@@ -15,10 +15,6 @@
  */
 package io.github.agentic.spring.ai.graph.agent;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
 import io.github.agentic.spring.ai.graph.serializer.AgentInstructionMessage;
 
@@ -31,12 +27,17 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.chat.prompt.Prompt;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import reactor.core.publisher.Flux;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Reproduction for <a href="https://github.com/agentic-spring-ai/agentic-spring-ai/issues/77">issue #77</a>:
@@ -80,13 +81,15 @@ class Issue77DuplicateInstructionTest {
 		AssistantMessage result = executor.executeAgent("{\"input\": \"hello\"}", new ToolContext(Map.of()));
 
 		assertNotNull(result);
-		long instructionCopies = model.prompts.stream()
-				.flatMap(prompt -> prompt.getInstructions().stream())
-				.filter(AgentInstructionMessage.class::isInstance)
-				.map(message -> ((AgentInstructionMessage) message).getText())
-				.filter(INSTRUCTION::equals)
-				.count();
-		assertEquals(1, instructionCopies, "instruction must appear exactly once in the model context");
+		assertTrue(!model.prompts.isEmpty(), "the child agent must call the model at least once");
+		for (Prompt prompt : model.prompts) {
+			long instructionCopies = prompt.getInstructions().stream()
+					.filter(AgentInstructionMessage.class::isInstance)
+					.map(message -> ((AgentInstructionMessage) message).getText())
+					.filter(INSTRUCTION::equals)
+					.count();
+			assertEquals(1, instructionCopies, "each model call must carry the instruction exactly once");
+		}
 	}
 
 	@Test

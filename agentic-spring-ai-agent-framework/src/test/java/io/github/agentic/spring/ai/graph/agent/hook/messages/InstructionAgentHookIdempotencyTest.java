@@ -30,6 +30,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import reactor.core.publisher.Flux;
 
@@ -124,6 +125,25 @@ class InstructionAgentHookIdempotencyTest {
 
 		assertEquals(1, countInstruction(command.getMessages(), "other agent instruction"));
 		assertEquals(1, countInstruction(command.getMessages(), INSTRUCTION));
+	}
+
+	@Test
+	void renderedOwnCopyFromPreviousTurnIsReplacedByFreshInstruction() {
+		InstructionAgentHook hook = hookFor(INSTRUCTION);
+		// Simulate a previous turn: the hook injected the raw template, the model node rendered it
+		// in place (text mutated, rendered flag set, ownership metadata preserved).
+		List<Message> previous = new ArrayList<>(List.of(
+				AgentInstructionMessage.builder()
+						.text("You are a product support assistant for Bob.")
+						.metadata(Map.of(InstructionAgentHook.AGENT_NAME_METADATA_KEY, "instr-agent"))
+						.rendered(true)
+						.build(),
+				new UserMessage("hello")));
+
+		AgentCommand command = hook.beforeAgent(previous, null);
+
+		long total = command.getMessages().stream().filter(AgentInstructionMessage.class::isInstance).count();
+		assertEquals(1, total, "the stale rendered copy must be replaced by a single fresh instruction");
 	}
 
 }
