@@ -19,7 +19,7 @@ inputs:
   ref:
     description: Agentic Spring AI Extensions git ref
     required: false
-    default: 5e7d4912800548adf3a36744779841cea131c519
+    default: 895d99b644f38969829168402ffeac52d91c4f9b
 runs:
   using: composite
   steps:
@@ -46,6 +46,8 @@ runs:
           :agentic-spring-ai-graph-persistence-mongodb
           :agentic-spring-ai-graph-persistence-redis
           :agentic-spring-ai-code-executor-docker
+          :agentic-spring-ai-graph-node-rag
+          :agentic-spring-ai-graph-node-network
         )
         extensions_module_list=$(IFS=,; echo "${extensions_modules[*]}")
         mvn -B -DskipTests \

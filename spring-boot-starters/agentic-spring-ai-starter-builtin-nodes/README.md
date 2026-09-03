@@ -1,5 +1,46 @@
 # Built-in Nodes
 
+## Migrated Graph Nodes
+
+The Core `KnowledgeRetrievalNode`, `HttpNode`, and `DocumentExtractorNode`
+classes remain in this starter for 2.x compatibility and are deprecated since
+2.1.0 for removal in 3.0. New applications should use the Extensions-owned
+graph node artifacts and packages.
+
+For RAG retrieval nodes, declare:
+
+```xml
+<dependency>
+  <groupId>io.github.agentic-spring-ai</groupId>
+  <artifactId>agentic-spring-ai-graph-node-rag</artifactId>
+</dependency>
+```
+
+Then import the Extensions package:
+
+```java
+import io.github.agentic.spring.ai.graph.node.rag.KnowledgeRetrievalNode;
+```
+
+For HTTP and document extraction nodes, declare:
+
+```xml
+<dependency>
+  <groupId>io.github.agentic-spring-ai</groupId>
+  <artifactId>agentic-spring-ai-graph-node-network</artifactId>
+</dependency>
+```
+
+Then import the Extensions packages:
+
+```java
+import io.github.agentic.spring.ai.graph.node.network.DocumentExtractorNode;
+import io.github.agentic.spring.ai.graph.node.network.HttpNode;
+```
+
+The Extensions artifacts are plain libraries. They do not add Spring Boot
+auto-configuration, component scanning, or automatic graph node registration.
+
 ## Secure Defaults
 
 The code and document nodes use restrictive defaults. Applications upgrading from earlier releases
