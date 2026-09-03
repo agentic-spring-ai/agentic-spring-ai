@@ -23,7 +23,7 @@ import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.StateGraph;
 import io.github.agentic.spring.ai.graph.checkpoint.config.SaverConfig;
-import io.github.agentic.spring.ai.graph.checkpoint.savers.redis.RedisSaver;
+import io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver;
 import io.github.agentic.spring.ai.graph.exception.GraphStateException;
 import io.github.agentic.spring.ai.graph.state.StateSnapshot;
 import io.github.agentic.spring.ai.graph.state.strategy.ReplaceStrategy;

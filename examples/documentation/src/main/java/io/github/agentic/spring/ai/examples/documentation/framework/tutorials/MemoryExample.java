@@ -25,7 +25,7 @@ import io.github.agentic.spring.ai.graph.agent.hook.messages.MessagesModelHook;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.AgentCommand;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.UpdatePolicy;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
-import io.github.agentic.spring.ai.graph.checkpoint.savers.redis.RedisSaver;
+import io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver;
 import io.github.agentic.spring.ai.graph.exception.GraphRunnerException;
 
 import org.springframework.ai.chat.messages.AssistantMessage;

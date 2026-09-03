@@ -1,6 +1,7 @@
 # Persistence and Executor Migration
 
-Status: Proposed for 2.2, removal phase targeted for 3.0.
+Status: Implemented for 2.2 preparation, removal phase targeted for 3.0.
+Do not publish these migrated Extensions artifacts as part of a 2.1 release.
 
 ## Objective
 
@@ -24,7 +25,8 @@ Core continues to own:
 - `LocalCommandlineCodeExecutor` until a separate security and compatibility
   review decides otherwise.
 
-Extensions will own these new artifacts:
+Extensions owns these new artifacts in reviewed commit
+`5e7d4912800548adf3a36744779841cea131c519`:
 
 | Artifact | New package | Implementations |
 | --- | --- | --- |
@@ -37,6 +39,29 @@ Extensions will own these new artifacts:
 provide in-memory behavior rather than real Redis or MongoDB persistence, so
 moving them into vendor artifacts would misrepresent their behavior. Their
 naming and ownership require a separate deprecation decision.
+
+## Implementation Status
+
+The 2.2 preparation work is implemented across Core commit
+`a843ec5877f89480087a30e05b2756625a3ae432` and Extensions commit
+`5e7d4912800548adf3a36744779841cea131c519`.
+
+- Core keeps the old compatibility classes and marks the migrated JDBC,
+  Redis, MongoDB, and Docker executor implementations
+  `@Deprecated(since = "2.2.0", forRemoval = true)`.
+- Core active Redis documentation examples now use
+  `io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver` from
+  `agentic-spring-ai-graph-persistence-redis`.
+- Core production POMs and BOMs do not declare any Extensions dependency.
+  Extensions artifacts are installed only for CI/example compilation through
+  `tools/github-actions/setup-extensions`.
+- `setup-extensions` is pinned to reviewed Extensions commit
+  `5e7d4912800548adf3a36744779841cea131c519` and installs these four migrated
+  artifacts for Core integration jobs:
+  `agentic-spring-ai-graph-persistence-jdbc`,
+  `agentic-spring-ai-graph-persistence-mongodb`,
+  `agentic-spring-ai-graph-persistence-redis`, and
+  `agentic-spring-ai-code-executor-docker`.
 
 ## Compatibility Phases
 
@@ -135,7 +160,7 @@ jar is present.
 
 ## 2.2 Verification Gates
 
-The 2.2 implementation is not complete until all of these pass:
+The 2.2 implementation is not publishable until all of these pass:
 
 1. Binary API comparison from Core 2.1 to 2.2 for every old public class.
 2. A consumer fixture using old imports and builders compiles against Core 2.2.
@@ -154,6 +179,42 @@ The 2.2 implementation is not complete until all of these pass:
 9. Extensions tests pass with Core artifacts installed first from an isolated
    Maven repository.
 
+## Completed 2.2 Preparation Evidence
+
+- Core binary API gate:
+  `tools/scripts/verify-core-binary-compatibility.sh` compares locally built
+  graph-core and builtin-nodes jars from baseline commit
+  `c128f02584fc976ee641572074db2e556466f6a2` against the current candidate.
+  Reports generated on 2026-09-03 show compatible changes for both modules.
+- Core deprecation regression tests:
+  `MigratedPersistenceDeprecationTests` and
+  `DockerCodeExecutorDeprecationTest` passed after the old Core compatibility
+  APIs were annotated.
+- JDBC extension compatibility:
+  `agentic-spring-ai-graph-persistence-jdbc` passed DDL snapshot checks, H2
+  old/new bidirectional checkpoint and `DatabaseStore` compatibility, and real
+  PostgreSQL, MySQL, and Oracle bidirectional compatibility. The full JDBC
+  module test with Oracle enabled reported 18 tests, 0 failures, 0 errors,
+  0 skipped.
+- Redis extension compatibility:
+  `RedisPersistenceCompatibilityTests` passed against real Valkey/Redis,
+  covering old-write/new-read, new-write/old-read, key prefixes, Base64
+  checkpoint content, and serialized checkpoint content.
+- MongoDB extension compatibility:
+  `MongoPersistenceCompatibilityTests` passed against real MongoDB, covering
+  old-write/new-read, new-write/old-read, database/collection names, document
+  id prefixes, persisted fields, Base64 checkpoint content, and serialized
+  checkpoint content.
+- Docker executor compatibility:
+  `DockerCodeExecutorCompatibilityTests` passed with 24 tests, covering both
+  old Core and new Extensions executors for defaults, timeout, cleanup, output
+  truncation, language mapping, Java classpath command shape, restart no-op,
+  and execution directory cleanup.
+
+Remaining release blocker: these artifacts are 2.2 preparation outputs and
+must not be released under the 2.1 line. Publish only after the Core/Extensions
+2.2 release train is cut in order.
+
 ## 3.0 Verification Gates
 
 1. Core compile and runtime dependency trees contain no PostgreSQL, MySQL,
@@ -167,3 +228,5 @@ The 2.2 implementation is not complete until all of these pass:
 For 2.2 and later, publish Core first, then publish Extensions against that
 exact Core release. Core documentation may reference Extensions coordinates,
 but Core build and published POMs must remain independent of Extensions.
+Do not publish the migrated JDBC, Redis, MongoDB, or Docker executor artifacts
+as 2.1 artifacts.
