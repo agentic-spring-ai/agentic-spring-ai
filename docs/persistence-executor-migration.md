@@ -42,9 +42,16 @@ naming and ownership require a separate deprecation decision.
 
 ## Implementation Status
 
-The 2.2 preparation work is implemented across Core commit
-`a843ec5877f89480087a30e05b2756625a3ae432` and Extensions commit
-`5e7d4912800548adf3a36744779841cea131c519`.
+The 2.2 preparation work is implemented across these reviewed commits:
+
+- Core deprecation and binary compatibility:
+  `a843ec5877f89480087a30e05b2756625a3ae432`.
+- Core CI, examples, and migration documentation:
+  `57657b9afd28688ea8a47fa290131a4dec098a2e`.
+- Extensions persistence and Docker implementations:
+  `5e7d4912800548adf3a36744779841cea131c519`.
+- Extensions Core pin and cross-repository verification:
+  `d6be576b358c2f56c6f52cf4f75fc9fe6032184f`.
 
 - Core keeps the old compatibility classes and marks the migrated JDBC,
   Redis, MongoDB, and Docker executor implementations
