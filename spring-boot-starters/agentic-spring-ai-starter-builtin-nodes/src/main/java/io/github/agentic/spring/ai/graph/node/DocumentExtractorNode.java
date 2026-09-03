@@ -56,9 +56,13 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ScheduledFuture;
 
 /**
+ * @deprecated since 2.1.0 for removal in 3.0. Use artifact
+ * {@code agentic-spring-ai-graph-node-network} and
+ * {@code io.github.agentic.spring.ai.graph.node.network.DocumentExtractorNode} instead.
  * @author HeYQ
  * @since 2025-05-02 17:03
  */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class DocumentExtractorNode implements NodeAction {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
