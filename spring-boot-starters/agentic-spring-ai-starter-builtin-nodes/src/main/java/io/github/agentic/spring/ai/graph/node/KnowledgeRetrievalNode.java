@@ -43,6 +43,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated since 2.1.0 for removal in 3.0. Use artifact
+ * {@code agentic-spring-ai-graph-node-rag} and
+ * {@code io.github.agentic.spring.ai.graph.node.rag.KnowledgeRetrievalNode} instead.
+ */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class KnowledgeRetrievalNode implements NodeAction {
 
 	private String userPromptKey;

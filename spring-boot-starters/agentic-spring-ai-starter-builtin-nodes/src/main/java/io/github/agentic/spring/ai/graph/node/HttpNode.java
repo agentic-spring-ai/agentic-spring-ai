@@ -66,6 +66,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import static java.lang.String.format;
 
+/**
+ * @deprecated since 2.1.0 for removal in 3.0. Use artifact
+ * {@code agentic-spring-ai-graph-node-network} and
+ * {@code io.github.agentic.spring.ai.graph.node.network.HttpNode} instead.
+ */
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class HttpNode implements NodeAction {
 
 	private static final Logger logger = LoggerFactory.getLogger(HttpNode.class);
