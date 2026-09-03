@@ -63,10 +63,10 @@ import javax.sql.DataSource;
  *
  * @author Spring AI Alibaba
  * @since 1.0.0.3
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class DatabaseStore extends BaseStore {
 
     private static final String DEFAULT_TABLE_NAME = "spring_ai_store";

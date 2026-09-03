@@ -106,10 +106,10 @@ import static java.util.Objects.requireNonNull;
  * </pre>
  * </p>
  *
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class PostgresSaver extends AbstractJdbcCheckpointSaver {
 
 	private static final Logger log = LoggerFactory.getLogger(PostgresSaver.class);

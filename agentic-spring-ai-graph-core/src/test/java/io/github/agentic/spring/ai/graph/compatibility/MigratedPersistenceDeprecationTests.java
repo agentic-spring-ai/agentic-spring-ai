@@ -81,7 +81,7 @@ class MigratedPersistenceDeprecationTests {
 	private static void assertDeprecatedForRemoval(Class<?> type) {
 		Deprecated deprecated = type.getAnnotation(Deprecated.class);
 		assertNotNull(deprecated, () -> type.getName() + " must be deprecated");
-		assertEquals("2.2.0", deprecated.since(), () -> type.getName() + " must declare since=2.2.0");
+		assertEquals("2.1.0", deprecated.since(), () -> type.getName() + " must declare since=2.1.0");
 		assertTrue(deprecated.forRemoval(), () -> type.getName() + " must be marked for removal");
 	}
 

@@ -67,10 +67,10 @@ import static java.lang.String.format;
  * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-mongodb}
  * and use {@code io.github.agentic.spring.ai.graph.persistence.mongodb.MongoSaver}.
  *
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class MongoSaver implements BaseCheckpointSaver {
 
 	private static final Logger logger = LoggerFactory.getLogger(MongoSaver.class);

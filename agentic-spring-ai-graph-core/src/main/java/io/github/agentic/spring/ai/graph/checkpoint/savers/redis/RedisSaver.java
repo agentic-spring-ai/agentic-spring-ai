@@ -55,10 +55,10 @@ import static java.util.Objects.requireNonNull;
  *
  * @author disaster
  * @since 1.0.0-M2
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class RedisSaver implements BaseCheckpointSaver {
 
 	// Redis key prefixes

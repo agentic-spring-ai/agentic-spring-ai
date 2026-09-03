@@ -40,10 +40,10 @@ import java.util.concurrent.locks.ReentrantLock;
  * and use
  * {@code io.github.agentic.spring.ai.graph.persistence.jdbc.AbstractJdbcCheckpointSaver}.
  *
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public abstract class AbstractJdbcCheckpointSaver implements BaseCheckpointSaver, LatestCheckpointCacheConfigurable {
 
 	private final LatestCheckpointCache latestCheckpointCache;

@@ -61,10 +61,10 @@ import static com.github.dockerjava.api.model.HostConfig.newHostConfig;
  *
  * @author HeYQ
  * @since 2025-06-01 20:15
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class DockerCodeExecutor implements CodeExecutor {
 
 	private static final Logger logger = LoggerFactory.getLogger(DockerCodeExecutor.class);

@@ -25,10 +25,10 @@ package io.github.agentic.spring.ai.graph.checkpoint.savers.oracle;
  * and use
  * {@code io.github.agentic.spring.ai.graph.persistence.jdbc.oracle.CreateOption}.
  *
- * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * @deprecated since 2.1.0 for removal. Use the replacement artifact and FQCN
  * listed above.
  */
-@Deprecated(since = "2.2.0", forRemoval = true)
+@Deprecated(since = "2.1.0", forRemoval = true)
 public enum CreateOption {
 
 	/** No attempt is made to create the schema object. */

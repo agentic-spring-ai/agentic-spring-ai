@@ -247,7 +247,8 @@ not silently changed by a starter.
 - Keep Core's existing provider-specific classes, public methods, conditional
   registration behavior, reflective ZhiPu AI path, and optional
   `spring-ai-deepseek` dependency.
-- Do not publish the current `2.1.0-dev` preparation branch as a 2.1 artifact.
+- Keep this serializer SPI outside the 2.1 persistence and Docker release scope;
+  the design remains implementation work for 2.2.
 
 This phase is source and binary compatible. Applications may opt into the new
 adapters without changing existing checkpoints.

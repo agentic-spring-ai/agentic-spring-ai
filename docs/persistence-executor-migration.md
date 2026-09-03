@@ -1,13 +1,13 @@
 # Persistence and Executor Migration
 
-Status: Implemented for 2.2 preparation, removal phase targeted for 3.0.
-Do not publish these migrated Extensions artifacts as part of a 2.1 release.
+Status: Introduced in 2.1, with coexistence through 2.x and removal targeted for
+3.0.
 
 ## Objective
 
 Keep Agentic Spring AI Core focused on graph, agent, persistence, and execution
 contracts while moving vendor-specific database and Docker implementations to
-Agentic Spring AI Extensions. The migration must preserve 2.2 source, binary,
+Agentic Spring AI Extensions. The migration must preserve 2.1 source, binary,
 storage, and rollback compatibility.
 
 Core must never depend on Extensions. The same fully qualified class name must
@@ -42,7 +42,7 @@ naming and ownership require a separate deprecation decision.
 
 ## Implementation Status
 
-The 2.2 preparation work is implemented across these reviewed commits:
+The 2.1 migration work is implemented across these reviewed commits:
 
 - Core deprecation and binary compatibility:
   `a843ec5877f89480087a30e05b2756625a3ae432`.
@@ -55,7 +55,7 @@ The 2.2 preparation work is implemented across these reviewed commits:
 
 - Core keeps the old compatibility classes and marks the migrated JDBC,
   Redis, MongoDB, and Docker executor implementations
-  `@Deprecated(since = "2.2.0", forRemoval = true)`.
+  `@Deprecated(since = "2.1.0", forRemoval = true)`.
 - Core active Redis documentation examples now use
   `io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver` from
   `agentic-spring-ai-graph-persistence-redis`.
@@ -74,18 +74,11 @@ The 2.2 preparation work is implemented across these reviewed commits:
 
 ### 2.1
 
-- Keep all existing public persistence and executor classes in their current
-  artifacts.
-- Remove only dependencies proven unused by source and runtime tests.
-- Add this migration contract without changing public API.
-
-### 2.2
-
 - Add the four Extensions artifacts and their new packages.
 - Copy behavior into the new implementations; do not move the old fully
   qualified class names.
 - Mark the old Core database saver, JDBC store, and Docker executor classes
-  `@Deprecated(since = "2.2.0", forRemoval = true)`.
+  `@Deprecated(since = "2.1.0", forRemoval = true)`.
 - Preserve every old constructor, public or protected method, static factory,
   builder method, nested type, visibility, return type, enum constant,
   exception contract, and default value. In particular, do not normalize the
@@ -97,8 +90,17 @@ The 2.2 preparation work is implemented across these reviewed commits:
   auto-configuration must be explicitly enabled, use `@ConditionalOnClass` and
   `@ConditionalOnMissingBean`, and leave user beans authoritative.
 - Do not add `ServiceLoader` or `META-INF/services` discovery for savers,
-  stores, or executors in 2.2. Users must construct and inject these
+  stores, or executors in 2.1. Users must construct and inject these
   implementations explicitly.
+
+### 2.2
+
+- Continue the compatibility period; do not remove the deprecated Core APIs.
+- Keep the 2.1 physical storage formats, Docker defaults, and replacement
+  package names stable.
+- Continue compiling legacy import fixtures and running bidirectional
+  Core/Extensions compatibility tests.
+- Migrate remaining applications and documentation to the Extensions artifacts.
 
 ### 3.0
 
@@ -146,7 +148,7 @@ and content-type definitions for H2, PostgreSQL, MySQL, and Oracle:
 - `DatabaseStore` default table `spring_ai_store` and its current columns,
   dialect-specific types, primary key, and upsert behavior.
 
-The 2.2 implementation must add checked-in schema snapshots for each dialect;
+The 2.1 implementation includes checked-in schema snapshots for each dialect;
 tests compare generated DDL with those snapshots instead of duplicating SQL in
 assertions.
 
@@ -165,12 +167,13 @@ memory, CPU, PID, capability, and no-new-privileges defaults.
 No executor should be discovered or activated automatically merely because its
 jar is present.
 
-## 2.2 Verification Gates
+## 2.1 Release Gates
 
-The 2.2 implementation is not publishable until all of these pass:
+The 2.1 Core and Extensions releases are not publishable until all of these pass:
 
-1. Binary API comparison from Core 2.1 to 2.2 for every old public class.
-2. A consumer fixture using old imports and builders compiles against Core 2.2.
+1. Binary API comparison from the pre-migration Core baseline to Core 2.1 for
+   every old public class.
+2. A consumer fixture using old imports and builders compiles against Core 2.1.
 3. For every migrated persistence implementation and every supported dialect
    or backend, the old implementation writes and the new implementation reads
    the same checkpoint or store data.
@@ -186,7 +189,7 @@ The 2.2 implementation is not publishable until all of these pass:
 9. Extensions tests pass with Core artifacts installed first from an isolated
    Maven repository.
 
-## Completed 2.2 Preparation Evidence
+## Completed 2.1 Release Evidence
 
 - Core binary API gate:
   `tools/scripts/verify-core-binary-compatibility.sh` compares locally built
@@ -218,22 +221,22 @@ The 2.2 implementation is not publishable until all of these pass:
   truncation, language mapping, Java classpath command shape, restart no-op,
   and execution directory cleanup.
 
-Remaining release blocker: these artifacts are 2.2 preparation outputs and
-must not be released under the 2.1 line. Publish only after the Core/Extensions
-2.2 release train is cut in order.
+Release the Core artifacts first. Then release Extensions with both
+`revision=2.1.0` and `agentic-spring-ai.version=2.1.0`, and verify the published
+coordinates from a clean consumer repository.
 
 ## 3.0 Verification Gates
 
 1. Core compile and runtime dependency trees contain no PostgreSQL, MySQL,
    Oracle, Redisson, MongoDB, H2, or Docker Java artifacts.
 2. Core no longer contains the deprecated vendor implementation FQCNs.
-3. Extensions retain all 2.2 storage compatibility and Docker security tests.
+3. Extensions retain all 2.1 storage compatibility and Docker security tests.
 4. The migration guide names every removed class and its replacement.
 
 ## Release Order
 
-For 2.2 and later, publish Core first, then publish Extensions against that
+For 2.1 and later, publish Core first, then publish Extensions against that
 exact Core release. Core documentation may reference Extensions coordinates,
 but Core build and published POMs must remain independent of Extensions.
-Do not publish the migrated JDBC, Redis, MongoDB, or Docker executor artifacts
-as 2.1 artifacts.
+The migrated JDBC, Redis, MongoDB, and Docker executor artifacts are part of the
+Extensions 2.1 release.

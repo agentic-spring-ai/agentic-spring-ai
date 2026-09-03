@@ -28,7 +28,7 @@ class DockerCodeExecutorDeprecationTest {
 	void dockerCodeExecutorCompatibilityTypeIsDeprecatedForRemoval() {
 		Deprecated deprecated = DockerCodeExecutor.class.getAnnotation(Deprecated.class);
 		assertNotNull(deprecated, "DockerCodeExecutor must be deprecated");
-		assertEquals("2.2.0", deprecated.since());
+		assertEquals("2.1.0", deprecated.since());
 		assertTrue(deprecated.forRemoval());
 
 		Class<? extends CodeExecutor> executorType = DockerCodeExecutor.class;
