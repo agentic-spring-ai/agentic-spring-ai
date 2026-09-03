@@ -95,6 +95,11 @@ import static java.lang.String.format;
  * existing tables should be used.
  * - StateSerializer: the serializer used to serialize/deserialize state data
  * - MaxCachedThreads: indicates how many latest checkpoints are kept in memory.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-jdbc}
+ * and use
+ * {@code io.github.agentic.spring.ai.graph.persistence.jdbc.oracle.OracleSaver}.
  * </p>
  * <p>
  * Ex:
@@ -107,7 +112,11 @@ import static java.lang.String.format;
  *         .build();
  * </pre>
  * </p>
+ *
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class OracleSaver extends AbstractJdbcCheckpointSaver {
 
 	private static final Logger log = LoggerFactory.getLogger(OracleSaver.class);

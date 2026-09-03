@@ -34,7 +34,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>
  * This class owns the common saver lifecycle and latest-checkpoint cache behavior.
  * Subclasses keep database-specific SQL, transaction details and row mapping logic.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-jdbc}
+ * and use
+ * {@code io.github.agentic.spring.ai.graph.persistence.jdbc.AbstractJdbcCheckpointSaver}.
+ *
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public abstract class AbstractJdbcCheckpointSaver implements BaseCheckpointSaver, LatestCheckpointCacheConfigurable {
 
 	private final LatestCheckpointCache latestCheckpointCache;

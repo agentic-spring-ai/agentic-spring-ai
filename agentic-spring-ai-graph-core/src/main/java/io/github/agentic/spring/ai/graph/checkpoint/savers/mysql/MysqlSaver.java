@@ -87,6 +87,11 @@ import static java.util.Objects.requireNonNull;
  * - CreateOption : indicates whether the tables should be created or
  * existing tables should be used.
  * - MaxCachedThreads: indicates how many latest checkpoints are kept in memory.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-jdbc}
+ * and use
+ * {@code io.github.agentic.spring.ai.graph.persistence.jdbc.mysql.MysqlSaver}.
  * </p>
  * <p>
  * Ex:
@@ -99,7 +104,11 @@ import static java.util.Objects.requireNonNull;
  *         .build();
  * </pre>
  * </p>
+ *
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class MysqlSaver extends AbstractJdbcCheckpointSaver {
 
 	private static final Logger log = LoggerFactory.getLogger(MysqlSaver.class);

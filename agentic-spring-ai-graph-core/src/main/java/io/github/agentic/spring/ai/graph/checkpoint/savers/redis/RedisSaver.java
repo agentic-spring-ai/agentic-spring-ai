@@ -48,10 +48,17 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * The type Redis saver.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-redis}
+ * and use {@code io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver}.
  *
  * @author disaster
  * @since 1.0.0-M2
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class RedisSaver implements BaseCheckpointSaver {
 
 	// Redis key prefixes

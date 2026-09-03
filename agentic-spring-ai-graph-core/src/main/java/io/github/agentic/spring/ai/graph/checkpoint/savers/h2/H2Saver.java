@@ -91,6 +91,10 @@ import static java.util.Objects.requireNonNull;
  * A builder can be used to create an instance of H2Saver. The builder allows
  * configuring a DataSource or JDBC URL, CreateOption, StateSerializer, and the
  * maximum number of latest checkpoints retained in memory.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-graph-persistence-jdbc}
+ * and use {@code io.github.agentic.spring.ai.graph.persistence.jdbc.h2.H2Saver}.
  * </p>
  * <p>
  * Ex:
@@ -103,7 +107,11 @@ import static java.util.Objects.requireNonNull;
  *         .build();
  * </pre>
  * </p>
+ *
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class H2Saver extends AbstractJdbcCheckpointSaver {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(H2Saver.class);

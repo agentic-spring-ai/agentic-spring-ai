@@ -52,10 +52,19 @@ import java.util.concurrent.TimeUnit;
 import static com.github.dockerjava.api.model.HostConfig.newHostConfig;
 
 /**
+ * Docker-backed code executor.
+ * <p>
+ * Replacement: add artifact
+ * {@code io.github.agentic-spring-ai:agentic-spring-ai-code-executor-docker}
+ * and use
+ * {@code io.github.agentic.spring.ai.graph.node.code.docker.DockerCodeExecutor}.
+ *
  * @author HeYQ
  * @since 2025-06-01 20:15
+ * @deprecated since 2.2.0 for removal. Use the replacement artifact and FQCN
+ * listed above.
  */
-
+@Deprecated(since = "2.2.0", forRemoval = true)
 public class DockerCodeExecutor implements CodeExecutor {
 
 	private static final Logger logger = LoggerFactory.getLogger(DockerCodeExecutor.class);
