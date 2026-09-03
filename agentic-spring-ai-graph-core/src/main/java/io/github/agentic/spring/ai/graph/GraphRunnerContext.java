@@ -96,8 +96,15 @@ public class GraphRunnerContext {
 
 		var saver = compiledGraph.compileConfig.checkpointSaver()
 				.orElseThrow(() -> new IllegalStateException("Resume request without a configured checkpoint saver!"));
-		var checkpoint = saver.get(config)
-				.orElseThrow(() -> new IllegalStateException("Resume request without a valid checkpoint!"));
+		var checkpointOptional = saver.get(config);
+		if (checkpointOptional.isEmpty()) {
+			// 多 agent 编排下，父图恢复时只有被中断的子 agent 有 checkpoint；其它子 agent
+			// 从未中断、没有 checkpoint，应作为新会话初始化而不是抛异常。
+			log.debug("Resume config present but no checkpoint found for this (sub)graph; falling back to fresh start.");
+			initializeFromStart(initialState, config);
+			return;
+		}
+		var checkpoint = checkpointOptional.get();
 
 		var startCheckpointNextNodeAction = compiledGraph.getNodeAction(checkpoint.getNextNodeId());
 		if (startCheckpointNextNodeAction instanceof ResumableSubGraphAction resumableAction) {
