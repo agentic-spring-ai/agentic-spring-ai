@@ -36,6 +36,10 @@ import java.util.List;
  * {@link AgentCommand} with {@link io.github.agentic.spring.ai.graph.agent.hook.messages.UpdatePolicy#REPLACE}.
  * This allows ReactAgent to avoid adding instruction again in the subgraph adapter when used as a subgraph node.
  * <p>
+ * The hook is idempotent: if the incoming messages already contain an identical
+ * {@link AgentInstructionMessage} (e.g. placed there manually by a caller such as AgentTool),
+ * it is not duplicated — the output keeps exactly one copy of the current instruction (issue #77).
+ * <p>
  * This hook is added by default in ReactAgent when no other hook is an InstructionAgentHook.
  * It runs first among beforeAgent hooks (lowest order).
  */
@@ -53,9 +57,16 @@ public class InstructionAgentHook extends MessagesAgentHook {
 		if (!StringUtils.hasLength(instruction)) {
 			return new AgentCommand(previousMessages);
 		}
-		AgentInstructionMessage instructionMessage = AgentInstructionMessage.builder().text(instruction).build();
-		List<Message> newMessages = new ArrayList<>(previousMessages);
-		newMessages.add(instructionMessage);
+		// Idempotent injection: keep exactly one copy of the current instruction even when
+		// a caller (e.g. AgentTool) already placed it into the messages (see issue #77).
+		List<Message> newMessages = new ArrayList<>();
+		for (Message message : previousMessages) {
+			if (message instanceof AgentInstructionMessage existing && instruction.equals(existing.getText())) {
+				continue;
+			}
+			newMessages.add(message);
+		}
+		newMessages.add(AgentInstructionMessage.builder().text(instruction).build());
 		return new AgentCommand(newMessages);
 	}
 
