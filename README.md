@@ -54,6 +54,7 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 - [Agent Framework tutorials](https://agentic-spring-ai.github.io/website/en/docs/frameworks/agent-framework/tutorials/agents)
 - [Graph Core Quick Start](https://agentic-spring-ai.github.io/website/en/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering guide](docs/graph-engineering.md)
+- [Persistence and executor migration](docs/persistence-executor-migration.md)
 - [Examples](examples)
 - [Provider-specific examples](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 

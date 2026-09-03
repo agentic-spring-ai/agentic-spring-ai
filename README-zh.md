@@ -54,6 +54,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 - [Agent Framework 教程](https://agentic-spring-ai.github.io/website/docs/frameworks/agent-framework/tutorials/agents)
 - [Graph Core 快速开始](https://agentic-spring-ai.github.io/website/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering 指南](docs/graph-engineering.md)
+- [持久化与执行器迁移方案](docs/persistence-executor-migration.md)
 - [示例项目](examples)
 - [模型厂商相关示例](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 

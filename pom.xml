@@ -72,13 +72,6 @@
         <url>https://github.com/agentic-spring-ai/agentic-spring-ai/actions</url>
     </ciManagement>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <url>http://mvnrepo.alibaba-inc.com/mvn/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
 
         <!-- Spring AI Alibaba Version -->
@@ -95,12 +88,6 @@
         <spring-ai.version>2.0.1</spring-ai.version>
         <spring-boot.version>4.1.1</spring-boot.version>
 
-        <!-- DashScope SDK Version -->
-        <dashscope-sdk-java.version>2.22.31</dashscope-sdk-java.version>
-
-        <!-- Nacos -->
-        <nacos3.version>3.2.4</nacos3.version>
-
         <!-- Redis -->
         <redisson.version>3.52.0</redisson.version>
 
@@ -108,14 +95,9 @@
 
         <commons-exec.version>1.6.0</commons-exec.version>
         <commons-collections4.version>4.6.0</commons-collections4.version>
-
         <json-schema-validator.version>3.0.1</json-schema-validator.version>
 
         <ojdbc-provider-oson.version>1.1.0</ojdbc-provider-oson.version>
-
-        <commons-io.version>2.22.0</commons-io.version>
-
-        <commons-lang3.version>3.20.0</commons-lang3.version>
 
         <mcp.sdk.version>2.0.1</mcp.sdk.version>
         <a2a-sdk.version>0.2.5</a2a-sdk.version>
@@ -155,42 +137,16 @@
 
         <central.publishing.maven.version>0.11.0</central.publishing.maven.version>
 
-        <slf4j.version>2.0.18</slf4j.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons-lang3.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons-io.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
                 <version>${okhttp.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>dashscope-sdk-java</artifactId>
-                <version>${dashscope-sdk-java.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-simple</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
