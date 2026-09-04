@@ -29,8 +29,10 @@ import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
 import io.github.agentic.spring.ai.graph.utils.SystemClock;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
 
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
 
 import org.springframework.util.CollectionUtils;
 
@@ -278,10 +280,57 @@ public class GraphRunnerContext {
 	public StreamingOutput<?> buildStreamingOutput(Message message, Object originData, String nodeId, boolean streaming) {
 		// Create StreamingOutput with chunk and originData
 		OutputType outputType = OutputType.from(streaming, nodeId);
+		// Reasoning models stream the thinking phase as blank-content chunks carrying
+		// reasoningContent; stamp an explicit marker so consumers can route thinking vs
+		// final-answer chunks (issue #34).
+		if (outputType == OutputType.AGENT_MODEL_STREAMING) {
+			message = stampReasoningMarker(message);
+		}
 		StreamingOutput<?> output = new StreamingOutput<>(message, originData, nodeId,
 				(String) config.metadata("_AGENT_").orElse(""), this.overallState, outputType);
 		output.setSubGraph(true);
 		return output;
+	}
+
+	/**
+	 * Metadata key marking whether a streamed model chunk belongs to the reasoning (thinking)
+	 * phase rather than the final answer.
+	 */
+	public static final String IS_REASONING_METADATA_KEY = "isReasoning";
+
+	/**
+	 * Metadata key carrying the reasoning (thinking) text of a chunk, normalized from either
+	 * the message metadata or a {@link DeepSeekAssistantMessage}.
+	 */
+	public static final String REASONING_CONTENT_METADATA_KEY = "reasoningContent";
+
+	private Message stampReasoningMarker(Message message) {
+		if (!(message instanceof AssistantMessage assistantMessage)) {
+			return message;
+		}
+		String reasoningContent = extractReasoningContent(assistantMessage);
+		boolean isReasoning = reasoningContent != null && !reasoningContent.isBlank()
+				&& (assistantMessage.getText() == null || assistantMessage.getText().isEmpty());
+		Map<String, Object> metadata = new HashMap<>(assistantMessage.getMetadata() != null
+				? assistantMessage.getMetadata() : Map.of());
+		metadata.put(IS_REASONING_METADATA_KEY, isReasoning);
+		if (reasoningContent != null) {
+			metadata.putIfAbsent(REASONING_CONTENT_METADATA_KEY, reasoningContent);
+		}
+		return AssistantMessage.builder()
+				.content(assistantMessage.getText())
+				.properties(metadata)
+				.toolCalls(assistantMessage.getToolCalls())
+				.media(assistantMessage.getMedia())
+				.build();
+	}
+
+	private static String extractReasoningContent(Message message) {
+		if (message instanceof DeepSeekAssistantMessage deepSeekAssistantMessage) {
+			return deepSeekAssistantMessage.getReasoningContent();
+		}
+		Object reasoningContent = message.getMetadata().get(REASONING_CONTENT_METADATA_KEY);
+		return reasoningContent != null ? reasoningContent.toString() : null;
 	}
 
 	public StreamingOutput<?> buildStreamingOutput(Object originData, String nodeId, boolean streaming) {
