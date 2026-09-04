@@ -47,6 +47,8 @@ import io.github.agentic.spring.ai.graph.agent.interceptor.StreamingModelInterce
 import io.github.agentic.spring.ai.graph.agent.interceptor.ToolInterceptor;
 import io.github.agentic.spring.ai.graph.agent.node.AgentLlmNode;
 import io.github.agentic.spring.ai.graph.agent.node.AgentToolNode;
+import io.github.agentic.spring.ai.graph.checkpoint.BaseCheckpointSaver;
+import io.github.agentic.spring.ai.graph.checkpoint.Checkpoint;
 import io.github.agentic.spring.ai.graph.exception.GraphRunnerException;
 import io.github.agentic.spring.ai.graph.exception.GraphStateException;
 import io.github.agentic.spring.ai.graph.internal.node.Node;
@@ -299,6 +301,47 @@ public class ReactAgent extends BaseAgent {
 
 	public CompiledGraph getCompiledGraph() {
 		return compiledGraph;
+	}
+
+	@Override
+	protected Flux<NodeOutput> doStream(Map<String, Object> input, RunnableConfig runnableConfig) {
+		CompiledGraph compiledGraph = getAndCompileGraph();
+		RunnableConfig config = buildStreamConfig(runnableConfig);
+		Optional<BaseCheckpointSaver> saver = compiledGraph.compileConfig.checkpointSaver();
+		Optional<Checkpoint> preTurnCheckpoint = saver.flatMap(s -> {
+			try {
+				return s.get(config);
+			}
+			catch (Exception e) {
+				return Optional.empty();
+			}
+		});
+		return compiledGraph.stream(input, config)
+				.doOnCancel(() -> rewindToPreTurnCheckpoint(saver, config, preTurnCheckpoint));
+	}
+
+	/**
+	 * A cancelled streaming turn must not leave a half-persisted multi-step fragment (a dangling
+	 * assistant tool_call or an orphan tool response) in the checkpoint: the next turn would load
+	 * an invalid message sequence that LLM APIs reject. Rewind the thread to the checkpoint taken
+	 * before this turn started, so a cancelled turn is treated as if it never happened (issue #25).
+	 */
+	private void rewindToPreTurnCheckpoint(Optional<BaseCheckpointSaver> saver, RunnableConfig config,
+			Optional<Checkpoint> preTurnCheckpoint) {
+		if (saver.isEmpty()) {
+			return;
+		}
+		try {
+			// No pre-turn checkpoint means this was the first turn on the thread: rewind to an
+			// empty state so the cancelled turn leaves nothing behind.
+			Checkpoint rewindCheckpoint = preTurnCheckpoint.map(Checkpoint::copyOf)
+				.orElseGet(() -> Checkpoint.builder().nodeId(StateGraph.START).nextNodeId(StateGraph.END)
+						.state(new HashMap<>()).build());
+			saver.get().put(config, rewindCheckpoint);
+		}
+		catch (Exception e) {
+			// Rewinding is best-effort: a failure here must not mask the cancellation itself.
+		}
 	}
 
 	@Override
