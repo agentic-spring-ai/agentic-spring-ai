@@ -38,13 +38,12 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 
 | 模块 | 说明 |
 | --- | --- |
-| [Model](agentic-spring-ai-model) | 与模型厂商无关的模型契约和文档解析 SPI |
 | [Agent Framework](agentic-spring-ai-agent-framework) | 智能体开发与多智能体编排 |
 | [Graph Core](agentic-spring-ai-graph-core) | 状态管理、持久化和工作流运行时 |
 | [Studio](agentic-spring-ai-studio) | Agent 可视化调试界面 |
 | [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | 工具调用的可选隔离执行环境，由 Extensions 维护 |
 | [Spring Boot Starters](spring-boot-starters) | 内置图节点和图可观测性 |
-| [Extension Starters](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/starters) | A2A、Nacos、AgentScope、模型、存储等可选集成 |
+| [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | 模型与文档契约、A2A、Nacos、AgentScope、存储等可选扩展 |
 | [Examples](examples) | Chatbot、多智能体、图工程和文档示例 |
 
 ## 文档

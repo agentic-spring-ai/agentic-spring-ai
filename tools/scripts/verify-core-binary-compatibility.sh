@@ -20,6 +20,11 @@ set -euo pipefail
 readonly BASE_COMMIT="${1:-c128f02584fc976ee641572074db2e556466f6a2}"
 readonly JAPICMP_VERSION="${JAPICMP_VERSION:-0.23.1}"
 readonly REVISION="${REVISION:-2.1.0-dev}"
+readonly REMOVED_BUILTIN_TYPES='io.github.agentic.spring.ai.graph.node.KnowledgeRetrievalNode;'
+readonly REMOVED_BUILTIN_NESTED_TYPES='io.github.agentic.spring.ai.graph.node.KnowledgeRetrievalNode$*;'
+readonly REMOVED_BUILTIN_NETWORK_TYPES='io.github.agentic.spring.ai.graph.node.HttpNode;io.github.agentic.spring.ai.graph.node.HttpNode$*;io.github.agentic.spring.ai.graph.node.DocumentExtractorNode;io.github.agentic.spring.ai.graph.node.DocumentExtractorNode$*;'
+readonly REMOVED_BUILTIN_EXECUTOR_TYPES='io.github.agentic.spring.ai.graph.node.code.DockerCodeExecutor;io.github.agentic.spring.ai.graph.node.code.DockerCodeExecutor$*'
+readonly REMOVED_BUILTIN_EXCLUDES="${REMOVED_BUILTIN_TYPES}${REMOVED_BUILTIN_NESTED_TYPES}${REMOVED_BUILTIN_NETWORK_TYPES}${REMOVED_BUILTIN_EXECUTOR_TYPES}"
 
 readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
 readonly TMP_PARENT="${TMPDIR:-/tmp}"
@@ -88,19 +93,24 @@ compare_module() {
 	local label="$1"
 	local baseline_jar="$2"
 	local candidate_jar="$3"
+	local excludes="${4:-}"
 	local report_file="${REPORT_DIR}/${label}-japicmp.md"
+	local -a japicmp_args=(
+		--old "${baseline_jar}"
+		--new "${candidate_jar}"
+		-a protected
+		--only-incompatible
+		--error-on-binary-incompatibility
+		--ignore-missing-classes
+	)
+	if [[ -n "${excludes}" ]]; then
+		japicmp_args+=(--exclude "${excludes}")
+	fi
+	japicmp_args+=(--markdown)
 
 	echo "Comparing ${label}"
 	rm -f "${report_file}"
-	java -jar "${JAPICMP_JAR}" \
-		--old "${baseline_jar}" \
-		--new "${candidate_jar}" \
-		-a protected \
-		--only-incompatible \
-		--error-on-binary-incompatibility \
-		--ignore-missing-classes \
-		--markdown \
-		> "${report_file}"
+	java -jar "${JAPICMP_JAR}" "${japicmp_args[@]}" > "${report_file}"
 	echo "Binary compatible: ${label} (${report_file})"
 }
 
@@ -110,6 +120,7 @@ compare_module "agentic-spring-ai-graph-core" \
 
 compare_module "agentic-spring-ai-starter-builtin-nodes" \
 	"${BASELINE_WORKTREE}/spring-boot-starters/agentic-spring-ai-starter-builtin-nodes/target/agentic-spring-ai-starter-builtin-nodes-${REVISION}.jar" \
-	"${REPO_ROOT}/spring-boot-starters/agentic-spring-ai-starter-builtin-nodes/target/agentic-spring-ai-starter-builtin-nodes-${REVISION}.jar"
+	"${REPO_ROOT}/spring-boot-starters/agentic-spring-ai-starter-builtin-nodes/target/agentic-spring-ai-starter-builtin-nodes-${REVISION}.jar" \
+	"${REMOVED_BUILTIN_EXCLUDES}"
 
 echo "Core binary compatibility gate passed"

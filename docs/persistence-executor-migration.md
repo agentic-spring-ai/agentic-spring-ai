@@ -1,7 +1,7 @@
 # Persistence and Executor Migration
 
-Status: Introduced in 2.1, with coexistence through 2.x and removal targeted for
-3.0.
+Status: Introduced in 2.1. Database implementations coexist through 2.x; the old
+Core Docker executor was removed before the 2.1 release.
 
 ## Objective
 
@@ -53,9 +53,11 @@ The 2.1 migration work is implemented across these reviewed commits:
 - Extensions Core pin and cross-repository verification:
   `d6be576b358c2f56c6f52cf4f75fc9fe6032184f`.
 
-- Core keeps the old compatibility classes and marks the migrated JDBC,
-  Redis, MongoDB, and Docker executor implementations
+- Core keeps the old database compatibility classes and marks the migrated
+  JDBC, Redis, and MongoDB implementations
   `@Deprecated(since = "2.1.0", forRemoval = true)`.
+- Core removes the old `DockerCodeExecutor`; the Extensions artifact is the only
+  supported Docker implementation.
 - Core active Redis documentation examples now use
   `io.github.agentic.spring.ai.graph.persistence.redis.RedisSaver` from
   `agentic-spring-ai-graph-persistence-redis`.
@@ -77,8 +79,9 @@ The 2.1 migration work is implemented across these reviewed commits:
 - Add the four Extensions artifacts and their new packages.
 - Copy behavior into the new implementations; do not move the old fully
   qualified class names.
-- Mark the old Core database saver, JDBC store, and Docker executor classes
-  `@Deprecated(since = "2.1.0", forRemoval = true)`.
+- Mark the old Core database saver and JDBC store classes
+  `@Deprecated(since = "2.1.0", forRemoval = true)` and remove the old Core
+  Docker executor after parity verification.
 - Preserve every old constructor, public or protected method, static factory,
   builder method, nested type, visibility, return type, enum constant,
   exception contract, and default value. In particular, do not normalize the
@@ -95,17 +98,18 @@ The 2.1 migration work is implemented across these reviewed commits:
 
 ### 2.2
 
-- Continue the compatibility period; do not remove the deprecated Core APIs.
+- Continue the database compatibility period; do not remove the deprecated Core
+  persistence APIs.
 - Keep the 2.1 physical storage formats, Docker defaults, and replacement
   package names stable.
-- Continue compiling legacy import fixtures and running bidirectional
-  Core/Extensions compatibility tests.
+- Continue compiling legacy database import fixtures and running bidirectional
+  Core/Extensions persistence compatibility tests.
 - Migrate remaining applications and documentation to the Extensions artifacts.
 
 ### 3.0
 
-- Remove the deprecated database saver implementations, `DatabaseStore`,
-  `DockerCodeExecutor`, and their vendor dependencies from Core.
+- Remove the deprecated database saver implementations, `DatabaseStore`, and
+  their vendor dependencies from Core. Docker dependencies are already absent.
 - Remove old compatibility tests only after the new implementations pass all
   cross-version storage tests.
 - Keep Core SPI and provider-neutral implementations unchanged.
@@ -197,9 +201,8 @@ The 2.1 Core and Extensions releases are not publishable until all of these pass
   `c128f02584fc976ee641572074db2e556466f6a2` against the current candidate.
   Reports generated on 2026-09-03 show compatible changes for both modules.
 - Core deprecation regression tests:
-  `MigratedPersistenceDeprecationTests` and
-  `DockerCodeExecutorDeprecationTest` passed after the old Core compatibility
-  APIs were annotated.
+  `MigratedPersistenceDeprecationTests` passed for the retained database
+  compatibility APIs. Docker parity was verified before direct removal.
 - JDBC extension compatibility:
   `agentic-spring-ai-graph-persistence-jdbc` passed DDL snapshot checks, H2
   old/new bidirectional checkpoint and `DatabaseStore` compatibility, and real
@@ -215,11 +218,11 @@ The 2.1 Core and Extensions releases are not publishable until all of these pass
   old-write/new-read, new-write/old-read, database/collection names, document
   id prefixes, persisted fields, Base64 checkpoint content, and serialized
   checkpoint content.
-- Docker executor compatibility:
-  `DockerCodeExecutorCompatibilityTests` passed with 24 tests, covering both
-  old Core and new Extensions executors for defaults, timeout, cleanup, output
-  truncation, language mapping, Java classpath command shape, restart no-op,
-  and execution directory cleanup.
+- Docker executor regression coverage:
+  `DockerCodeExecutorTests` passes 12 replacement tests covering defaults,
+  timeout, cleanup, output truncation, language mapping, Java classpath command
+  shape, restart no-op, and execution directory cleanup. Migration-time parity
+  was verified before the old Core implementation was removed.
 
 Release the Core artifacts first. Then release Extensions with both
 `revision=2.1.0` and `agentic-spring-ai.version=2.1.0`, and verify the published

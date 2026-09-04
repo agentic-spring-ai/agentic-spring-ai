@@ -48,7 +48,6 @@
 
     <modules>
         <module>agentic-spring-ai-bom</module>
-        <module>agentic-spring-ai-model</module>
         <module>agentic-spring-ai-graph-core</module>
         <module>agentic-spring-ai-agent-framework</module>
         <module>agentic-spring-ai-studio</module>

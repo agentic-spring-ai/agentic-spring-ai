@@ -38,13 +38,12 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 
 | Module | Description |
 | --- | --- |
-| [Model](agentic-spring-ai-model) | Provider-neutral model contracts and document parser SPI |
 | [Agent Framework](agentic-spring-ai-agent-framework) | Agent development and multi-agent orchestration |
 | [Graph Core](agentic-spring-ai-graph-core) | State management, persistence, and workflow runtime |
 | [Studio](agentic-spring-ai-studio) | Visual debugging UI for agents |
 | [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | Optional isolated execution environment for tool calls, maintained in Extensions |
 | [Spring Boot Starters](spring-boot-starters) | Built-in graph nodes and graph observability |
-| [Extension Starters](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/starters) | A2A, Nacos, AgentScope, model, storage, and other optional integrations |
+| [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | Model and document contracts, A2A, Nacos, AgentScope, storage, and other optional integrations |
 | [Examples](examples) | Chatbot, multi-agent, graph engineering, and documentation examples |
 
 ## Documentation

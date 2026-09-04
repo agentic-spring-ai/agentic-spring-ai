@@ -19,7 +19,7 @@ inputs:
   ref:
     description: Agentic Spring AI Extensions git ref
     required: false
-    default: 895d99b644f38969829168402ffeac52d91c4f9b
+    default: d50a367ee500411ec819b884720a794aa8bb9db2
 runs:
   using: composite
   steps:
@@ -27,7 +27,7 @@ runs:
       shell: bash
       run: |
         ./mvnw -B \
-          -pl :agentic-spring-ai-bom,:agentic-spring-ai-model,:agentic-spring-ai-graph-core,:agentic-spring-ai-agent-framework,:agentic-spring-ai-studio,:agentic-spring-ai-starter-builtin-nodes \
+          -pl :agentic-spring-ai-bom,:agentic-spring-ai-graph-core,:agentic-spring-ai-agent-framework,:agentic-spring-ai-studio,:agentic-spring-ai-starter-builtin-nodes \
           -am -DskipTests install
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
@@ -39,6 +39,7 @@ runs:
       run: |
         extensions_modules=(
           :agentic-spring-ai-extensions-bom
+          :agentic-spring-ai-extensions-model
           :agentic-spring-ai-starter-dashscope
           :agentic-spring-ai-starter-agentscope
           :agentic-spring-ai-starter-a2a-nacos

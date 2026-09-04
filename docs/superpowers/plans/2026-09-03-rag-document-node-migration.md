@@ -1,10 +1,15 @@
 # RAG and Network Node Migration Implementation Plan
 
+> Archived plan - do not execute. After the parity-first migration below was
+> completed, the old Core RAG, HTTP, and document extraction classes were
+> approved for direct removal before the 2.1 release. The task history remains
+> only as a record of how replacement behavior was verified.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add Extensions-owned RAG and network node artifacts while preserving the existing Core node APIs and behavior through the 2.x compatibility period.
+**Goal:** Add Extensions-owned RAG and network node artifacts, verify them against the old Core implementations, then remove the old Core classes before the 2.1 release.
 
-**Architecture:** Core retains provider-neutral contracts and deprecated compatibility classes. Extensions adds one RAG artifact and one network artifact; HTTP and document extraction share one package-private network security policy. Cross-repository CI pins reviewed commits without creating a Maven dependency from Core to Extensions.
+**Architecture:** Core retains provider-neutral contracts. Extensions owns one RAG artifact and one network artifact; HTTP and document extraction share one package-private network security policy. Cross-repository CI pins reviewed commits without creating a Maven dependency from Core to Extensions.
 
 **Tech Stack:** Java 17, Maven, Spring AI 2.0.1, Spring Boot 4.1.1, Reactor, Apache HttpClient 5, OkHttp MockWebServer, JUnit 5, Mockito.
 
@@ -13,17 +18,17 @@
 ## Global Constraints
 
 - Core must never depend on an Extensions artifact or the Extensions BOM.
-- Existing Core public and protected APIs remain source and binary compatible through 2.x.
+- The binary compatibility gate permits removal only of the explicitly migrated Core node types and their nested classes.
 - New implementations use new packages; the same fully qualified class name must not exist in both repositories.
 - New nodes preserve constructors, builder methods, nested public types, defaults, state keys, output shapes, exception behavior, and null handling.
 - HTTP and document nodes share one package-private `NetworkAccessPolicy`; do not create two security implementations.
 - Preserve private-network blocking, local-root containment, redirect validation, timeouts, byte limits, and cancellation behavior.
 - Do not add Spring Boot auto-configuration, component scanning, `ServiceLoader` node discovery, or automatic node beans.
 - Parser discovery inside `DocumentExtractorNode` continues to use the existing `DocumentParserProvider` SPI.
-- New artifacts are part of Extensions 2.1; old Core classes use `@Deprecated(since = "2.1.0", forRemoval = true)` and remain until 3.0.
+- New artifacts are part of Extensions 2.1; the old Core node classes are removed before the Core 2.1 release.
 - Extensions owns new artifact versions through `agentic-spring-ai-extensions-bom`; Core BOM remains Core-only.
 - Tests follow RED-GREEN: new-package tests must fail before implementation is added.
-- Reflection parity tests compare public/protected constructors, methods, fields, and nested types after normalizing the old/new package prefixes.
+- Migration-time reflection parity tests compared public/protected APIs before the old classes were removed; replacement behavior tests remain in Extensions.
 - Release verification must resolve both Extensions version properties to `2.1.0` and prove every reactor flattened POM contains no `2.1.0-dev` reference.
 
 ## Commit and Pin DAG
@@ -101,7 +106,7 @@ package io.github.agentic.spring.ai.graph.node.rag;
 
 Keep all public constructors, builder methods, nested types, state-key precedence, retrieval, rerank, prompt augmentation, and output behavior unchanged.
 
-- [ ] **Step 4: Add old/new compatibility coverage**
+- [x] **Historical Step 4: Run old/new compatibility coverage before removal**
 
 Use one deterministic `VectorStore` test double and one deterministic
 `RerankModel` to run old and new nodes with identical configuration. Assert
@@ -111,12 +116,12 @@ preset-value precedence, disabled/enabled rerank behavior, and rerank request
 fields. Cover null/invalid required configuration with identical exception type
 and stable message fragments.
 
-Use `PublicApiParity` to recursively compare the old and new top-level classes
-and public nested types. Normalize
+The migration used `PublicApiParity` to recursively compare the old and new
+top-level classes and public nested types. It normalized
 `io.github.agentic.spring.ai.graph.node.KnowledgeRetrievalNode` to
 `io.github.agentic.spring.ai.graph.node.rag.KnowledgeRetrievalNode` before
-comparing signatures; fail on a missing or extra public/protected constructor,
-method, field, or nested type.
+comparing signatures. The parity helper was removed with the old Core class;
+the behavior assertions remain as Extensions regression tests.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -208,10 +213,10 @@ Document: local TXT/JSON, explicit parser, ServiceLoader parser, regular-file
 
 Assert the same literal state maps or exception category/message fragments for old and new factories. Verify blocked requests never reach `MockWebServer`.
 
-Use `PublicApiParity` to recursively compare public/protected constructors,
-methods, fields, and public nested types for old/new `HttpNode` and
-`DocumentExtractorNode`, normalizing the old/new package prefixes. Assert that
-the new `NetworkAccessPolicy` remains package-private.
+The migration used `PublicApiParity` to compare public/protected APIs for the
+old/new `HttpNode` and `DocumentExtractorNode`. That helper was removed with
+the old Core classes. The Extensions regression suite still asserts that
+`NetworkAccessPolicy` remains package-private.
 
 - [ ] **Step 5: Verify and commit**
 
@@ -229,7 +234,10 @@ Commit only the network artifact, root Reactor, and BOM changes:
 git commit -m "feat: add graph network node extension"
 ```
 
-### Task 3: Deprecate Core Compatibility Nodes
+### Historical Task 3: Deprecate Core Compatibility Nodes
+
+This temporary step was superseded by direct removal before the Core 2.1
+release. The files and test below no longer exist.
 
 **Files:**
 
@@ -241,7 +249,8 @@ git commit -m "feat: add graph network node extension"
 **Interfaces:**
 
 - Consumes: reviewed Extensions artifact and FQCN names from Tasks 1-2.
-- Produces: unchanged Core classes annotated for 3.0 removal.
+- Produced: temporary deprecation metadata used before direct removal was
+  approved.
 
 - [ ] **Step 1: Write and run failing deprecation tests**
 
@@ -312,7 +321,7 @@ Pin `setup-extensions` to the reviewed Extensions commit containing both new art
 
 - [ ] **Step 2: Update migration and release documentation**
 
-Document old/new package mappings, 2.1 introduction, 2.x coexistence, 3.0 removal, no automatic registration, and Core-first release order. Update builtin-nodes README examples to declare the appropriate Extensions artifact and import the new package.
+Document old/new package mappings, direct Core removal before 2.1, no automatic registration, and Core-first release order. Update builtin-nodes README examples to declare the appropriate Extensions artifact and import the new package.
 
 Add `Graph nodes` pointing to `graph-nodes` in both Extensions README module
 tables.
@@ -334,7 +343,9 @@ Run Core lint, Extensions lint, and `git diff --check` in both repositories. Com
 
 - [ ] **Step 1: Update the Extensions Core pin**
 
-Set the default ref in `setup-core` to the reviewed Core commit containing the deprecated compatibility nodes and CI/documentation integration.
+At the time of the parity migration, set the default ref in `setup-core` to the
+reviewed Core compatibility commit. Later removal verification uses the current
+Core candidate installed first in an isolated Maven repository.
 
 - [ ] **Step 2: Verify the complete migration**
 

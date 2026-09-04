@@ -3,9 +3,8 @@
 ## Migrated Graph Nodes
 
 The Core `KnowledgeRetrievalNode`, `HttpNode`, and `DocumentExtractorNode`
-classes remain in this starter for 2.x compatibility and are deprecated since
-2.1.0 for removal in 3.0. New applications should use the Extensions-owned
-graph node artifacts and packages.
+classes have been removed. Applications must use the Extensions-owned graph
+node artifacts and packages.
 
 For RAG retrieval nodes, declare:
 
@@ -48,12 +47,11 @@ must opt in to broader access explicitly.
 
 ### Code Execution
 
-`DockerCodeExecutor` disables networking, uses a read-only root filesystem, drops capabilities, and
-applies CPU, memory, swap, and PID limits. `maxOutputBytes` defaults to 1 MiB and limits output retained
-in the host JVM; it truncates captured output but does not replace the execution timeout. The timeout
-still controls how long a process or container may run. When the root filesystem is read-only, `/tmp`
-is a writable 64 MiB in-memory filesystem for normal runtime and compiler temporary files. Set
-`readOnlyRootFilesystem` to `false` only for trusted images that must write elsewhere in the image.
+`DockerCodeExecutor` is provided by the Extensions-owned
+`agentic-spring-ai-code-executor-docker` artifact in package
+`io.github.agentic.spring.ai.graph.node.code.docker`. It disables networking,
+uses a read-only root filesystem, drops capabilities, and applies CPU, memory,
+swap, PID, and output limits.
 
 ```java
 CodeExecutionConfig config = new CodeExecutionConfig()
