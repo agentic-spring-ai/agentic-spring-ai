@@ -25,7 +25,7 @@ Core continues to own:
 Extensions owns the provider-neutral rerank and document parser contracts in
 `agentic-spring-ai-extensions-model` and adds the graph node artifacts in
 reviewed implementation commit
-`d50a367ee500411ec819b884720a794aa8bb9db2`:
+`77718562c9b23b417407617a814c1fb3719aa87d`:
 
 | Artifact | Package | Classes |
 | --- | --- | --- |

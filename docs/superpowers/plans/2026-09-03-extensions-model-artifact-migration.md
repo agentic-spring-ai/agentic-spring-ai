@@ -20,6 +20,12 @@
 - Keep the existing node deletion work and the user-owned `.codex/ai-context.yaml` files intact.
 - Create local commits only; do not push or publish.
 
+Execution note: Maven analysis found 12 additional production modules using the
+contract through accidental transitive dependencies. The completed migration
+adds direct `agentic-spring-ai-extensions-model` dependencies to those modules,
+then creates Extensions E3 and Core C2 so the final Core pin covers the complete
+dependency graph without requiring another reciprocal Extensions pin.
+
 ---
 
 ### Task 1: Capture the Contract Baseline

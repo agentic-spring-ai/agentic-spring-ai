@@ -47,7 +47,8 @@ the physical module order documents the intended ownership and build direction.
 ## Consumer Migration
 
 Replace `agentic-spring-ai-model` with
-`agentic-spring-ai-extensions-model` in the seven direct production consumers:
+`agentic-spring-ai-extensions-model` in the seven existing direct production
+consumers:
 
 1. `agentic-spring-ai-graph-node-network`
 2. `agentic-spring-ai-graph-node-rag`
@@ -57,11 +58,15 @@ Replace `agentic-spring-ai-model` with
 6. `agentic-spring-ai-starter-document-parser-bshtml`
 7. `agentic-spring-ai-starter-document-parser-tika`
 
-No Java import changes are required because package names remain stable.
-Modules that consume the contracts transitively are verified with clean reactor
-tests and dependency analysis. A direct dependency is added only when Maven
-analysis and source usage prove that the module currently relies on an
-accidental transitive edge.
+No Java import changes are required because package names remain stable. Maven
+analysis proved that 12 additional production modules relied on an accidental
+transitive edge, so they also declare the contract artifact directly:
+
+- Apache PDFBox, BibTeX, Directory, Multi-modality, and PDF Tables parsers
+- Archive, Arxiv, CSDN, GitHub, Tencent COS, and Yuque readers
+- `agentic-spring-ai-rag`
+
+All 19 production consumers therefore express the contract dependency directly.
 
 ## BOM Contract
 
@@ -88,13 +93,18 @@ E1  Extensions adds agentic-spring-ai-extensions-model and migrates consumers
 C1  Core removes agentic-spring-ai-model and pins setup-extensions to E1
  |
 E2  Extensions setup-core pins C1 and stops requesting the old Core module
+ |
+E3  Extensions declares the contract directly in 12 transitive consumers
+ |
+C2  Core setup-extensions pins the complete E3 migration
 ```
 
 E1 may build while the old Core commit still contains the development-only
 artifact because Extensions consumers depend only on the new artifactId. C1
 removes the old Core reactor module, Core BOM entry, setup action entry, and
-Core documentation. E2 makes the reciprocal Core pin reproducible without
-pinning Core back to itself.
+Core documentation. E2 makes the reciprocal Core pin reproducible. E3 contains
+only Extensions dependency declarations. C2 can pin E3 without another
+reciprocal update because E3 already pins the complete Core implementation C1.
 
 The local commits are created in this order so each SHA used by the next
 repository exists. They are not pushed until separately requested.
@@ -142,7 +152,7 @@ as archived and superseded.
    target directory.
 2. japicmp reports no public or protected API incompatibility between the old
    Core JAR and the new Extensions JAR.
-3. All seven direct consumers resolve only
+3. All 19 direct production consumers resolve only
    `agentic-spring-ai-extensions-model`.
 4. No active POM or CI action references `agentic-spring-ai-model`.
 5. Core builds, tests, packages, and passes quality checks without installing a
