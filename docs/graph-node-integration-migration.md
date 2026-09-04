@@ -43,14 +43,19 @@ The 2.1 compatibility work is implemented across these reviewed commits:
 
 - Extensions RAG and network node implementations:
   `895d99b644f38969829168402ffeac52d91c4f9b`.
+- Complete Extensions model-contract ownership and direct dependency graph:
+  `77718562c9b23b417407617a814c1fb3719aa87d`.
 - Historical Core compatibility deprecations before direct removal:
   `c9efc03dfea8bdb01e672a9715f2c63429bc9cbb`.
+- Core removal of the old nodes and unpublished model artifact:
+  `e36b9cd175ec8de497c370ac30ae3b2ecbdd5817`.
 
-Core `tools/github-actions/setup-extensions` pins the reviewed Extensions
-implementation commit above and installs the contract and graph node artifacts
-for Core integration jobs. It intentionally does not pin a later Extensions
-commit that updates the reciprocal Core pin, because that would create a
-cross-repository SHA cycle.
+The final Core `setup-extensions` action pins Extensions
+`77718562c9b23b417407617a814c1fb3719aa87d`. That Extensions revision pins Core
+`e36b9cd175ec8de497c370ac30ae3b2ecbdd5817` in `setup-core`. The composite
+actions do not invoke each other: each installs its local repository first and
+then builds the pinned peer revision. The resulting source-build path is
+reproducible and acyclic.
 
 Applications should migrate imports as follows:
 
