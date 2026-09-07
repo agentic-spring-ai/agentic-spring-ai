@@ -403,8 +403,8 @@ StateGraph graph = new StateGraph(keyStrategyFactory)
 The AgentScope issue example is the API-backed version of this lightweight
 design:
 
-- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
-- `examples/graphengineering/src/main/resources/repoops-graph-topology.yaml`
+- [examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java)
+- [examples/graphengineering/src/main/resources/repoops-graph-topology.yaml](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/resources/repoops-graph-topology.yaml)
 
 It reads a RepoOps issue JSON payload or a GitHub issue URL first, then routes
 the graph:

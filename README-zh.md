@@ -18,19 +18,24 @@ Agentic Spring AI 是面向 Java 开发者的智能体应用框架，用于构�
 
 ## 快速开始
 
-环境要求：JDK 17 或更高版本、Maven 3.9.1 或更高版本。以下命令使用仓库自带的 Maven Wrapper。
+环境要求：JDK 17 或更高版本、Maven 3.9.1 或更高版本。框架构建使用 Maven Wrapper，独立示例使用本机 Maven。
 
 ```shell
 git clone --depth=1 https://github.com/agentic-spring-ai/agentic-spring-ai.git
 cd agentic-spring-ai
 
-# 安装本地开发版本
+# Install the local development modules.
 ./mvnw -DskipTests install
 
-# 配置 DashScope API Key 并运行 Chatbot 示例
+# Configure the DashScope API key and run the chatbot example.
+cd ..
+git clone --depth=1 https://github.com/agentic-spring-ai/examples.git
+cd examples
 export AI_DASHSCOPE_API_KEY=your-api-key
-./mvnw -f examples/chatbot/pom.xml spring-boot:run
+mvn -f examples/chatbot/pom.xml spring-boot:run
 ```
+
+示例还需要对应版本的 Extensions BOM 和模型 Starter，依赖准备方式见[示例说明](https://github.com/agentic-spring-ai/examples/tree/main/examples#环境与依赖)。
 
 启动后访问 [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/index.html)。其他模型的配置方式请参阅[快速开始](https://agentic-spring-ai.github.io/website/docs/quick-start)。
 
@@ -44,7 +49,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 | [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | 工具调用的可选隔离执行环境，由 Extensions 维护 |
 | [Spring Boot Starters](spring-boot-starters) | 内置图节点和图可观测性 |
 | [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | 模型与文档契约、A2A、Nacos、AgentScope、存储等可选扩展 |
-| [Examples](examples) | Chatbot、多智能体、图工程和文档示例 |
+| [Examples](https://github.com/agentic-spring-ai/examples/tree/main/examples) | Chatbot、多智能体、图工程和文档示例 |
 
 ## 文档
 
@@ -54,7 +59,7 @@ export AI_DASHSCOPE_API_KEY=your-api-key
 - [Graph Core 快速开始](https://agentic-spring-ai.github.io/website/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering 指南](docs/graph-engineering.md)
 - [持久化与执行器迁移方案](docs/persistence-executor-migration.md)
-- [示例项目](examples)
+- [示例项目](https://github.com/agentic-spring-ai/examples/tree/main/examples)
 - [模型厂商相关示例](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 
 ## 参与贡献

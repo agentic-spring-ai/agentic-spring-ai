@@ -28,13 +28,11 @@ agentic-spring-ai/
 │   ├── agentic-spring-ai-starter-builtin-nodes/ # Built-in workflow nodes
 │   ├── agentic-spring-ai-starter-config-nacos/  # Dynamic config with Nacos
 │   └── agentic-spring-ai-starter-graph-observation/ # Observability
-├── examples/                          # Example applications
-│   ├── chatbot/                       # Chatbot example
-│   ├── deepresearch/                  # Deep research agent example
-│   └── documentation/                 # Documentation examples
 ├── tools/                             # Build and linting tools
 └── docs/                              # Documentation
 ```
+
+示例已迁移至 [Examples 仓库](https://github.com/agentic-spring-ai/examples/tree/main/examples)。
 
 ## Build System
 

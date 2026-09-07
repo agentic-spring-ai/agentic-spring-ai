@@ -138,39 +138,39 @@ The example stores `graph_id`, `run_id`, `node_trace`, `route_history`, and
 
 The runnable examples live in:
 
-- `examples/graphengineering`
-- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- [examples/graphengineering](https://github.com/agentic-spring-ai/examples/tree/main/examples/graphengineering)
+- [examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java)
 
 `AgentScopeRepoOpsIssueGraphExample` can read a local issue JSON file or a
 public GitHub issue URL, then invoke AgentScope Java workers through
 `AgentScopeAgent` while Spring AI Alibaba Graph owns state and routing.
 
 The topology contract lives in
-`examples/graphengineering/src/main/resources/repoops-graph-topology.yaml`.
+[examples/graphengineering/src/main/resources/repoops-graph-topology.yaml](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/resources/repoops-graph-topology.yaml).
 It lists each node's type, mandate, inputs, outputs, and allowed outgoing
 routes, making the graph topology a versioned engineering artifact rather than
 only Java control flow.
 
 ## Example Module
 
-The runnable code for this topic is collected under `examples/graphengineering`.
+The runnable code for this topic is collected under [examples/graphengineering](https://github.com/agentic-spring-ai/examples/tree/main/examples/graphengineering).
 That module is intentionally separate from `examples/agentscope/handoffs`:
 
 - `examples/agentscope/handoffs` demonstrates agent handoff mechanics.
-- `examples/graphengineering` demonstrates a business graph where Spring AI
+- [examples/graphengineering](https://github.com/agentic-spring-ai/examples/tree/main/examples/graphengineering) demonstrates a business graph where Spring AI
   Alibaba owns the workflow and AgentScope Java implements every specialist
   business node.
 
 ## RepoOps Lightweight Example
 
 Graph Engineering also fits software engineering lifecycle automation. The
-lightweight RepoOps example in this repository uses Spring AI Alibaba Graph as
+lightweight RepoOps example in the Examples repository uses Spring AI Alibaba Graph as
 the lifecycle control plane for issue triage, role-specific handling, review
 loop-back, audit, and Evidence Bundle generation.
 
-- `examples/graphengineering` contains the runnable RepoOps startup class.
+- [examples/graphengineering](https://github.com/agentic-spring-ai/examples/tree/main/examples/graphengineering) contains the runnable RepoOps startup class.
 - [Lightweight RepoOps Graph Engineering](./graph-engineering-repoops-lightweight.md)
-- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- [examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java)
 
 In a real application each graph node can be implemented by:
 
@@ -206,7 +206,7 @@ plain deterministic nodes in one stateful graph.
 Reference example:
 
 - `examples/agentscope/handoffs`
-- `examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java`
+- [examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java](https://github.com/agentic-spring-ai/examples/blob/main/examples/graphengineering/src/main/java/io/github/agentic/spring/ai/examples/graphengineering/AgentScopeRepoOpsIssueGraphExample.java)
 
 The RepoOps issue example goes further than a single handoff: issue triage,
 planning, review, and audit are AgentScope Java nodes, while Spring AI Alibaba

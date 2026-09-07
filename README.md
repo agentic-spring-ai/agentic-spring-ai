@@ -18,7 +18,7 @@ Agentic Spring AI is a framework for Java developers building agents, workflows,
 
 ## Quick Start
 
-Requirements: JDK 17 or later and Maven 3.9.1 or later. The commands below use the included Maven Wrapper.
+Requirements: JDK 17 or later and Maven 3.9.1 or later. Build the framework with its Maven Wrapper and run the standalone examples with your local Maven installation.
 
 ```shell
 git clone --depth=1 https://github.com/agentic-spring-ai/agentic-spring-ai.git
@@ -28,9 +28,14 @@ cd agentic-spring-ai
 ./mvnw -DskipTests install
 
 # Configure the DashScope API key and run the chatbot example.
+cd ..
+git clone --depth=1 https://github.com/agentic-spring-ai/examples.git
+cd examples
 export AI_DASHSCOPE_API_KEY=your-api-key
-./mvnw -f examples/chatbot/pom.xml spring-boot:run
+mvn -f examples/chatbot/pom.xml spring-boot:run
 ```
+
+The examples also require the matching Extensions BOM and provider starters. See the [example setup](https://github.com/agentic-spring-ai/examples/tree/main/examples#环境与依赖).
 
 Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/index.html). See the [Quick Start](https://agentic-spring-ai.github.io/website/en/docs/quick-start) for other model providers.
 
@@ -44,7 +49,7 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 | [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | Optional isolated execution environment for tool calls, maintained in Extensions |
 | [Spring Boot Starters](spring-boot-starters) | Built-in graph nodes and graph observability |
 | [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | Model and document contracts, A2A, Nacos, AgentScope, storage, and other optional integrations |
-| [Examples](examples) | Chatbot, multi-agent, graph engineering, and documentation examples |
+| [Examples](https://github.com/agentic-spring-ai/examples/tree/main/examples) | Chatbot, multi-agent, graph engineering, and documentation examples |
 
 ## Documentation
 
@@ -54,7 +59,7 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 - [Graph Core Quick Start](https://agentic-spring-ai.github.io/website/en/docs/frameworks/graph-core/quick-start)
 - [Graph Engineering guide](docs/graph-engineering.md)
 - [Persistence and executor migration](docs/persistence-executor-migration.md)
-- [Examples](examples)
+- [Examples](https://github.com/agentic-spring-ai/examples/tree/main/examples)
 - [Provider-specific examples](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/examples)
 
 ## Contributing
