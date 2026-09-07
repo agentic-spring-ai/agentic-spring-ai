@@ -154,7 +154,7 @@ class A2aNodeActionWithConfigTests {
 	}
 
 	@Test
-	void applyDoesNotWriteNonStreamingPayloadToStdout() throws Exception {
+	void applyPreservesNonStreamingOutputContractAndDoesNotWritePayloadToStdout() throws Exception {
 		HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/", exchange -> {
 			String response = """
@@ -177,8 +177,14 @@ class A2aNodeActionWithConfigTests {
 
 			Map<String, Object> result = nonStreamingAction.apply(new OverAllState(),
 					RunnableConfig.builder().threadId("thread-1").build());
+			A2aNodeActionWithConfig messagesAction = new A2aNodeActionWithConfig(createAgentCardWrapper(baseUrl),
+					"remote-agent", false, "messages", "secret instruction", false);
+			Map<String, Object> messagesResult = messagesAction.apply(new OverAllState(),
+					RunnableConfig.builder().threadId("thread-1").build());
 
 			assertEquals("remote ok", result.get("reply"));
+			AssistantMessage message = assertInstanceOf(AssistantMessage.class, messagesResult.get("messages"));
+			assertEquals("remote ok", message.getText());
 			assertEquals("", stdout.toString(StandardCharsets.UTF_8));
 		}
 		finally {
@@ -384,6 +390,8 @@ class A2aNodeActionWithConfigTests {
 
 	private static final Method BUILD_STREAMING_OUTPUT = initBuildStreamingOutputMethod();
 
+	private static final Method BUILD_FINAL_RESULT = initBuildFinalResultMethod();
+
 	/**
 	 * The studio chat UI renders streaming text from the {@code chunk} / {@code message} fields of
 	 * {@link StreamingOutput}. Before gh-4760, A2A streaming events were built with the plain
@@ -407,10 +415,47 @@ class A2aNodeActionWithConfigTests {
 		assertEquals(OutputType.AGENT_MODEL_STREAMING, output.getOutputType());
 	}
 
+	/**
+	 * Regression test for agentic-spring-ai#47 / spring-ai-alibaba#4015. A2A responses targeting
+	 * the shared messages key must be appended as Message instances, otherwise the next routing
+	 * decision encounters a String in List&lt;Message&gt; and fails with ClassCastException.
+	 */
+	@Test
+	void buildFinalResult_wrapsMessagesOutputInAssistantMessage() throws Exception {
+		Map<String, Object> result = invokeBuildFinalResult("messages", "remote reply");
+
+		AssistantMessage message = assertInstanceOf(AssistantMessage.class, result.get("messages"));
+		assertEquals("remote reply", message.getText());
+	}
+
+	@Test
+	void buildFinalResult_keepsCustomOutputAsString() throws Exception {
+		Map<String, Object> result = invokeBuildFinalResult("reply", "remote reply");
+
+		assertEquals("remote reply", result.get("reply"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> invokeBuildFinalResult(String outputKey, String text) throws Exception {
+		return (Map<String, Object>) BUILD_FINAL_RESULT.invoke(this.action, outputKey, text);
+	}
+
 	private static Method initBuildStreamingOutputMethod() {
 		try {
 			Method method = A2aNodeActionWithConfig.class.getDeclaredMethod("buildStreamingOutput", String.class,
 					OverAllState.class);
+			method.setAccessible(true);
+			return method;
+		}
+		catch (NoSuchMethodException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+
+	private static Method initBuildFinalResultMethod() {
+		try {
+			Method method = A2aNodeActionWithConfig.class.getDeclaredMethod("buildFinalResult", String.class,
+					String.class);
 			method.setAccessible(true);
 			return method;
 		}

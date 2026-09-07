@@ -109,7 +109,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 			Map<String, Object> resultMap = autoDetectAndParseResponse(resultText);
 			Map<String, Object> result = (Map<String, Object>) resultMap.get("result");
 			String responseText = extractResponseText(result);
-			return Map.of(this.outputKeyToParent, responseText);
+			return buildFinalResult(this.outputKeyToParent, responseText);
 		}
 	}
 
@@ -312,7 +312,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 				queue.add(AsyncGenerator.Data.of(errorOutput));
 			}
 			finally {
-				queue.add(AsyncGenerator.Data.done(Map.of(outputKey, accumulated.toString())));
+				queue.add(AsyncGenerator.Data.done(buildFinalResult(outputKey, accumulated.toString())));
 			}
 		});
 	}
@@ -377,14 +377,14 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 				}
 
 				// Signal completion with final result value
-				queue.add(AsyncGenerator.Data.done(Map.of(outputKey, accumulated.toString())));
+				queue.add(AsyncGenerator.Data.done(buildFinalResult(outputKey, accumulated.toString())));
 
 			}
 			catch (Exception e) {
 				// On error, emit an error message and signal completion
 				StreamingOutput errorOutput = buildStreamingOutput("Error: " + e.getMessage(), state);
 				queue.add(AsyncGenerator.Data.of(errorOutput));
-				queue.add(AsyncGenerator.Data.done(Map.of(outputKey, accumulated.toString())));
+				queue.add(AsyncGenerator.Data.done(buildFinalResult(outputKey, accumulated.toString())));
 			}
 		});
 	}
@@ -415,7 +415,7 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 		}
 
 		// Signal completion with final result value
-		queue.add(AsyncGenerator.Data.done(Map.of(outputKey, accumulated.toString())));
+		queue.add(AsyncGenerator.Data.done(buildFinalResult(outputKey, accumulated.toString())));
 
 		return new AsyncGeneratorQueue.Generator<>(queue);
 	}
@@ -435,6 +435,17 @@ public class A2aNodeActionWithConfig implements NodeActionWithConfig {
 	private StreamingOutput<?> buildStreamingOutput(String text, OverAllState state) {
 		return new StreamingOutput<>(new AssistantMessage(text), text, "a2aNode", agentName, state,
 				OutputType.AGENT_MODEL_STREAMING);
+	}
+
+	/**
+	 * Build the value written back to the parent graph while preserving the state key's type
+	 * contract. The {@code messages} key is managed by an append strategy and consumed as a
+	 * {@code List<Message>}; appending a raw string corrupts that list and causes routing agents to
+	 * fail on the next model call. Custom output keys retain their historical string value.
+	 */
+	private Map<String, Object> buildFinalResult(String outputKey, String text) {
+		Object value = "messages".equals(outputKey) ? new AssistantMessage(text) : text;
+		return Map.of(outputKey, value);
 	}
 
 	/**
