@@ -71,6 +71,7 @@ import org.springframework.ai.tool.ToolCallback;
 
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.SignalType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -308,16 +309,34 @@ public class ReactAgent extends BaseAgent {
 		CompiledGraph compiledGraph = getAndCompileGraph();
 		RunnableConfig config = buildStreamConfig(runnableConfig);
 		Optional<BaseCheckpointSaver> saver = compiledGraph.compileConfig.checkpointSaver();
-		Optional<Checkpoint> preTurnCheckpoint = saver.flatMap(s -> {
-			try {
-				return s.get(config);
-			}
-			catch (Exception e) {
-				return Optional.empty();
-			}
+		// Capture the pre-turn snapshot at subscription time, not at assembly time:
+		// the graph itself only executes on subscribe, so the rewind base must be
+		// read in the same per-subscription scope. A snapshot taken when the Flux
+		// was created would let a cancellation roll the thread back over any state
+		// committed between assembly and subscription, and every re-subscription of
+		// a cold Flux would reuse that same stale read.
+		return Flux.defer(() -> {
+			Optional<Checkpoint> preTurnCheckpoint = saver.flatMap(s -> {
+				try {
+					return s.get(config);
+				}
+				catch (Exception e) {
+					return Optional.empty();
+				}
+			});
+			return compiledGraph.stream(input, config)
+					.doFinally(signal -> {
+						// Rewind in doFinally rather than doOnCancel: cancellation is
+						// cooperative, so the cancelled run may still persist one more
+						// checkpoint while unwinding. doFinally runs after the upstream
+						// has fully terminated, making the rewind the last writer for
+						// this execution instead of a write that a late checkpoint put
+						// can overwrite.
+						if (signal == SignalType.CANCEL) {
+							rewindToPreTurnCheckpoint(saver, config, preTurnCheckpoint);
+						}
+					});
 		});
-		return compiledGraph.stream(input, config)
-				.doOnCancel(() -> rewindToPreTurnCheckpoint(saver, config, preTurnCheckpoint));
 	}
 
 	/**
