@@ -32,7 +32,6 @@ import io.github.agentic.spring.ai.graph.utils.TypeRef;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.metadata.Usage;
-import org.springframework.ai.deepseek.DeepSeekAssistantMessage;
 
 import org.springframework.util.CollectionUtils;
 
@@ -300,9 +299,17 @@ public class GraphRunnerContext {
 
 	/**
 	 * Metadata key carrying the reasoning (thinking) text of a chunk, normalized from either
-	 * the message metadata or a {@link DeepSeekAssistantMessage}.
+	 * the message metadata or a DeepSeek assistant message (optional dependency).
 	 */
 	public static final String REASONING_CONTENT_METADATA_KEY = "reasoningContent";
+
+	/**
+	 * Class name of the optional DeepSeek assistant message. Resolved reflectively so
+	 * runtimes without the {@code spring-ai-deepseek} jar never force the class to link:
+	 * an {@code instanceof} against it throws {@link NoClassDefFoundError} on the first
+	 * streamed chunk for applications that do not carry the DeepSeek dependency.
+	 */
+	private static final String DEEPSEEK_ASSISTANT_MESSAGE_CLASS = "org.springframework.ai.deepseek.DeepSeekAssistantMessage";
 
 	private Message stampReasoningMarker(Message message) {
 		if (!(message instanceof AssistantMessage assistantMessage)) {
@@ -326,11 +333,24 @@ public class GraphRunnerContext {
 	}
 
 	private static String extractReasoningContent(Message message) {
-		if (message instanceof DeepSeekAssistantMessage deepSeekAssistantMessage) {
-			return deepSeekAssistantMessage.getReasoningContent();
-		}
 		Object reasoningContent = message.getMetadata().get(REASONING_CONTENT_METADATA_KEY);
-		return reasoningContent != null ? reasoningContent.toString() : null;
+		if (reasoningContent != null) {
+			return reasoningContent.toString();
+		}
+		// Compare class names instead of instanceof: a name check never links the
+		// optional DeepSeek class, so plain AssistantMessage streams stay safe on
+		// runtimes without the jar (mirrors the optional-serializer guards).
+		if (!message.getClass().getName().equals(DEEPSEEK_ASSISTANT_MESSAGE_CLASS)) {
+			return null;
+		}
+		try {
+			Class<?> deepSeekClass = Class.forName(DEEPSEEK_ASSISTANT_MESSAGE_CLASS, false, message.getClass().getClassLoader());
+			return (String) deepSeekClass.getMethod("getReasoningContent").invoke(message);
+		}
+		catch (ReflectiveOperationException | RuntimeException ex) {
+			// Class present but unusable, or reflective access refused: no reasoning content.
+			return null;
+		}
 	}
 
 	public StreamingOutput<?> buildStreamingOutput(Object originData, String nodeId, boolean streaming) {
