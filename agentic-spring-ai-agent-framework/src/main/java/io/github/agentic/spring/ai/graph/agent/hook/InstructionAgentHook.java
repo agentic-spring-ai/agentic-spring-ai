@@ -86,9 +86,14 @@ public class InstructionAgentHook extends MessagesAgentHook {
 
 	private boolean isOwnStaleCopy(AgentInstructionMessage existing, String instruction) {
 		Map<String, Object> metadata = existing.getMetadata();
-		if (metadata != null && reactAgent.name().equals(metadata.get(AGENT_NAME_METADATA_KEY))) {
-			return true;
+		if (metadata != null && metadata.containsKey(AGENT_NAME_METADATA_KEY)) {
+			// Explicit ownership: an instruction attributed to another agent is never
+			// stale for this one, even when the rendered text is identical — dropping
+			// it would silently erase the other agent's instruction from a shared
+			// message history.
+			return reactAgent.name().equals(metadata.get(AGENT_NAME_METADATA_KEY));
 		}
+		// Legacy copies carry no ownership marker; text equality is the only signal.
 		return instruction.equals(existing.getText());
 	}
 

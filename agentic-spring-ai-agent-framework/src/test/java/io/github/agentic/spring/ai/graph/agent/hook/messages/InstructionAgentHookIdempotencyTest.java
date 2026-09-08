@@ -146,4 +146,37 @@ class InstructionAgentHookIdempotencyTest {
 		assertEquals(1, total, "the stale rendered copy must be replaced by a single fresh instruction");
 	}
 
+	@Test
+	void sameTextInstructionOwnedByAnotherAgentIsNeverRemoved() {
+		// A child agent sharing the parent's exact instruction text must not dedupe away
+		// the parent-owned copy from a shared message history: ownership metadata wins
+		// over text equality (review finding on the instruction dedup PR).
+		ReactAgent agent = ReactAgent.builder()
+				.name("child")
+				.model(new NoopChatModel())
+				.saver(new MemorySaver())
+				.instruction(INSTRUCTION)
+				.build();
+		InstructionAgentHook hook = InstructionAgentHook.create();
+		hook.setAgent(agent);
+
+		List<Message> previous = new ArrayList<>(List.of(
+				AgentInstructionMessage.builder()
+						.text(INSTRUCTION)
+						.metadata(Map.of(InstructionAgentHook.AGENT_NAME_METADATA_KEY, "parent"))
+						.build(),
+				new UserMessage("hello")));
+
+		AgentCommand command = hook.beforeAgent(previous, null);
+
+		long parentOwned = command.getMessages().stream()
+				.filter(AgentInstructionMessage.class::isInstance)
+				.filter(message -> "parent"
+						.equals(((AgentInstructionMessage) message).getMetadata().get(InstructionAgentHook.AGENT_NAME_METADATA_KEY)))
+				.count();
+		assertEquals(1, parentOwned, "the parent-owned instruction must survive the child's dedup");
+		assertEquals(2, countInstruction(command.getMessages(), INSTRUCTION),
+				"the retained parent copy plus exactly one fresh child copy");
+	}
+
 }
