@@ -20,7 +20,6 @@ import io.github.agentic.spring.ai.graph.RunnableConfig;
 import io.github.agentic.spring.ai.graph.agent.tool.StateAwareToolCallback;
 import io.github.agentic.spring.ai.graph.agent.tools.ToolContextHelper;
 import io.github.agentic.spring.ai.graph.exception.GraphRunnerException;
-import io.github.agentic.spring.ai.graph.serializer.AgentInstructionMessage;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -35,7 +34,6 @@ import org.springframework.ai.util.JsonHelper;
 import org.springframework.ai.util.json.schema.JsonSchemaGenerator;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,15 +195,9 @@ public class AgentTool {
 			// The input parameter is wrapped as {"input": "actual_value"}
 			String actualInput = extractInputValue(input);
 
-			// Build the messages list to add
-			// Add instruction first if present, then the user input
-			// Note: We must add all messages at once because cloneState doesn't copy keyStrategies,
-			// so multiple updateState calls would overwrite instead of append
-			List<Message> messagesToAdd = new ArrayList<>();
-			if (StringUtils.hasLength(agent.instruction())) {
-				messagesToAdd.add(AgentInstructionMessage.builder().text(agent.instruction()).build());
-			}
-			messagesToAdd.add(new UserMessage(actualInput));
+			// Instruction is injected exactly once by the child agent's default
+			// InstructionAgentHook (see issue #77); only the user input is added here.
+			List<Message> messagesToAdd = List.of(new UserMessage(actualInput));
 
 			Optional<OverAllState> resultState;
 			Optional<RunnableConfig> parentConfigOpt = ToolContextHelper.getConfig(toolContext);
