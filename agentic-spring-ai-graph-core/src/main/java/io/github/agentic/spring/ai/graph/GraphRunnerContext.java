@@ -77,6 +77,22 @@ public class GraphRunnerContext {
 
 	String resumeFrom;
 
+	/**
+	 * Set when the downstream subscriber cancels the run. In-flight async node completions may
+	 * still land afterwards; once set, no further checkpoint must be persisted, so a cancelled
+	 * turn cannot leave a half-persisted fragment (e.g. a dangling assistant tool_call) that
+	 * would make the next turn's message sequence invalid (issue #25).
+	 */
+	private volatile boolean cancelled;
+
+	public void markCancelled() {
+		this.cancelled = true;
+	}
+
+	public boolean isCancelled() {
+		return cancelled;
+	}
+
 	ReturnFromEmbed returnFromEmbed;
 
 	public GraphRunnerContext(OverAllState initialState, RunnableConfig config, CompiledGraph compiledGraph)
@@ -251,9 +267,19 @@ public class GraphRunnerContext {
 	// ================================================================================================================
 
 	public Optional<Checkpoint> addCheckpoint(String nodeId, String nextNodeId) throws Exception {
+		if (cancelled) {
+			// The run was cancelled by the subscriber: in-flight completions must not persist
+			// any further state, otherwise a cancelled turn is only half-recorded (issue #25).
+			return Optional.empty();
+		}
 		if (compiledGraph.compileConfig.checkpointSaver().isPresent()) {
 			var cp = Checkpoint.builder().nodeId(nodeId).state(cloneState(overallState.data())).nextNodeId(nextNodeId)
 					.build();
+			// Re-check after the (potentially expensive) state clone: cancellation may have
+			// happened while this checkpoint was being built.
+			if (cancelled) {
+				return Optional.empty();
+			}
 			// Force checkPointId to null to ensure we append a new checkpoint instead of
 			// replacing the current one
 			RunnableConfig appendConfig = RunnableConfig.builder(config).checkPointId(null).build();

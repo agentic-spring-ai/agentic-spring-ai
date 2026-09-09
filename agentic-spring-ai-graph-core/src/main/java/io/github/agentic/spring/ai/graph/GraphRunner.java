@@ -59,7 +59,10 @@ public class GraphRunner {
 				return mainGraphExecutor.execute(context, resultValue)
 					.expandDeep(response -> response.hasContinuation()
 							? Flux.defer(() -> response.getContinuation().get()) : Flux.empty())
-					.filter(response -> !response.hasContinuation());
+					.filter(response -> !response.hasContinuation())
+					// In-flight async node completions may still land after the subscriber
+					// cancels; from this point on they must not persist any checkpoint.
+					.doOnCancel(context::markCancelled);
 			}
 			catch (Exception e) {
 				return Flux.error(e);
