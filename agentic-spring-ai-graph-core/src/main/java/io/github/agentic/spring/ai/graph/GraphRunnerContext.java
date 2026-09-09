@@ -29,6 +29,7 @@ import io.github.agentic.spring.ai.graph.streaming.StreamingOutput;
 import io.github.agentic.spring.ai.graph.utils.SystemClock;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
 
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.metadata.Usage;
 
@@ -304,10 +305,78 @@ public class GraphRunnerContext {
 	public StreamingOutput<?> buildStreamingOutput(Message message, Object originData, String nodeId, boolean streaming) {
 		// Create StreamingOutput with chunk and originData
 		OutputType outputType = OutputType.from(streaming, nodeId);
+		// Reasoning models stream the thinking phase as blank-content chunks carrying
+		// reasoningContent; stamp an explicit marker so consumers can route thinking vs
+		// final-answer chunks (issue #34).
+		if (outputType == OutputType.AGENT_MODEL_STREAMING) {
+			message = stampReasoningMarker(message);
+		}
 		StreamingOutput<?> output = new StreamingOutput<>(message, originData, nodeId,
 				(String) config.metadata("_AGENT_").orElse(""), this.overallState, outputType);
 		output.setSubGraph(true);
 		return output;
+	}
+
+	/**
+	 * Metadata key marking whether a streamed model chunk belongs to the reasoning (thinking)
+	 * phase rather than the final answer.
+	 */
+	public static final String IS_REASONING_METADATA_KEY = "isReasoning";
+
+	/**
+	 * Metadata key carrying the reasoning (thinking) text of a chunk, normalized from either
+	 * the message metadata or a DeepSeek assistant message (optional dependency).
+	 */
+	public static final String REASONING_CONTENT_METADATA_KEY = "reasoningContent";
+
+	/**
+	 * Class name of the optional DeepSeek assistant message. Resolved reflectively so
+	 * runtimes without the {@code spring-ai-deepseek} jar never force the class to link:
+	 * an {@code instanceof} against it throws {@link NoClassDefFoundError} on the first
+	 * streamed chunk for applications that do not carry the DeepSeek dependency.
+	 */
+	private static final String DEEPSEEK_ASSISTANT_MESSAGE_CLASS = "org.springframework.ai.deepseek.DeepSeekAssistantMessage";
+
+	private Message stampReasoningMarker(Message message) {
+		if (!(message instanceof AssistantMessage assistantMessage)) {
+			return message;
+		}
+		String reasoningContent = extractReasoningContent(assistantMessage);
+		boolean isReasoning = reasoningContent != null && !reasoningContent.isBlank()
+				&& (assistantMessage.getText() == null || assistantMessage.getText().isEmpty());
+		Map<String, Object> metadata = new HashMap<>(assistantMessage.getMetadata() != null
+				? assistantMessage.getMetadata() : Map.of());
+		metadata.put(IS_REASONING_METADATA_KEY, isReasoning);
+		if (reasoningContent != null) {
+			metadata.putIfAbsent(REASONING_CONTENT_METADATA_KEY, reasoningContent);
+		}
+		return AssistantMessage.builder()
+				.content(assistantMessage.getText())
+				.properties(metadata)
+				.toolCalls(assistantMessage.getToolCalls())
+				.media(assistantMessage.getMedia())
+				.build();
+	}
+
+	private static String extractReasoningContent(Message message) {
+		Object reasoningContent = message.getMetadata().get(REASONING_CONTENT_METADATA_KEY);
+		if (reasoningContent != null) {
+			return reasoningContent.toString();
+		}
+		// Compare class names instead of instanceof: a name check never links the
+		// optional DeepSeek class, so plain AssistantMessage streams stay safe on
+		// runtimes without the jar (mirrors the optional-serializer guards).
+		if (!message.getClass().getName().equals(DEEPSEEK_ASSISTANT_MESSAGE_CLASS)) {
+			return null;
+		}
+		try {
+			Class<?> deepSeekClass = Class.forName(DEEPSEEK_ASSISTANT_MESSAGE_CLASS, false, message.getClass().getClassLoader());
+			return (String) deepSeekClass.getMethod("getReasoningContent").invoke(message);
+		}
+		catch (ReflectiveOperationException | RuntimeException ex) {
+			// Class present but unusable, or reflective access refused: no reasoning content.
+			return null;
+		}
 	}
 
 	public StreamingOutput<?> buildStreamingOutput(Object originData, String nodeId, boolean streaming) {
