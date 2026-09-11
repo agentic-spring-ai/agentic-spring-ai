@@ -17,16 +17,14 @@ package io.github.agentic.spring.ai.graph.agent.hook.hip;
 
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
-import io.github.agentic.spring.ai.graph.action.AsyncNodeActionWithConfig;
-import io.github.agentic.spring.ai.graph.action.InterruptableAction;
 import io.github.agentic.spring.ai.graph.action.InterruptionMetadata;
+import io.github.agentic.spring.ai.graph.agent.hook.AbstractInterruptableModelHook;
 import io.github.agentic.spring.ai.graph.action.InterruptionMetadata.ToolFeedback;
 import io.github.agentic.spring.ai.graph.action.InterruptionMetadata.ToolFeedback.FeedbackResult;
 import io.github.agentic.spring.ai.graph.agent.hook.Hook;
 import io.github.agentic.spring.ai.graph.agent.hook.HookPosition;
 import io.github.agentic.spring.ai.graph.agent.hook.HookPositions;
 import io.github.agentic.spring.ai.graph.agent.hook.JumpTo;
-import io.github.agentic.spring.ai.graph.agent.hook.ModelHook;
 import io.github.agentic.spring.ai.graph.state.RemoveByHash;
 import io.github.agentic.spring.ai.graph.utils.TypeRef;
 
@@ -45,7 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @HookPositions(HookPosition.AFTER_MODEL)
-public class HumanInTheLoopHook extends ModelHook implements AsyncNodeActionWithConfig, InterruptableAction {
+public class HumanInTheLoopHook extends AbstractInterruptableModelHook {
 	private static final Logger log = LoggerFactory.getLogger(HumanInTheLoopHook.class);
     public static final String HITL_NODE_NAME = "HITL";
 	private Map<String, ToolConfig> approvalOn;

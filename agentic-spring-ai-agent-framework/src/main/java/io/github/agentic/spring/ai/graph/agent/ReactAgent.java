@@ -30,15 +30,14 @@ import io.github.agentic.spring.ai.graph.action.NodeActionWithConfig;
 import io.github.agentic.spring.ai.graph.agent.exception.AgentException;
 import io.github.agentic.spring.ai.graph.agent.factory.AgentBuilderFactory;
 import io.github.agentic.spring.ai.graph.agent.factory.DefaultAgentBuilderFactory;
+import io.github.agentic.spring.ai.graph.agent.hook.AbstractInterruptableModelHook;
 import io.github.agentic.spring.ai.graph.agent.hook.AgentHook;
 import io.github.agentic.spring.ai.graph.agent.hook.Hook;
 import io.github.agentic.spring.ai.graph.agent.hook.HookPosition;
 import io.github.agentic.spring.ai.graph.agent.hook.InstructionAgentHook;
-import io.github.agentic.spring.ai.graph.agent.hook.InterruptionHook;
 import io.github.agentic.spring.ai.graph.agent.hook.JumpTo;
 import io.github.agentic.spring.ai.graph.agent.hook.ModelHook;
 import io.github.agentic.spring.ai.graph.agent.hook.ToolInjection;
-import io.github.agentic.spring.ai.graph.agent.hook.hip.HumanInTheLoopHook;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.MessagesAgentHook;
 import io.github.agentic.spring.ai.graph.agent.hook.messages.MessagesModelHook;
 import io.github.agentic.spring.ai.graph.agent.hook.returndirect.ReturnDirectModelHook;
@@ -435,12 +434,10 @@ public class ReactAgent extends BaseAgent {
 
 		// Add hook nodes for beforeModel hooks
 		for (Hook hook : beforeModelHooks) {
-			if (hook instanceof ModelHook modelHook) {
-				if (hook instanceof InterruptionHook interruptionHook) {
-					graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", interruptionHook);
-				} else {
-					graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", modelHook::beforeModel);
-				}
+			if (hook instanceof AbstractInterruptableModelHook interruptableModelHook) {
+				graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", interruptableModelHook);
+			} else if (hook instanceof ModelHook modelHook) {
+				graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", modelHook::beforeModel);
 			} else if (hook instanceof MessagesModelHook messagesModelHook) {
 				graph.addNode(Hook.getFullHookName(hook) + ".beforeModel", MessagesModelHook.beforeModelAction(messagesModelHook));
 			}
@@ -448,12 +445,10 @@ public class ReactAgent extends BaseAgent {
 
 		// Add hook nodes for afterModel hooks
 		for (Hook hook : afterModelHooks) {
-			if (hook instanceof ModelHook modelHook) {
-				if (hook instanceof HumanInTheLoopHook humanInTheLoopHook) {
-					graph.addNode(Hook.getFullHookName(hook) + ".afterModel", humanInTheLoopHook);
-				} else {
-					graph.addNode(Hook.getFullHookName(hook) + ".afterModel", modelHook::afterModel);
-				}
+			if (hook instanceof AbstractInterruptableModelHook interruptableModelHook) {
+				graph.addNode(Hook.getFullHookName(hook) + ".afterModel", interruptableModelHook);
+			} else if (hook instanceof ModelHook modelHook) {
+				graph.addNode(Hook.getFullHookName(hook) + ".afterModel", modelHook::afterModel);
 			} else if (hook instanceof MessagesModelHook messagesModelHook) {
 				graph.addNode(Hook.getFullHookName(hook) + ".afterModel", MessagesModelHook.afterModelAction(messagesModelHook));
 			}
