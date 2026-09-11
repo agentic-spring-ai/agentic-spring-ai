@@ -18,8 +18,6 @@ package io.github.agentic.spring.ai.graph.agent.hook;
 import io.github.agentic.spring.ai.graph.KeyStrategy;
 import io.github.agentic.spring.ai.graph.OverAllState;
 import io.github.agentic.spring.ai.graph.RunnableConfig;
-import io.github.agentic.spring.ai.graph.action.AsyncNodeActionWithConfig;
-import io.github.agentic.spring.ai.graph.action.InterruptableAction;
 import io.github.agentic.spring.ai.graph.action.InterruptionMetadata;
 import io.github.agentic.spring.ai.graph.state.strategy.ReplaceStrategy;
 
@@ -48,7 +46,7 @@ import static io.github.agentic.spring.ai.graph.checkpoint.BaseCheckpointSaver.T
  * InterruptionHook hook = InterruptionHook.builder().build();
  */
 @HookPositions({HookPosition.BEFORE_MODEL})
-public class InterruptionHook extends ModelHook implements AsyncNodeActionWithConfig, InterruptableAction {
+public class InterruptionHook extends AbstractInterruptableModelHook {
 	private static final Logger log = LoggerFactory.getLogger(InterruptionHook.class);
 	
 	public static final String INTERRUPTION_FEEDBACK_KEY = "INTERRUPTION_FEEDBACK";
@@ -200,4 +198,3 @@ public class InterruptionHook extends ModelHook implements AsyncNodeActionWithCo
 		}
 	}
 }
-
