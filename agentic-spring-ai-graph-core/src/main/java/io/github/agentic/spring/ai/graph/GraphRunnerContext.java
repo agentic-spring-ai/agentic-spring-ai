@@ -86,8 +86,16 @@ public class GraphRunnerContext {
 	 */
 	private volatile boolean cancelled;
 
+	private final Object checkpointWriteMonitor = new Object();
+
 	public void markCancelled() {
 		this.cancelled = true;
+		// Wait for a checkpoint write that passed the cancellation check to finish.
+		// The cancellation rewind runs after this method returns, so it is guaranteed
+		// to be the final write for this execution.
+		synchronized (checkpointWriteMonitor) {
+			// The monitor boundary provides the required happens-before relationship.
+		}
 	}
 
 	public boolean isCancelled() {
@@ -276,16 +284,19 @@ public class GraphRunnerContext {
 		if (compiledGraph.compileConfig.checkpointSaver().isPresent()) {
 			var cp = Checkpoint.builder().nodeId(nodeId).state(cloneState(overallState.data())).nextNodeId(nextNodeId)
 					.build();
-			// Re-check after the (potentially expensive) state clone: cancellation may have
-			// happened while this checkpoint was being built.
-			if (cancelled) {
-				return Optional.empty();
+			synchronized (checkpointWriteMonitor) {
+				// Re-check after the (potentially expensive) state clone and while holding
+				// the write monitor. Cancellation sets the flag before waiting on this same
+				// monitor, closing the check-then-put race.
+				if (cancelled) {
+					return Optional.empty();
+				}
+				// Force checkPointId to null to ensure we append a new checkpoint instead of
+				// replacing the current one
+				RunnableConfig appendConfig = RunnableConfig.builder(config).checkPointId(null).build();
+				this.config = compiledGraph.compileConfig.checkpointSaver().get().put(appendConfig, cp);
+				return Optional.of(cp);
 			}
-			// Force checkPointId to null to ensure we append a new checkpoint instead of
-			// replacing the current one
-			RunnableConfig appendConfig = RunnableConfig.builder(config).checkPointId(null).build();
-			this.config = compiledGraph.compileConfig.checkpointSaver().get().put(appendConfig, cp);
-			return Optional.of(cp);
 		}
 		return Optional.empty();
 	}

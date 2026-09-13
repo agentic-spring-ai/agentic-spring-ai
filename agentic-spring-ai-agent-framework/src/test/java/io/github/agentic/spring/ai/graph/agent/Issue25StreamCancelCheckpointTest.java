@@ -16,15 +16,12 @@
 package io.github.agentic.spring.ai.graph.agent;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.agentic.spring.ai.graph.RunnableConfig;
-import io.github.agentic.spring.ai.graph.checkpoint.BaseCheckpointSaver;
 import io.github.agentic.spring.ai.graph.checkpoint.Checkpoint;
 import io.github.agentic.spring.ai.graph.checkpoint.savers.MemorySaver;
 
@@ -96,54 +93,9 @@ class Issue25StreamCancelCheckpointTest {
 				.name(name)
 				.model(new ToolCallThenFinalChatModel())
 				.tools(lookup)
-				.saver(new LoggingSaver(saver))
+				.saver(saver)
 				.build();
 	}
-
-	private static final class LoggingSaver implements BaseCheckpointSaver {
-
-		private final MemorySaver delegate;
-
-		LoggingSaver(MemorySaver delegate) {
-			this.delegate = delegate;
-		}
-
-		@Override
-		public Optional<Checkpoint> get(RunnableConfig config) {
-			return delegate.get(config);
-		}
-
-		@Override
-		public Collection<Checkpoint> list(RunnableConfig config) {
-			return delegate.list(config);
-		}
-
-		@Override
-		public BaseCheckpointSaver.Tag release(RunnableConfig config) throws Exception {
-			return delegate.release(config);
-		}
-
-		@Override
-		public RunnableConfig put(RunnableConfig config, Checkpoint checkpoint) throws Exception {
-			Object messages = checkpoint.getState() == null ? null : checkpoint.getState().get("messages");
-			String desc = messages instanceof List<?> list
-					? list.stream().map(m -> m instanceof Message msg ? msg.getMessageType().name() : m.getClass().getSimpleName())
-							.reduce((a, b) -> a + "," + b).orElse("<empty>")
-					: String.valueOf(messages);
-			System.out.println("[T " + System.currentTimeMillis() + "] [PUT " + Thread.currentThread().getName()
-					+ "] id=" + checkpoint.getId().substring(0, 8) + " state=[" + desc + "]");
-			if (Thread.currentThread().getName().startsWith("boundedElastic")) {
-				for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
-					if (e.getClassName().contains("agentic") && !e.getClassName().contains("LoggingSaver")) {
-						System.out.println("    at " + e);
-					}
-				}
-			}
-			return delegate.put(config, checkpoint);
-		}
-
-	}
-
 
 	private Checkpoint checkpointOf(MemorySaver saver, RunnableConfig config) {
 		return saver.get(config).orElse(null);
@@ -216,19 +168,10 @@ class Issue25StreamCancelCheckpointTest {
 				.doOnNext(message -> firstEvent.countDown())
 				.subscribe();
 		assertTrue(firstEvent.await(5, TimeUnit.SECONDS), "the stream should emit at least one event");
-		System.out.println("[T " + System.currentTimeMillis() + "] dispose on " + Thread.currentThread().getName());
 		disposable.dispose();
 		// Give any background persistence (the buggy path) time to land before inspecting.
 		Thread.sleep(2000);
 
-		saver.list(config).forEach(cp -> {
-			Object messages = cp.getState() == null ? null : cp.getState().get("messages");
-			System.out.println("[LIST] id=" + cp.getId().substring(0, 8) + " nodeId=" + cp.getNodeId() + " state=["
-					+ (messages instanceof List<?> list
-							? list.stream().map(m -> m instanceof Message msg ? msg.getMessageType().name() : "?")
-									.reduce((a, b) -> a + "," + b).orElse("<empty>")
-							: String.valueOf(messages)) + "]");
-		});
 		Checkpoint checkpoint = checkpointOf(saver, config);
 		if (checkpoint == null) {
 			return; // nothing persisted at all: the invariant trivially holds
@@ -242,11 +185,11 @@ class Issue25StreamCancelCheckpointTest {
 		ReactAgent agent = agentWith(saver, "issue25_completed_agent");
 		RunnableConfig config = RunnableConfig.builder().threadId("issue25-completed").build();
 
-		CountDownLatch completed = new CountDownLatch(1);
+		CountDownLatch terminated = new CountDownLatch(1);
 		Disposable disposable = agent.streamMessages(new UserMessage("please look up x"), config)
-				.doOnComplete(() -> completed.countDown())
+				.doFinally(signal -> terminated.countDown())
 				.subscribe();
-		assertTrue(completed.await(10, TimeUnit.SECONDS), "the run should complete");
+		assertTrue(terminated.await(10, TimeUnit.SECONDS), "the run should terminate");
 		disposable.dispose(); // no-op on a completed stream: no cancel signal, no rewind
 
 		Thread.sleep(200);

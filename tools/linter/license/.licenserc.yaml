@@ -47,6 +47,8 @@ header:
   paths-ignore:
     - '.github/ISSUE_TEMPLATE'
     - '.mvn'
+    - 'mvnw'
+    - 'mvnw.cmd'
     - '.codex'
     - 'LICENSE'
     - '**/.gitignore'
