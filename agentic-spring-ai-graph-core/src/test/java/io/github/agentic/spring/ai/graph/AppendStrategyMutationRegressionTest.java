@@ -17,14 +17,47 @@ package io.github.agentic.spring.ai.graph;
 
 import io.github.agentic.spring.ai.graph.state.strategy.AppendStrategy;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static io.github.agentic.spring.ai.graph.action.AsyncNodeAction.node_async;
 
 class AppendStrategyMutationRegressionTest {
+
+    @ParameterizedTest
+    @ValueSource(strings = { "second", "third" })
+    void scalarAppendHonorsDuplicatePolicy(String newValue) {
+        var strategy = new AppendStrategy(false);
+        var oldValues = List.of("first", "second", "first");
+
+        Object result = strategy.apply(oldValues, newValue);
+
+        assertEquals(strategy.apply(oldValues, List.of(newValue)), result);
+        assertEquals(List.of("first", "second", "first"), oldValues);
+        assertNotSame(oldValues, result);
+        var withDuplicates = new ArrayList<>(oldValues);
+        withDuplicates.add(newValue);
+        assertEquals(withDuplicates, new AppendStrategy().apply(oldValues, newValue));
+    }
+
+    @Test
+    void graphDeduplicatesScalarNodeUpdates() throws Exception {
+        var graph = new StateGraph(() -> Map.of("results", new AppendStrategy(false)))
+                .addNode("first", node_async(state -> Map.of("results", "answer")))
+                .addNode("second", node_async(state -> Map.of("results", "answer")))
+                .addEdge(StateGraph.START, "first")
+                .addEdge("first", "second")
+                .addEdge("second", StateGraph.END)
+                .compile();
+
+        assertEquals(List.of("answer"), graph.invoke(Map.of()).orElseThrow().value("results").orElseThrow());
+    }
 
     // https://github.com/agentic-spring-ai/agentic-spring-ai/issues/4757
     @Test
