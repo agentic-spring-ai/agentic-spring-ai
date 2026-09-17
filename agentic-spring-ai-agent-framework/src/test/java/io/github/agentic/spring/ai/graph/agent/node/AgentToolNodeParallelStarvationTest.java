@@ -23,6 +23,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
@@ -36,13 +38,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Regression test for thread pool starvation bug when parallelToolExecution=true and
@@ -339,6 +344,78 @@ class AgentToolNodeParallelStarvationTest {
 			}
 		}
 
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { true, false })
+	@Timeout(15)
+	void timedOutPermitWaiterShouldNotExecuteOrKeepWorkerOccupied(boolean releaseBeforeProbe) throws Exception {
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		CountDownLatch firstStarted = new CountDownLatch(1);
+		CountDownLatch releaseFirst = new CountDownLatch(1);
+		AtomicReference<Thread> waitingWorker = new AtomicReference<>();
+		AtomicInteger submissions = new AtomicInteger();
+		AtomicInteger lateCalls = new AtomicInteger();
+		try {
+			ToolCallback first = createSyncTool("first", () -> {
+				firstStarted.countDown();
+				try {
+					releaseFirst.await();
+				}
+				catch (InterruptedException ex) {
+					Thread.currentThread().interrupt();
+				}
+				return "first result";
+			});
+			ToolCallback second = createSyncTool("second", () -> {
+				lateCalls.incrementAndGet();
+				return "second result";
+			});
+			AgentToolNode node = baseBuilder.toolCallbacks(List.of(first, second))
+				.parallelToolExecution(true)
+				.maxParallelTools(1)
+				.toolExecutionTimeout(Duration.ofSeconds(1))
+				.build();
+			RunnableConfig config = RunnableConfig.builder()
+				.addParallelNodeExecutor("_AGENT_TOOL_", command -> {
+					int index = submissions.getAndIncrement();
+					if (index == 0) {
+						executor.execute(command);
+						await().atMost(Duration.ofSeconds(5)).until(() -> firstStarted.getCount() == 0);
+					}
+					else {
+						executor.execute(() -> {
+							waitingWorker.set(Thread.currentThread());
+							command.run();
+						});
+						await().atMost(Duration.ofSeconds(5)).until(() -> waitingWorker.get() != null
+								&& (waitingWorker.get().getState() == Thread.State.WAITING
+										|| waitingWorker.get().getState() == Thread.State.TIMED_WAITING));
+					}
+				})
+				.build();
+			OverAllState state = createStateWithMessages(createAssistantMessageWithToolCalls(
+					createToolCall("call1", "first", "{}"), createToolCall("call2", "second", "{}")));
+
+			ToolResponseMessage response = (ToolResponseMessage) node.apply(state, config).get("messages");
+			assertThat(response.getResponses()).extracting(ToolResponseMessage.ToolResponse::responseData)
+				.containsExactly("Error: Tool execution timed out", "Error: Tool execution timed out");
+			if (releaseBeforeProbe) {
+				releaseFirst.countDown();
+				executor.shutdown();
+				assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+			}
+			else {
+				assertThat(executor.submit(() -> "worker available").get(2, TimeUnit.SECONDS))
+					.isEqualTo("worker available");
+			}
+			assertThat(lateCalls).hasValue(0);
+		}
+		finally {
+			releaseFirst.countDown();
+			executor.shutdownNow();
+			assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+		}
 	}
 
 	// Helper methods
