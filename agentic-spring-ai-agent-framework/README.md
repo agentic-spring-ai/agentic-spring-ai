@@ -1,8 +1,8 @@
-# Spring AI Alibaba Agent Framework
+# Agentic Spring AI Agent Framework
 
 ## What's Agent Framework
 
-Spring AI Alibaba Agent Framework is created for Java developers to quickly and easily building, orchestrating, and deploying AI agents. This framework is built upon the ReactAgent concept which features a Reasoning-Acting loop while at the same time supports multi-agent orchestration.
+Agentic Spring AI Agent Framework is created for Java developers to quickly and easily building, orchestrating, and deploying AI agents. This framework is built upon the ReactAgent concept which features a Reasoning-Acting loop while at the same time supports multi-agent orchestration.
 
 ## Core Features
 * **ReactAgent**
@@ -38,7 +38,7 @@ errors after partial output. Existing retry interceptors can still retry or wrap
 exceptions according to their own configuration.
 
 ## Related Projects
-Spring AI Alibaba Agent Framework depends on the following projects:
+Agentic Spring AI Agent Framework depends on the following projects:
 
 * agentic-spring-ai-graph: [https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core](https://github.com/agentic-spring-ai/agentic-spring-ai/tree/main/agentic-spring-ai-graph-core)
 * spring-ai-extensions: [https://github.com/agentic-spring-ai/agentic-spring-ai-extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions)

@@ -1,14 +1,14 @@
 ## 如何贡献
 
-## 感谢你为 Spring AI Alibaba 贡献！
+## 感谢你为 Agentic Spring AI 贡献！
 
-Spring AI Alibaba 从开源建设以来，受到了很多社区同学的关注。社区的每一个 Issue ，每一个 PR，都是对整个项目的帮助，都在为建设更好用的 Spring AI 添砖加瓦。
+Agentic Spring AI 从开源建设以来，受到了很多社区同学的关注。社区的每一个 Issue ，每一个 PR，都是对整个项目的帮助，都在为建设更好用的 Spring AI 添砖加瓦。
 
 我们真心地感谢为这个项目提出过 Issue 和 PR 的开发者。我们希望有更多社区的开发者加入进来，一起把项目做好。
 
 ## 贡献流程
 
-在贡献代码之前，请您稍微花一些时间了解为 Spring AI Alibaba 贡献代码的流程。
+在贡献代码之前，请您稍微花一些时间了解为 Agentic Spring AI 贡献代码的流程。
 
 ### 贡献什么？
 
@@ -43,7 +43,7 @@ fork 出来的代码后，原仓库 main 分支可能出现了新的提交，这
 
 ### 配置 Spring AI 标准的代码格式
 
-Spring AI Alibaba 作为 Spring AI 的实现之一，在代码规范方面直接沿用了 Spring AI 项目规范，在正式开始之前请参考相关代码格式规范说明，提交代码前需要先配置好代码格式规范。
+Agentic Spring AI 构建于 Spring AI 之上，在代码规范方面直接沿用了 Spring AI 项目规范，在正式开始之前请参考相关代码格式规范说明，提交代码前需要先配置好代码格式规范。
 
 ### 开发
 
@@ -55,7 +55,7 @@ Spring AI Alibaba 作为 Spring AI 的实现之一，在代码规范方面直接
 
 ### 本地Checkstyle
 
-为了减少一些不必要的代码风格问题，Spring AI Alibaba 提供了本地 Checkstyle 检查功能。可以在项目根目录下执行 `mvn checkstyle:check` 命令来检查代码风格是否符合规范。
+为了减少一些不必要的代码风格问题，Agentic Spring AI 提供了本地 Checkstyle 检查功能。可以在项目根目录下执行 `mvn checkstyle:check` 命令来检查代码风格是否符合规范。
 
 ### 删除未使用的导入
 
@@ -76,4 +76,4 @@ Commit 规范: git commit -m "类型(模块): 空格 符合规范的提交信息
 
 ### 提交 PR
 
-提交 PR，根据 `Pull request template` 写明修改点和实现的功能，等待 code review 和 合并，成为 Spring AI Alibaba Contributor，为更好用的 Spring AI Alibaba 做出贡献。
+提交 PR，根据 `Pull request template` 写明修改点和实现的功能，等待 code review 和 合并，成为 Agentic Spring AI Contributor，为更好用的 Agentic Spring AI 做出贡献。

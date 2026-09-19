@@ -1,17 +1,19 @@
-# AGENTS.md - AI Assistant Guide for Spring AI Alibaba
+# AGENTS.md - AI Assistant Guide for Agentic Spring AI
 
-This file provides guidance for AI assistants working with the Spring AI Alibaba codebase.
+This file provides guidance for AI assistants working with the Agentic Spring AI codebase.
 
 ## Project Overview
 
-Spring AI Alibaba is a production-ready framework for building Agentic, Workflow, and Multi-agent applications. It is an implementation of the Spring AI framework tailored for Alibaba Cloud services and components. It provides a comprehensive ecosystem for developing AI-powered applications with built-in context engineering and human-in-the-loop support.
+Agentic Spring AI is a production-ready framework for building agents, workflows, and multi-agent applications. It is built on Spring AI and adds the stateful, cross-call layer that Spring AI itself does not cover: graph orchestration, persistence, context engineering, and human-in-the-loop support.
+
+> **Naming:** the project was renamed from *Spring AI Alibaba* in release `2.0.0.0`. The rename is not complete: configuration prefixes (`spring.ai.alibaba.*`), class names (`SpringAiAlibaba*`), the `Saa*` prefix, and metric names still use the legacy identifiers. These are part of the public configuration and API contract - do not rename them without a deprecation cycle.
 
 **Key Features:**
 
 - Multi-Agent Orchestration with built-in patterns
 - Context Engineering with human-in-the-loop, context compaction, editing, model call limits
 - Graph-based workflow with conditional routing, nested graphs, parallel execution
-- A2A (Agent-to-Agent) support with Nacos integration
+- A2A (Agent-to-Agent) client support (Nacos service discovery lives in the Extensions repository)
 - Rich model support (DashScope, OpenAI, DeepSeek) and MCP (Model Context Protocol)
 - Embedded visual debugging studio
 
@@ -24,22 +26,25 @@ agentic-spring-ai/
 ├── agentic-spring-ai-studio/          # Embedded UI for debugging agents visually
 ├── agentic-spring-ai-bom/             # Bill of Materials for dependency management
 ├── spring-boot-starters/              # Spring Boot Starters
-│   ├── agentic-spring-ai-starter-a2a-nacos/     # Nacos A2A communication
-│   ├── agentic-spring-ai-starter-builtin-nodes/ # Built-in workflow nodes
-│   ├── agentic-spring-ai-starter-config-nacos/  # Dynamic config with Nacos
+│   ├── agentic-spring-ai-starter-builtin-nodes/     # Built-in workflow nodes
 │   └── agentic-spring-ai-starter-graph-observation/ # Observability
 ├── tools/                             # Build and linting tools
 └── docs/                              # Documentation
 ```
 
-示例已迁移至 [Examples 仓库](https://github.com/agentic-spring-ai/examples/tree/main/examples)。
+This repository holds the core only. Optional integrations live in separate repositories:
+
+- [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) - model and document contracts, A2A Nacos, config Nacos, AgentScope, JDBC/Redis/MongoDB graph persistence, the Docker code executor, and the tool-call sandbox.
+- [Examples](https://github.com/agentic-spring-ai/examples/tree/main/examples) - chatbot, multi-agent, and graph engineering samples.
+
+Since `2.1.0` the core no longer imports the Extensions BOM. Applications that use optional integrations must import both `agentic-spring-ai-bom` and `agentic-spring-ai-extensions-bom`.
 
 ## Build System
 
 ### Prerequisites
 
 - **JDK**: 17 (Required by `java.version` property)
-- **Maven**: 3.6+
+- **Maven**: 3.9.1+ (enforced by `requireMavenVersion` in the root pom; the wrapper ships 3.9.16)
 - **Git**
 
 ### Common Build Commands
@@ -135,7 +140,7 @@ The project uses `make` for linting tasks:
 ## Tips for AI Assistants
 
 1.  **JDK Version**: Project targets JDK 17. Use appropriate language features.
-2.  **Spring Boot**: Uses Spring Boot 3.x. Be aware of `jakarta.*` namespace vs `javax.*`.
+2.  **Spring Boot**: Uses Spring Boot 4.1.1 with Spring AI 2.0.1. The `jakarta.*` namespace applies throughout; there is no `javax.*` code.
 3.  **Dependencies**: Check `agentic-spring-ai-bom` or parent pom for version management.
 4.  **Makefile**: Use the Makefile in the root for project maintenance tasks (linting, license checks).
 5.  **Structure**: When adding new features, prefer creating or updating modules within `agentic-spring-ai-agent-framework` or `spring-boot-starters` depending on the scope.

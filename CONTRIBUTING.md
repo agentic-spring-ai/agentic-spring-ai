@@ -2,15 +2,15 @@
 
 [中文版本](./CONTRIBUTING-zh.md)
 
-## Thank you for contributing to Spring AI Alibaba!
+## Thank you for contributing to Agentic Spring AI!
 
-Since its open-source inception, Spring AI Alibaba has received attention from many community members. Every Issue and PR from the community helps the entire project and contributes to building a better Spring AI.
+Since its open-source inception, Agentic Spring AI has received attention from many community members. Every Issue and PR from the community helps the entire project and contributes to building a better Spring AI.
 
 We sincerely thank the developers who have submitted Issues and PRs for this project. We hope more community developers will join us to make this project even better.
 
 ## Contribution Process
 
-Before contributing code, please take a moment to understand the process of contributing to Spring AI Alibaba.
+Before contributing code, please take a moment to understand the process of contributing to Agentic Spring AI.
 
 ### What to Contribute?
 
@@ -45,7 +45,7 @@ After forking the repository, new commits may have appeared in the original repo
 
 ### Configure Spring AI Standard Code Format
 
-As one of the implementations of Spring AI, Spring AI Alibaba directly follows the Spring AI project's code standards. Before you start, please refer to the relevant code format specification instructions. You need to configure the code format standards properly before submitting your code.
+As a framework built on Spring AI, Agentic Spring AI directly follows the Spring AI project's code standards. Before you start, please refer to the relevant code format specification instructions. You need to configure the code format standards properly before submitting your code.
 
 ### Development
 
@@ -57,7 +57,7 @@ After completing development in your local environment, it's strongly recommende
 
 ### Local Checkstyle
 
-To reduce unnecessary code style issues, Spring AI Alibaba provides a local Checkstyle check feature. You can run `mvn checkstyle:check` in the project's root directory to verify if your code style complies with the standards.
+To reduce unnecessary code style issues, Agentic Spring AI provides a local Checkstyle check feature. You can run `mvn checkstyle:check` in the project's root directory to verify if your code style complies with the standards.
 
 ### Remove Unused Imports
 
@@ -65,7 +65,11 @@ To ensure code cleanliness, please remove any unused imports in your Java files.
 
 ### Commit the Latest Code
 
-提交信息和 PR 标题使用 `type(scope): description` 格式，`scope` 可省略。PR 提交和更新不触发检查；合并到 `main` 后通过 `push` 事件运行 CI。详见[中文贡献指南](CONTRIBUTING-zh.md)。
+Use the `type(scope): description` format for commit messages and PR titles; `scope` is optional. Common types are `fix`, `feat`, `refactor`, `docs`, `chore`, `perf`, `infra`, `revert`, `release`, `test`, and `style`.
+
+GitHub Actions checks do not run when a pull request is opened or updated, and no welcome message or label is added automatically. Once a pull request is reviewed and merged into `main`, CI runs the build, test, lint, license, and secret checks on the `push` event; pushing directly to `main` triggers the same checks. Review requirements are managed by repository branch protection or rulesets.
+
+Because nothing runs at pull-request time, run the local checks yourself before submitting.
 
 Commit format example:
 
@@ -82,4 +86,4 @@ For instance: `feat(docs): update contribute-zh`
 
 ### Submit PR
 
-Submit your PR, explain the modifications and implemented features according to the `Pull request template`, and wait for code review and merging. Become a Spring AI Alibaba Contributor and make a contribution to a better Spring AI Alibaba.
+Submit your PR, explain the modifications and implemented features according to the `Pull request template`, and wait for code review and merging. Become an Agentic Spring AI Contributor and make a contribution to a better Agentic Spring AI.
