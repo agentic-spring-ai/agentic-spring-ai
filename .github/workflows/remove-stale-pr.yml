@@ -45,6 +45,6 @@ jobs:
           days-before-stale: 90
           days-before-close: 30 # Since adding 'stale' will update the PR, days-before-close is relative to that.
           stale-pr-label: 'stale'
-          stale-pr-message: "This PR is being marked as stale since it has not had any activity in 90 days. If you\nwould like to keep this PR alive, please leave a comment asking for a review. If the PR has \nmerge conflicts, update it with the latest from the base branch.\n<p>\nIf you are having difficulty finding a reviewer, please reach out on the \n[committer list](COMMITTERS.md).\n<p>\nIf this PR is no longer valid or desired, please feel free to close it. If no activity\noccurs in the next 30 days, it will be automatically closed.\n"
+          stale-pr-message: "This PR is being marked as stale since it has not had any activity in 90 days. If you\nwould like to keep this PR alive, please leave a comment asking for a review. If the PR has \nmerge conflicts, update it with the latest from the base branch.\n<p>\nIf you are having difficulty finding a reviewer, please reach out to the \nmaintainers via GitHub Issues.\n<p>\nIf this PR is no longer valid or desired, please feel free to close it. If no activity\noccurs in the next 30 days, it will be automatically closed.\n"
           close-pr-label: 'closed-stale'
           close-pr-message: "This PR has been closed since it has not had any activity in 120 days. If you feel like this\nwas a mistake, or you would like to continue working on it, please feel free to re-open the \nPR and ask for a review."

@@ -23,8 +23,6 @@ pnpm dev
 
 Visit `http://localhost:3000`.
 
-<img src="../docs/imgs/agent-chat-ui.jpg" alt="architecture" style="max-width: 740px; height: 508px" />
-
 ### Embedded mode
 
 The ui can work in a embedded mode with any of your Spring Boot applications.
