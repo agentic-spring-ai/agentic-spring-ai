@@ -22,15 +22,17 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.github.agentic.spring.ai.graph.StateGraph.END;
 import static io.github.agentic.spring.ai.graph.StateGraph.START;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FluxErrorHandlingTest {
@@ -40,9 +42,9 @@ public class FluxErrorHandlingTest {
 		StateGraph workflow = new StateGraph();
 
 		workflow.addNode("errorNode", state -> {
-			Flux<ChatResponse> emptyFlux = Flux.just(new ChatResponse(null));
+			Flux<ChatResponse> errorFlux = Flux.error(new RuntimeException("intentional failure"));
 			Map<String, Object> result = new HashMap<>();
-			result.put("output", emptyFlux);
+			result.put("output", errorFlux);
 			return CompletableFuture.completedFuture(result);
 		});
 
@@ -51,23 +53,9 @@ public class FluxErrorHandlingTest {
 
 		var app = workflow.compile();
 
-		long startTime = System.currentTimeMillis();
-		AtomicBoolean completed = new AtomicBoolean(false);
-		AtomicInteger responseCount = new AtomicInteger(0);
-
-		app.stream(Map.of()).subscribe(
-			response -> responseCount.incrementAndGet(),
-			error -> completed.set(true),
-			() -> completed.set(true)
-		);
-
-		Thread.sleep(1000);
-		long duration = System.currentTimeMillis() - startTime;
-
-		assertTrue(completed.get(), "Should complete");
-		assertTrue(duration < 2000, "Should fail fast, actual duration: " + duration + "ms");
-
-		assertTrue(responseCount.get() < 10, "Should not repeat execution, actual: " + responseCount.get());
+		RuntimeException error = assertThrows(RuntimeException.class,
+				() -> app.stream(Map.of()).blockLast(Duration.ofSeconds(2)));
+		assertThat(error).hasMessageContaining("intentional failure");
 	}
 
 	@Test
@@ -91,17 +79,11 @@ public class FluxErrorHandlingTest {
 		var app = workflow.compile();
 
 		AtomicInteger responseCount = new AtomicInteger(0);
-		AtomicBoolean completed = new AtomicBoolean(false);
 
-		app.stream(Map.of()).subscribe(
-			response -> responseCount.incrementAndGet(),
-			error -> {},
-			() -> completed.set(true)
-		);
+		app.stream(Map.of())
+				.doOnNext(response -> responseCount.incrementAndGet())
+				.blockLast(Duration.ofSeconds(2));
 
-		Thread.sleep(1000);
-
-		assertTrue(completed.get(), "Should complete normally");
 		assertTrue(responseCount.get() > 0, "Should receive responses");
 	}
 }

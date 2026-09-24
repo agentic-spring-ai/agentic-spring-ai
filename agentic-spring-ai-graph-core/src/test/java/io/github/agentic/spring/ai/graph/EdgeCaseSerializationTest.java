@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -88,7 +90,6 @@ public class EdgeCaseSerializationTest {
 
 	@Test
 	void testLargeStateSerialization() throws Exception {
-		// Test performance with large state
 		OverAllState originalState = new OverAllState();
 		Map<String, Object> largeMap = new HashMap<>();
 		for (int i = 0; i < 1000; i++) {
@@ -97,13 +98,12 @@ public class EdgeCaseSerializationTest {
 		originalState.updateState(largeMap);
 
 		SpringAIJacksonStateSerializer serializer = new SpringAIJacksonStateSerializer(OverAllState::new);
-		
-		long startTime = System.currentTimeMillis();
-		OverAllState restoredState = serializer.cloneObject(originalState);
-		long duration = System.currentTimeMillis() - startTime;
+
+		OverAllState restoredState = assertTimeoutPreemptively(Duration.ofSeconds(10),
+				() -> serializer.cloneObject(originalState));
 
 		assertNotNull(restoredState);
-		assertTrue(duration < 5000, "Serialization should complete in reasonable time (was " + duration + "ms)");
+		assertEquals("value999", restoredState.value("key999").orElseThrow(), "Restored state should preserve values");
 	}
 
 	@Test

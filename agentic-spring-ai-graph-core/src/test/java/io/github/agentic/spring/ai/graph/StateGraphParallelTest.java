@@ -23,15 +23,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.agentic.spring.ai.graph.StateGraph.END;
 import static io.github.agentic.spring.ai.graph.StateGraph.START;
 import static io.github.agentic.spring.ai.graph.action.AsyncNodeAction.node_async;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -62,48 +68,68 @@ public class StateGraphParallelTest {
 		});
 	}
 
-	/**
-	 * Creates a node with a specific delay to test timing-based aggregation strategies.
-	 * @param id the node identifier
-	 * @param delayMs the delay in milliseconds before the node completes
-	 * @return an AsyncNodeAction that sleeps for the specified delay
-	 */
-	private AsyncNodeAction makeNodeWithDelay(String id, long delayMs) {
+	private AsyncNodeAction immediateNode(String id) {
 		return node_async(state -> {
-			log.info("call node {} with delay {}ms", id, delayMs);
+			log.info("call node {}", id);
+			return Map.of("messages", id, "nodeId", id);
+		});
+	}
+
+	private AsyncNodeAction controlledNode(String id, CountDownLatch entered,
+			CountDownLatch release, AtomicBoolean interrupted) {
+		return node_async(state -> {
+			entered.countDown();
 			try {
-				Thread.sleep(delayMs);
-			} catch (InterruptedException e) {
+				release.await();
+			}
+			catch (InterruptedException ex) {
+				interrupted.set(true);
 				Thread.currentThread().interrupt();
-				throw new RuntimeException(e);
+				throw new RuntimeException(ex);
 			}
 			return Map.of("messages", id, "nodeId", id);
 		});
 	}
 
-	/**
-	 * Creates a streaming node that returns a Flux.
-	 * The Flux emits values with delays to simulate streaming behavior.
-	 * 
-	 * @param id the node identifier
-	 * @param delayMs delay before starting to emit values
-	 * @param values the values to emit
-	 * @return an AsyncNodeAction that returns a Flux
-	 */
-	private AsyncNodeAction makeStreamingNode(String id, long delayMs, String... values) {
+	private AsyncNodeAction immediateStreamingNode(String id, String... values) {
 		return node_async(state -> {
-			log.info("call streaming node {} with delay {}ms", id, delayMs);
-			try {
-				Thread.sleep(delayMs);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new RuntimeException(e);
-			}
-			// Return a Flux that emits values immediately after the delay
+			log.info("call streaming node {}", id);
 			Flux<String> flux = Flux.fromArray(values)
 					.map(value -> id + ":" + value);
 			return Map.of("stream", flux, "nodeId", id);
 		});
+	}
+
+	private AsyncNodeAction controlledStreamingNode(String id, CountDownLatch entered,
+			CountDownLatch release, AtomicBoolean interrupted, String... values) {
+		return node_async(state -> {
+			entered.countDown();
+			try {
+				release.await();
+			}
+			catch (InterruptedException ex) {
+				interrupted.set(true);
+				Thread.currentThread().interrupt();
+				throw new RuntimeException(ex);
+			}
+			Flux<String> flux = Flux.fromArray(values)
+					.map(value -> id + ":" + value);
+			return Map.of("stream", flux, "nodeId", id);
+		});
+	}
+
+	private void releaseAndShutdown(CountDownLatch release, ExecutorService executor) {
+		release.countDown();
+		executor.shutdown();
+		try {
+			executor.awaitTermination(1, TimeUnit.SECONDS);
+		}
+		catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+		}
+		finally {
+			executor.shutdownNow();
+		}
 	}
 
 	/**
@@ -114,12 +140,15 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyAnyOf() throws Exception {
-		// Create a workflow with parallel branches that have different delays
-		// fastNode completes in 100ms, slowNode1 in 500ms, slowNode2 in 500ms
+		CountDownLatch entered = new CountDownLatch(2);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicBoolean interrupted = new AtomicBoolean(false);
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("fastNode", makeNodeWithDelay("fastNode", 100))
-				.addNode("slowNode1", makeNodeWithDelay("slowNode1", 500))
-				.addNode("slowNode2", makeNodeWithDelay("slowNode2", 500))
+				.addNode("fastNode", immediateNode("fastNode"))
+				.addNode("slowNode1", controlledNode("slowNode1", entered, release, interrupted))
+				.addNode("slowNode2", controlledNode("slowNode2", entered, release, interrupted))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "fastNode")
 				.addEdge(START, "slowNode1")
@@ -130,44 +159,36 @@ public class StateGraphParallelTest {
 				.addEdge("merge", END);
 
 		var app = workflow.compile();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
 
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		// Configure ANY_OF strategy for the merge node (target node)
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
+									.addParallelNodeExecutor(START, executor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(entered.await(2, TimeUnit.SECONDS), "Blocked ANY_OF branches should enter");
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that only one result is present (from the fastest node)
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
-		
-		// With ANY_OF, only the first completed result should be used
-		// The result should contain fastNode (the fastest one), NOT the slow nodes
-		assertTrue(messages.contains("fastNode"),
-				"Result should contain fastNode (the first completed branch)");
-		
-		// The key behavior test: with ANY_OF, slow nodes should NOT be in results
-		// If slowNode1 or slowNode2 are present, it means we waited for them (wrong behavior)
-		boolean hasSlowNodeData = messages.contains("slowNode1") || messages.contains("slowNode2");
-		assertFalse(hasSlowNodeData,
-				"Result should NOT contain slow nodes with ANY_OF strategy (got: " + messages + ")");
-
-		// Verify merge node was executed
-		assertTrue(messages.contains("merge"), "Result should contain merge node");
-
-		// Log timing for debugging, but don't assert on it to avoid flaky tests
-		log.info("ANY_OF execution took {}ms (fastNode: 100ms, slowNodes: 500ms)", duration);
+			assertNotNull(finalState.get(), "Final state should not be null");
+			assertEquals("fastNode", finalState.get().value("nodeId").orElseThrow());
+			assertFalse(run.isCompletedExceptionally());
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.contains("fastNode"),
+					"Result should contain fastNode (the first completed branch)");
+			assertFalse(messages.contains("slowNode1") || messages.contains("slowNode2"),
+					"Result should NOT contain slow nodes with ANY_OF strategy (got: " + messages + ")");
+			assertTrue(messages.contains("merge"), "Result should contain merge node");
+		}
+		finally {
+			releaseAndShutdown(release, executor);
+		}
 	}
 
 	/**
@@ -177,11 +198,15 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyAllOf() throws Exception {
-		// Create a workflow with parallel branches that have different delays
+		CountDownLatch entered = new CountDownLatch(3);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicBoolean interrupted = new AtomicBoolean(false);
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("fastNode", makeNodeWithDelay("fastNode", 100))
-				.addNode("slowNode1", makeNodeWithDelay("slowNode1", 300))
-				.addNode("slowNode2", makeNodeWithDelay("slowNode2", 300))
+				.addNode("fastNode", controlledNode("fastNode", entered, release, interrupted))
+				.addNode("slowNode1", controlledNode("slowNode1", entered, release, interrupted))
+				.addNode("slowNode2", controlledNode("slowNode2", entered, release, interrupted))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "fastNode")
 				.addEdge(START, "slowNode1")
@@ -192,40 +217,33 @@ public class StateGraphParallelTest {
 				.addEdge("merge", END);
 
 		var app = workflow.compile();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
 
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		// Configure ALL_OF strategy explicitly for the merge node
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
+									.addParallelNodeExecutor(START, executor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(entered.await(2, TimeUnit.SECONDS));
+			assertFalse(run.isDone(), "ALL_OF must wait while one branch is blocked");
+			release.countDown();
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that execution waited for all branches (should be around 300ms+)
-		assertTrue(duration >= 250, 
-				"Execution should wait for all branches with ALL_OF strategy, but took only " + duration + "ms");
-
-		// Verify that all results are present
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
-		
-		// With ALL_OF, all parallel branches should complete
-		// Note: The exact content depends on how processParallelResults merges the results
-		// But we should have at least fastNode, slowNode1, slowNode2, and merge
-		assertTrue(messages.size() >= 3, 
-				"Result should contain results from all parallel branches");
-		
-		// Verify merge node was executed
-		assertTrue(messages.contains("merge"), "Result should contain merge node");
+			assertNotNull(finalState.get(), "Final state should not be null");
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.containsAll(List.of("fastNode", "slowNode1", "slowNode2", "merge")),
+					"Result should contain every branch and merge node (got: " + messages + ")");
+		}
+		finally {
+			releaseAndShutdown(release, executor);
+		}
 	}
 
 	/**
@@ -233,11 +251,15 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyDefault() throws Exception {
-		// Create a workflow with parallel branches
+		CountDownLatch entered = new CountDownLatch(3);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicBoolean interrupted = new AtomicBoolean(false);
+		ExecutorService executor = Executors.newFixedThreadPool(3);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("node1", makeNodeWithDelay("node1", 200))
-				.addNode("node2", makeNodeWithDelay("node2", 200))
-				.addNode("node3", makeNodeWithDelay("node3", 200))
+				.addNode("node1", controlledNode("node1", entered, release, interrupted))
+				.addNode("node2", controlledNode("node2", entered, release, interrupted))
+				.addNode("node3", controlledNode("node3", entered, release, interrupted))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "node1")
 				.addEdge(START, "node2")
@@ -248,34 +270,32 @@ public class StateGraphParallelTest {
 				.addEdge("merge", END);
 
 		var app = workflow.compile();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
 
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		// Don't configure any strategy - should default to ALL_OF
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeExecutor(START, executor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(entered.await(2, TimeUnit.SECONDS));
+			assertFalse(run.isDone(), "Default aggregation must wait while one branch is blocked");
+			release.countDown();
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that execution waited for all branches (default behavior)
-		assertTrue(duration >= 150, 
-				"Execution should wait for all branches by default (ALL_OF), but took only " + duration + "ms");
-
-		// Verify that results are present
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
-		
-		// Should have results from all parallel branches
-		assertTrue(messages.size() >= 3, 
-				"Result should contain results from all parallel branches");
+			assertNotNull(finalState.get(), "Final state should not be null");
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.containsAll(List.of("node1", "node2", "node3", "merge")),
+					"Result should contain every branch and merge node (got: " + messages + ")");
+		}
+		finally {
+			releaseAndShutdown(release, executor);
+		}
 	}
 
 	/**
@@ -283,10 +303,14 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyDefaultConfig() throws Exception {
-		// Create a workflow with parallel branches
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicBoolean interrupted = new AtomicBoolean(false);
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("fastNode", makeNodeWithDelay("fastNode", 100))
-				.addNode("slowNode", makeNodeWithDelay("slowNode", 400))
+				.addNode("fastNode", immediateNode("fastNode"))
+				.addNode("slowNode", controlledNode("slowNode", entered, release, interrupted))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "fastNode")
 				.addEdge(START, "slowNode")
@@ -295,40 +319,35 @@ public class StateGraphParallelTest {
 				.addEdge("merge", END);
 
 		var app = workflow.compile();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
 
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		// Configure default strategy as ANY_OF
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.defaultParallelAggregationStrategy(NodeAggregationStrategy.ANY_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.defaultParallelAggregationStrategy(NodeAggregationStrategy.ANY_OF)
+									.addParallelNodeExecutor(START, executor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(entered.await(2, TimeUnit.SECONDS), "Blocked ANY_OF branch should enter");
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that result is present
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
-		
-		// With ANY_OF as default strategy, should use fastNode (first completed), not slowNode
-		assertTrue(messages.contains("fastNode"),
-				"Result should contain fastNode (the first completed branch with ANY_OF)");
-
-		// The key behavior test: slowNode should NOT be present if ANY_OF worked correctly
-		// If slowNode is present, it means we waited for it (ALL_OF behavior)
-		boolean hasSlowNodeData = messages.contains("slowNode");
-		assertFalse(hasSlowNodeData,
-				"Result should NOT contain slowNode with default ANY_OF strategy (got: " + messages + ")");
-
-		// Log timing for debugging purposes only
-		log.info("Default ANY_OF execution took {}ms (fastNode: 100ms, slowNode: 400ms)", duration);
+			assertNotNull(finalState.get(), "Final state should not be null");
+			assertEquals("fastNode", finalState.get().value("nodeId").orElseThrow());
+			assertFalse(run.isCompletedExceptionally());
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.contains("fastNode"),
+					"Result should contain fastNode (the first completed branch with ANY_OF)");
+			assertFalse(messages.contains("slowNode"),
+					"Result should NOT contain slowNode with default ANY_OF strategy (got: " + messages + ")");
+		}
+		finally {
+			releaseAndShutdown(release, executor);
+		}
 	}
 
 	/**
@@ -338,10 +357,14 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyMergeNodeOverridesDefault() throws Exception {
-		// Create a workflow with parallel branches
+		CountDownLatch entered = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		AtomicBoolean interrupted = new AtomicBoolean(false);
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("fastNode", makeNodeWithDelay("fastNode", 100))
-				.addNode("slowNode", makeNodeWithDelay("slowNode", 400))
+				.addNode("fastNode", immediateNode("fastNode"))
+				.addNode("slowNode", controlledNode("slowNode", entered, release, interrupted))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "fastNode")
 				.addEdge(START, "slowNode")
@@ -350,43 +373,37 @@ public class StateGraphParallelTest {
 				.addEdge("merge", END);
 
 		var app = workflow.compile();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
 
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		// Configure default strategy as ALL_OF, but override with ANY_OF for merge node
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.defaultParallelAggregationStrategy(NodeAggregationStrategy.ALL_OF)
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.defaultParallelAggregationStrategy(NodeAggregationStrategy.ALL_OF)
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
+									.addParallelNodeExecutor(START, executor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(entered.await(2, TimeUnit.SECONDS), "Blocked ANY_OF branch should enter");
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that result is present
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
-		
-		// The key behavior test: merge node's ANY_OF should override default ALL_OF
-		// So we should see fastNode (first completed), not slowNode
-		assertTrue(messages.contains("fastNode"),
-				"Result should contain fastNode (merge node's ANY_OF overrides default ALL_OF)");
-
-		// If slowNode is present, it means ALL_OF was used instead of ANY_OF
-		boolean hasSlowNodeData = messages.contains("slowNode");
-		assertFalse(hasSlowNodeData,
-				"Result should NOT contain slowNode - merge node's ANY_OF should override default ALL_OF (got: " + messages + ")");
-
-		assertTrue(messages.contains("merge"), "Result should contain merge node");
-
-		// Log timing for debugging purposes only
-		log.info("Override test execution took {}ms (fastNode: 100ms, slowNode: 400ms)", duration);
+			assertNotNull(finalState.get(), "Final state should not be null");
+			assertEquals("fastNode", finalState.get().value("nodeId").orElseThrow());
+			assertFalse(run.isCompletedExceptionally());
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.contains("fastNode"),
+					"Result should contain fastNode (merge node's ANY_OF overrides default ALL_OF)");
+			assertFalse(messages.contains("slowNode"),
+					"Result should NOT contain slowNode - merge node's ANY_OF should override default ALL_OF (got: " + messages + ")");
+			assertTrue(messages.contains("merge"), "Result should contain merge node");
+		}
+		finally {
+			releaseAndShutdown(release, executor);
+		}
 	}
 
 	/**
@@ -396,14 +413,16 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyWithStreamingNodes() throws Exception {
-		// Create a workflow with parallel branches:
-		// - streamingNode1: returns Flux immediately (fast)
-		// - normalNode: returns regular value with delay (slow)
-		// - streamingNode2: returns Flux with delay (slow)
+		CountDownLatch anyOfEntered = new CountDownLatch(2);
+		CountDownLatch anyOfRelease = new CountDownLatch(1);
+		AtomicBoolean anyOfInterrupted = new AtomicBoolean(false);
+		ExecutorService anyOfExecutor = Executors.newFixedThreadPool(3);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("streamingNode1", makeStreamingNode("streamingNode1", 50, "chunk1", "chunk2", "chunk3"))
-				.addNode("normalNode", makeNodeWithDelay("normalNode", 300))
-				.addNode("streamingNode2", makeStreamingNode("streamingNode2", 400, "chunkA", "chunkB"))
+				.addNode("streamingNode1", immediateStreamingNode("streamingNode1", "chunk1", "chunk2", "chunk3"))
+				.addNode("normalNode", controlledNode("normalNode", anyOfEntered, anyOfRelease, anyOfInterrupted))
+				.addNode("streamingNode2", controlledStreamingNode("streamingNode2", anyOfEntered, anyOfRelease,
+						anyOfInterrupted, "chunkA", "chunkB"))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "streamingNode1")
 				.addEdge(START, "normalNode")
@@ -415,89 +434,81 @@ public class StateGraphParallelTest {
 
 		var app = workflow.compile();
 
-		// Test ANY_OF strategy with streaming nodes
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalStateAnyOf = new OverAllState[1];
-		final List<String> streamValuesAnyOf = new ArrayList<>();
-		
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> {
-					log.info("Node output: {}", output.node());
-					// Collect streaming values if present
-					output.state().value("stream").ifPresent(stream -> {
-						if (stream instanceof Flux) {
-							@SuppressWarnings("unchecked")
-							Flux<String> flux = (Flux<String>) stream;
-							flux.collectList().blockOptional().ifPresent(streamValuesAnyOf::addAll);
-						}
-					});
-				})
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalStateAnyOf[0] = state)
-				.blockLast();
+		AtomicReference<OverAllState> finalStateAnyOf = new AtomicReference<>();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
+									.addParallelNodeExecutor(START, anyOfExecutor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalStateAnyOf::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long durationAnyOf = endTime - startTime;
+			assertTrue(anyOfEntered.await(2, TimeUnit.SECONDS), "Blocked ANY_OF streaming branches should enter");
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that execution completed quickly (ANY_OF should use first completed)
-		// streamingNode1 completes first (50ms), so execution should be fast
-		assertTrue(durationAnyOf < 300,
-				"Execution with ANY_OF should complete quickly using streamingNode1, but took " + durationAnyOf + "ms");
+			assertNotNull(finalStateAnyOf.get(), "Final state should not be null");
+			assertEquals("streamingNode1", finalStateAnyOf.get().value("nodeId").orElseThrow());
+			assertTrue(finalStateAnyOf.get().value("stream").isPresent(),
+					"Result should contain streamingNode1's data (first completed)");
+			List<String> messages = (List<String>) finalStateAnyOf.get().value("messages").orElse(List.of());
+			assertFalse(messages.contains("normalNode"), "ANY_OF should ignore blocked normal branch");
+		}
+		finally {
+			releaseAndShutdown(anyOfRelease, anyOfExecutor);
+		}
 
-		// Verify that result is present
-		assertNotNull(finalStateAnyOf[0], "Final state should not be null");
-		
-		// With ANY_OF, streamingNode1 should be the first completed
-		// The result should contain streamingNode1's data
-		Object nodeId = finalStateAnyOf[0].value("nodeId").orElse(null);
-		assertTrue("streamingNode1".equals(nodeId) || finalStateAnyOf[0].value("stream").isPresent(),
-				"Result should contain streamingNode1's data (first completed)");
+		CountDownLatch allOfEntered = new CountDownLatch(3);
+		CountDownLatch allOfRelease = new CountDownLatch(1);
+		AtomicBoolean allOfInterrupted = new AtomicBoolean(false);
+		ExecutorService allOfExecutor = Executors.newFixedThreadPool(3);
+		var allOfWorkflow = new StateGraph(createKeyStrategyFactory())
+				.addNode("streamingNode1", controlledStreamingNode("streamingNode1", allOfEntered, allOfRelease,
+						allOfInterrupted, "chunk1", "chunk2", "chunk3"))
+				.addNode("normalNode", controlledNode("normalNode", allOfEntered, allOfRelease, allOfInterrupted))
+				.addNode("streamingNode2", controlledStreamingNode("streamingNode2", allOfEntered, allOfRelease,
+						allOfInterrupted, "chunkA", "chunkB"))
+				.addNode("merge", makeNode("merge"))
+				.addEdge(START, "streamingNode1")
+				.addEdge(START, "normalNode")
+				.addEdge(START, "streamingNode2")
+				.addEdge("streamingNode1", "merge")
+				.addEdge("normalNode", "merge")
+				.addEdge("streamingNode2", "merge")
+				.addEdge("merge", END);
+		var allOfApp = allOfWorkflow.compile();
+		AtomicReference<OverAllState> finalStateAllOf = new AtomicReference<>();
 
-		// Test ALL_OF strategy with streaming nodes
-		startTime = System.currentTimeMillis();
-		final OverAllState[] finalStateAllOf = new OverAllState[1];
-		final List<String> streamValuesAllOf = new ArrayList<>();
-		
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> {
-					log.info("Node output: {}", output.node());
-					// Collect streaming values if present
-					output.state().value("stream").ifPresent(stream -> {
-						if (stream instanceof Flux) {
-							@SuppressWarnings("unchecked")
-							Flux<String> flux = (Flux<String>) stream;
-							flux.collectList().blockOptional().ifPresent(streamValuesAllOf::addAll);
-						}
-					});
-				})
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalStateAllOf[0] = state)
-				.blockLast();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					allOfApp.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
+									.addParallelNodeExecutor(START, allOfExecutor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalStateAllOf::set)
+							.blockLast());
 
-		endTime = System.currentTimeMillis();
-		long durationAllOf = endTime - startTime;
+			assertTrue(allOfEntered.await(2, TimeUnit.SECONDS));
+			assertFalse(run.isDone(), "ALL_OF must wait while streaming branches are blocked");
+			allOfRelease.countDown();
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that execution waited for all branches including streaming nodes
-		// streamingNode2 is the slowest (400ms), so execution should wait for it
-		assertTrue(durationAllOf >= 300, 
-				"Execution with ALL_OF should wait for all branches including streamingNode2 (400ms), but took only " + durationAllOf + "ms");
-
-		// Verify that result is present
-		assertNotNull(finalStateAllOf[0], "Final state should not be null");
-		
-		// With ALL_OF, all branches should complete
-		// The result should contain data from all nodes
-		assertTrue(finalStateAllOf[0].value("stream").isPresent() || 
-				   finalStateAllOf[0].value("nodeId").isPresent(),
-				"Result should contain data from all parallel branches");
+			assertNotNull(finalStateAllOf.get(), "Final state should not be null");
+			List<String> messages = (List<String>) finalStateAllOf.get().value("messages").orElse(List.of());
+			assertTrue(messages.containsAll(List.of("normalNode", "merge")),
+					"ALL_OF should include the normal branch and merge node (got: " + messages + ")");
+			assertTrue(finalStateAllOf.get().value("stream").isPresent(),
+					"ALL_OF should include data from streaming branches");
+		}
+		finally {
+			releaseAndShutdown(allOfRelease, allOfExecutor);
+		}
 	}
 
 	/**
@@ -507,12 +518,15 @@ public class StateGraphParallelTest {
 	 */
 	@Test
 	void testParallelNodeAggregationStrategyWithMixedStreamingAndNormalNodes() throws Exception {
-		// Create a workflow with mixed node types:
-		// - fastNormalNode: regular node, completes quickly
-		// - slowStreamingNode: streaming node, completes slowly
+		CountDownLatch anyOfEntered = new CountDownLatch(1);
+		CountDownLatch anyOfRelease = new CountDownLatch(1);
+		AtomicBoolean anyOfInterrupted = new AtomicBoolean(false);
+		ExecutorService anyOfExecutor = Executors.newFixedThreadPool(2);
+
 		var workflow = new StateGraph(createKeyStrategyFactory())
-				.addNode("fastNormalNode", makeNodeWithDelay("fastNormalNode", 100))
-				.addNode("slowStreamingNode", makeStreamingNode("slowStreamingNode", 400, "data1", "data2", "data3"))
+				.addNode("fastNormalNode", immediateNode("fastNormalNode"))
+				.addNode("slowStreamingNode", controlledStreamingNode("slowStreamingNode", anyOfEntered, anyOfRelease,
+						anyOfInterrupted, "data1", "data2", "data3"))
 				.addNode("merge", makeNode("merge"))
 				.addEdge(START, "fastNormalNode")
 				.addEdge(START, "slowStreamingNode")
@@ -522,73 +536,78 @@ public class StateGraphParallelTest {
 
 		var app = workflow.compile();
 
-		// Test ANY_OF: should use fastNormalNode (completes first)
-		long startTime = System.currentTimeMillis();
-		final OverAllState[] finalState = new OverAllState[1];
-		
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalState[0] = state)
-				.blockLast();
+		AtomicReference<OverAllState> finalState = new AtomicReference<>();
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					app.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ANY_OF)
+									.addParallelNodeExecutor(START, anyOfExecutor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalState::set)
+							.blockLast());
 
-		long endTime = System.currentTimeMillis();
-		long duration = endTime - startTime;
+			assertTrue(anyOfEntered.await(2, TimeUnit.SECONDS), "Blocked streaming branch should enter");
+			run.get(2, TimeUnit.SECONDS);
 
-		// Verify that result contains fastNormalNode's data
-		assertNotNull(finalState[0], "Final state should not be null");
-		List<String> messages = (List<String>) finalState[0].value("messages").orElse(List.of());
+			assertNotNull(finalState.get(), "Final state should not be null");
+			assertEquals("fastNormalNode", finalState.get().value("nodeId").orElseThrow());
+			List<String> messages = (List<String>) finalState.get().value("messages").orElse(List.of());
+			assertTrue(messages.contains("fastNormalNode"),
+					"Result should contain fastNormalNode's data (first completed)");
+			assertFalse(finalState.get().value("stream").isPresent(),
+					"Result should NOT contain slowStreamingNode data with ANY_OF strategy");
+		}
+		finally {
+			releaseAndShutdown(anyOfRelease, anyOfExecutor);
+		}
 
-		// With ANY_OF, should use fastNormalNode (first completed), not slowStreamingNode
-		boolean hasFastNodeData = messages.contains("fastNormalNode") ||
-				finalState[0].value("nodeId").map("fastNormalNode"::equals).orElse(false);
-		assertTrue(hasFastNodeData,
-				"Result should contain fastNormalNode's data (first completed)");
+		CountDownLatch allOfEntered = new CountDownLatch(2);
+		CountDownLatch allOfRelease = new CountDownLatch(1);
+		AtomicBoolean allOfInterrupted = new AtomicBoolean(false);
+		ExecutorService allOfExecutor = Executors.newFixedThreadPool(2);
+		var allOfWorkflow = new StateGraph(createKeyStrategyFactory())
+				.addNode("fastNormalNode", controlledNode("fastNormalNode", allOfEntered, allOfRelease, allOfInterrupted))
+				.addNode("slowStreamingNode", controlledStreamingNode("slowStreamingNode", allOfEntered, allOfRelease,
+						allOfInterrupted, "data1", "data2", "data3"))
+				.addNode("merge", makeNode("merge"))
+				.addEdge(START, "fastNormalNode")
+				.addEdge(START, "slowStreamingNode")
+				.addEdge("fastNormalNode", "merge")
+				.addEdge("slowStreamingNode", "merge")
+				.addEdge("merge", END);
+		var allOfApp = allOfWorkflow.compile();
+		AtomicReference<OverAllState> finalStateAllOf = new AtomicReference<>();
 
-		// The key behavior test: slowStreamingNode should NOT have contributed data
-		// If stream data is present, it means we waited for slowStreamingNode (wrong for ANY_OF)
-		boolean hasSlowStreamingData = finalState[0].value("stream").isPresent() ||
-				finalState[0].value("nodeId").map("slowStreamingNode"::equals).orElse(false);
-		assertFalse(hasSlowStreamingData,
-				"Result should NOT contain slowStreamingNode data with ANY_OF strategy (got stream: " +
-				finalState[0].value("stream").isPresent() + ", nodeId: " +
-				finalState[0].value("nodeId") + ")");
+		try {
+			CompletableFuture<Void> run = CompletableFuture.runAsync(() ->
+					allOfApp.stream(Map.of(),
+							RunnableConfig.builder()
+									.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
+									.addParallelNodeExecutor(START, allOfExecutor)
+									.build())
+							.doOnNext(output -> log.info("Node output: {}", output.node()))
+							.map(NodeOutput::state)
+							.doOnNext(finalStateAllOf::set)
+							.blockLast());
 
-		// Log timing for debugging purposes only
-		log.info("ANY_OF with mixed nodes execution took {}ms (fastNormalNode: 100ms, slowStreamingNode: 400ms)", duration);
+			assertTrue(allOfEntered.await(2, TimeUnit.SECONDS));
+			assertFalse(run.isDone(), "ALL_OF must wait while mixed branches are blocked");
+			allOfRelease.countDown();
+			run.get(2, TimeUnit.SECONDS);
 
-		// Test ALL_OF: should wait for slowStreamingNode
-		startTime = System.currentTimeMillis();
-		final OverAllState[] finalStateAllOf = new OverAllState[1];
-		
-		app.stream(Map.of(),
-				RunnableConfig.builder()
-						.addParallelNodeAggregationStrategy("merge", NodeAggregationStrategy.ALL_OF)
-						.addParallelNodeExecutor(START, ForkJoinPool.commonPool())
-						.build())
-				.doOnNext(output -> log.info("Node output: {}", output.node()))
-				.map(NodeOutput::state)
-				.doOnNext(state -> finalStateAllOf[0] = state)
-				.blockLast();
-
-		endTime = System.currentTimeMillis();
-		long durationAllOf = endTime - startTime;
-
-		// Verify that execution waited for slowStreamingNode (400ms)
-		assertTrue(durationAllOf >= 350,
-				"Execution with ALL_OF should wait for slowStreamingNode (400ms), but took only " + durationAllOf + "ms");
-
-		// Verify that result contains data from both nodes
-		assertNotNull(finalStateAllOf[0], "Final state should not be null");
-		// With ALL_OF, both nodes should complete, so the result should contain data from both
-		assertTrue(finalStateAllOf[0].value("messages").isPresent() ||
-				   finalStateAllOf[0].value("stream").isPresent() ||
-				   finalStateAllOf[0].value("nodeId").isPresent(),
-				"Result should contain data from both parallel branches");
+			assertNotNull(finalStateAllOf.get(), "Final state should not be null");
+			List<String> messages = (List<String>) finalStateAllOf.get().value("messages").orElse(List.of());
+			assertTrue(messages.containsAll(List.of("fastNormalNode", "merge")),
+					"ALL_OF should include the normal branch and merge node (got: " + messages + ")");
+			assertTrue(finalStateAllOf.get().value("stream").isPresent(),
+					"ALL_OF should include the streaming branch");
+		}
+		finally {
+			releaseAndShutdown(allOfRelease, allOfExecutor);
+		}
 	}
 
 }

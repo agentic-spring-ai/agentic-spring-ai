@@ -108,7 +108,7 @@ public class ModelRetryInterceptor extends ModelInterceptor {
 							}
 						}
 						// Calculate the next delay time (exponential backoff)
-						currentDelay = Math.min((long) (currentDelay * backoffMultiplier), maxDelay);
+						currentDelay = RetryDelayCalculator.nextDelay(currentDelay, backoffMultiplier, maxDelay);
 						continue;
 					} else if (attempt >= maxAttempts) {
 						log.error("The maximum number of retries has been reached {}, and the model call has failed.", maxAttempts);
@@ -152,7 +152,7 @@ public class ModelRetryInterceptor extends ModelInterceptor {
 				}
 
 				// Calculate the next delay time (exponential backoff)
-				currentDelay = Math.min((long) (currentDelay * backoffMultiplier), maxDelay);
+				currentDelay = RetryDelayCalculator.nextDelay(currentDelay, backoffMultiplier, maxDelay);
 			}
 		}
 
@@ -235,7 +235,7 @@ public class ModelRetryInterceptor extends ModelInterceptor {
 	}
 
 	private long nextDelay(long currentDelay) {
-		return Math.min((long) (currentDelay * backoffMultiplier), maxDelay);
+		return RetryDelayCalculator.nextDelay(currentDelay, backoffMultiplier, maxDelay);
 	}
 
 	private Exception toException(Throwable error) {
