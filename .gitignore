@@ -57,6 +57,7 @@ modified_mcp_config.json
 .idea/LocalCodeIndex/
 
 **/spans.json
+docs/
 
 .checkstyle
 model-config.yaml
