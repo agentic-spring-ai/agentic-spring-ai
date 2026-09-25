@@ -15,7 +15,6 @@
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg" alt="License"></a>
     <a href="https://github.com/agentic-spring-ai/agentic-spring-ai"><img src="https://img.shields.io/badge/version-2.1.0--dev-blue" alt="Version"></a>
     <img src="https://img.shields.io/badge/Java-17%2B-f59e0b" alt="Java 17+">
-    <img src="https://img.shields.io/badge/Spring%20AI-2.0.x-6db33f" alt="Spring AI 2.0.x">
   </p>
 </div>
 
