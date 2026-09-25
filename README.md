@@ -1,15 +1,25 @@
-<p align="center">
+<div align="center">
   <a href="https://agentic-spring-ai.github.io/website/en/">
-    <img src="asset/images/logo.svg" alt="Agentic AI logo" width="160">
+    <img src="asset/images/logo.svg" alt="Agentic AI logo" width="180">
   </a>
-</p>
+  <h1>Agentic AI</h1>
+  <p><strong>Stateful agent runtime for Java applications.</strong></p>
+  <p>Graph workflows · ReAct agents · Context engineering · Human-in-the-loop · Multi-agent orchestration</p>
+  <p>
+    <a href="https://agentic-spring-ai.github.io/website/en/docs/overview">Documentation</a> ·
+    <a href="https://agentic-spring-ai.github.io/website/en/docs/quick-start">Quick Start</a> ·
+    <a href="https://github.com/agentic-spring-ai/examples/tree/main/examples">Examples</a> ·
+    <a href="README-zh.md">简体中文</a>
+  </p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg" alt="License"></a>
+    <a href="https://github.com/agentic-spring-ai/agentic-spring-ai"><img src="https://img.shields.io/badge/version-2.1.0--dev-blue" alt="Version"></a>
+    <img src="https://img.shields.io/badge/Java-17%2B-f59e0b" alt="Java 17+">
+    <img src="https://img.shields.io/badge/Spring%20AI-2.0.x-6db33f" alt="Spring AI 2.0.x">
+  </p>
+</div>
 
-# [Agentic AI](https://agentic-spring-ai.github.io/website/en/)
-
-[English](README.md) | [简体中文](README-zh.md)
-
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1.0--dev-blue)](https://github.com/agentic-spring-ai/agentic-spring-ai)
+---
 
 Agentic AI is a framework for Java developers building agents, workflows, and multi-agent applications. Forked from Spring AI Alibaba, it provides context engineering, human-in-the-loop, graph workflows, and distributed Agent-to-Agent (A2A) collaboration.
 

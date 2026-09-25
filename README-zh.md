@@ -1,15 +1,25 @@
-<p align="center">
+<div align="center">
   <a href="https://agentic-spring-ai.github.io/website/">
-    <img src="asset/images/logo.svg" alt="Agentic AI logo" width="160">
+    <img src="asset/images/logo.svg" alt="Agentic AI logo" width="180">
   </a>
-</p>
+  <h1>Agentic AI</h1>
+  <p><strong>面向 Java 应用的有状态智能体运行时。</strong></p>
+  <p>图工作流 · ReAct Agent · 上下文工程 · 人工介入 · 多智能体编排</p>
+  <p>
+    <a href="https://agentic-spring-ai.github.io/website/docs/overview">文档</a> ·
+    <a href="https://agentic-spring-ai.github.io/website/docs/quick-start">快速开始</a> ·
+    <a href="https://github.com/agentic-spring-ai/examples/tree/main/examples">示例</a> ·
+    <a href="README.md">English</a>
+  </p>
+  <p>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202-4EB1BA.svg" alt="License"></a>
+    <a href="https://github.com/agentic-spring-ai/agentic-spring-ai"><img src="https://img.shields.io/badge/version-2.1.0--dev-blue" alt="Version"></a>
+    <img src="https://img.shields.io/badge/Java-17%2B-f59e0b" alt="Java 17+">
+    <img src="https://img.shields.io/badge/Spring%20AI-2.0.x-6db33f" alt="Spring AI 2.0.x">
+  </p>
+</div>
 
-# [Agentic AI](https://agentic-spring-ai.github.io/website/)
-
-[English](README.md) | [简体中文](README-zh.md)
-
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.1.0--dev-blue)](https://github.com/agentic-spring-ai/agentic-spring-ai)
+---
 
 Agentic AI 是面向 Java 开发者的智能体应用框架，用于构建 Agent、工作流和多智能体应用。项目 Fork 自 Spring AI Alibaba，提供上下文工程、人工介入、图工作流和分布式 Agent-to-Agent（A2A）协作能力。
 
