@@ -64,6 +64,10 @@ mvn -f examples/chatbot/pom.xml spring-boot:run
 
 提交代码前请阅读[贡献指南](CONTRIBUTING-zh.md)。问题和建议可通过 [GitHub Issues](https://github.com/agentic-spring-ai/agentic-spring-ai/issues) 反馈。
 
+<a href="https://github.com/agentic-spring-ai/agentic-spring-ai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=agentic-spring-ai/agentic-spring-ai&max=500&columns=18&anon=1" alt="contributors"/>
+</a>
+
 ## 许可证
 
 本项目采用 [Apache License 2.0](LICENSE) 许可证。
