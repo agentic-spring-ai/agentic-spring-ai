@@ -79,6 +79,10 @@ Open [http://localhost:8080/chatui/index.html](http://localhost:8080/chatui/inde
 
 Read the [contribution guide](CONTRIBUTING.md) before submitting changes. Report problems and suggestions through [GitHub Issues](https://github.com/agentic-spring-ai/agentic-spring-ai/issues).
 
+<a href="https://github.com/agentic-spring-ai/agentic-spring-ai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=agentic-spring-ai/agentic-spring-ai&max=500&columns=18&anon=1" alt="contributors"/>
+</a>
+
 ## License
 
 Agentic AI is available under the [Apache License 2.0](LICENSE).
