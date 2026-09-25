@@ -76,10 +76,10 @@ echo "Preparing baseline worktree at ${BASE_COMMIT}"
 git -C "${REPO_ROOT}" worktree add --detach "${BASELINE_WORKTREE}" "${BASE_COMMIT}" >/dev/null
 
 echo "Building baseline Core graph/builtin artifacts in isolated Maven repo"
-run_maven_with_retry "${BASELINE_WORKTREE}" -U -DskipTests -pl :agentic-spring-ai-graph-core,:agentic-spring-ai-starter-builtin-nodes -am package
+run_maven_with_retry "${BASELINE_WORKTREE}" -U -DskipTests -pl :agentic-ai-graph-core,:agentic-ai-starter-builtin-nodes -am package
 
 echo "Building candidate Core graph/builtin artifacts in isolated Maven repo"
-run_maven_with_retry "${REPO_ROOT}" -U -DskipTests -pl :agentic-spring-ai-graph-core,:agentic-spring-ai-starter-builtin-nodes -am package
+run_maven_with_retry "${REPO_ROOT}" -U -DskipTests -pl :agentic-ai-graph-core,:agentic-ai-starter-builtin-nodes -am package
 
 echo "Resolving japicmp ${JAPICMP_VERSION}"
 run_maven_with_retry "${REPO_ROOT}" dependency:get \
@@ -114,13 +114,13 @@ compare_module() {
 	echo "Binary compatible: ${label} (${report_file})"
 }
 
-compare_module "agentic-spring-ai-graph-core" \
-	"${BASELINE_WORKTREE}/agentic-spring-ai-graph-core/target/agentic-spring-ai-graph-core-${REVISION}.jar" \
-	"${REPO_ROOT}/agentic-spring-ai-graph-core/target/agentic-spring-ai-graph-core-${REVISION}.jar"
+compare_module "agentic-ai-graph-core" \
+	"${BASELINE_WORKTREE}/agentic-ai-graph-core/target/agentic-ai-graph-core-${REVISION}.jar" \
+	"${REPO_ROOT}/agentic-ai-graph-core/target/agentic-ai-graph-core-${REVISION}.jar"
 
-compare_module "agentic-spring-ai-starter-builtin-nodes" \
-	"${BASELINE_WORKTREE}/spring-boot-starters/agentic-spring-ai-starter-builtin-nodes/target/agentic-spring-ai-starter-builtin-nodes-${REVISION}.jar" \
-	"${REPO_ROOT}/spring-boot-starters/agentic-spring-ai-starter-builtin-nodes/target/agentic-spring-ai-starter-builtin-nodes-${REVISION}.jar" \
+compare_module "agentic-ai-starter-builtin-nodes" \
+	"${BASELINE_WORKTREE}/spring-boot-starters/agentic-ai-starter-builtin-nodes/target/agentic-ai-starter-builtin-nodes-${REVISION}.jar" \
+	"${REPO_ROOT}/spring-boot-starters/agentic-ai-starter-builtin-nodes/target/agentic-ai-starter-builtin-nodes-${REVISION}.jar" \
 	"${REMOVED_BUILTIN_EXCLUDES}"
 
 echo "Core binary compatibility gate passed"

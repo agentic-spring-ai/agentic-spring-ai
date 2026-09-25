@@ -2,15 +2,15 @@
 
 [中文版本](./CONTRIBUTING-zh.md)
 
-## Thank you for contributing to Agentic Spring AI!
+## Thank you for contributing to Agentic AI!
 
-Since its open-source inception, Agentic Spring AI has received attention from many community members. Every Issue and PR from the community helps the entire project and contributes to building a better Spring AI.
+Since its open-source inception, Agentic AI has received attention from many community members. Every Issue and PR from the community helps the entire project and contributes to building a better Spring AI.
 
 We sincerely thank the developers who have submitted Issues and PRs for this project. We hope more community developers will join us to make this project even better.
 
 ## Contribution Process
 
-Before contributing code, please take a moment to understand the process of contributing to Agentic Spring AI.
+Before contributing code, please take a moment to understand the process of contributing to Agentic AI.
 
 ### What to Contribute?
 
@@ -43,9 +43,9 @@ After forking the repository, new commits may have appeared in the original repo
 - In your local agentic-spring-ai directory, execute `git checkout main` to switch to the main branch.
 - In your local agentic-spring-ai directory, execute `git rebase upstream/main` to rebase the latest code.
 
-### Configure Spring AI Standard Code Format
+### Configure Spring AI Alibaba Standard Code Format
 
-As a framework built on Spring AI, Agentic Spring AI directly follows the Spring AI project's code standards. Before you start, please refer to the relevant code format specification instructions. You need to configure the code format standards properly before submitting your code.
+Agentic AI was forked from Spring AI Alibaba and directly follows the Spring AI Alibaba project's code standards. Before you start, please refer to the relevant code format specification instructions. You need to configure the code format standards properly before submitting your code.
 
 ### Development
 
@@ -57,7 +57,7 @@ After completing development in your local environment, it's strongly recommende
 
 ### Local Checkstyle
 
-To reduce unnecessary code style issues, Agentic Spring AI provides a local Checkstyle check feature. You can run `mvn checkstyle:check` in the project's root directory to verify if your code style complies with the standards.
+To reduce unnecessary code style issues, Agentic AI provides a local Checkstyle check feature. You can run `mvn checkstyle:check` in the project's root directory to verify if your code style complies with the standards.
 
 ### Remove Unused Imports
 
@@ -86,4 +86,4 @@ For instance: `feat(docs): update contribute-zh`
 
 ### Submit PR
 
-Submit your PR, explain the modifications and implemented features according to the `Pull request template`, and wait for code review and merging. Become an Agentic Spring AI Contributor and make a contribution to a better Agentic Spring AI.
+Submit your PR, explain the modifications and implemented features according to the `Pull request template`, and wait for code review and merging. Become an Agentic AI Contributor and make a contribution to a better Agentic AI.

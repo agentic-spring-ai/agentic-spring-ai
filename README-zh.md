@@ -1,11 +1,17 @@
-# [Agentic Spring AI](https://agentic-spring-ai.github.io/website/)
+<p align="center">
+  <a href="https://agentic-spring-ai.github.io/website/">
+    <img src="asset/images/logo.svg" alt="Agentic AI logo" width="160">
+  </a>
+</p>
+
+# [Agentic AI](https://agentic-spring-ai.github.io/website/)
 
 [English](README.md) | [简体中文](README-zh.md)
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.1.0--dev-blue)](https://github.com/agentic-spring-ai/agentic-spring-ai)
 
-Agentic Spring AI 是面向 Java 开发者的智能体应用框架，用于构建 Agent、工作流和多智能体应用。项目基于 Spring AI，提供上下文工程、人工介入、图工作流和分布式 Agent-to-Agent（A2A）协作能力。
+Agentic AI 是面向 Java 开发者的智能体应用框架，用于构建 Agent、工作流和多智能体应用。项目 Fork 自 Spring AI Alibaba，提供上下文工程、人工介入、图工作流和分布式 Agent-to-Agent（A2A）协作能力。
 
 ## 核心能力
 
@@ -13,7 +19,7 @@ Agentic Spring AI 是面向 Java 开发者的智能体应用框架，用于构�
 - **上下文工程**：支持上下文压缩与编辑、调用限制、工具重试、规划和动态工具选择。
 - **图工作流**：支持条件路由、并行执行、嵌套图、状态持久化和中断恢复。
 - **智能体运行时基础**：提供模型无关的智能体编排、工作流状态和可嵌入调试支持。
-- **开放集成**：兼容 DashScope、OpenAI 等模型，以及工具调用、MCP、A2A 和 Nacos。
+- **开放集成**：支持使用 Spring AI 提供的多模型集成能力，并提供工具调用、MCP、A2A 和 Nacos。
 - **可视化调试**：提供可嵌入 Spring Boot 应用的 Agent Chat UI。
 
 ## 快速开始
@@ -43,9 +49,9 @@ mvn -f examples/chatbot/pom.xml spring-boot:run
 
 | 模块 | 说明 |
 | --- | --- |
-| [Agent Framework](agentic-spring-ai-agent-framework) | 智能体开发与多智能体编排 |
-| [Graph Core](agentic-spring-ai-graph-core) | 状态管理、持久化和工作流运行时 |
-| [Studio](agentic-spring-ai-studio) | Agent 可视化调试界面 |
+| [Agent Framework](agentic-ai-agent-framework) | 智能体开发与多智能体编排 |
+| [Graph Core](agentic-ai-graph-core) | 状态管理、持久化和工作流运行时 |
+| [Studio](agentic-ai-studio) | Agent 可视化调试界面 |
 | [Sandbox](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions/tree/main/sandbox/agentic-spring-ai-sandbox) | 工具调用的可选隔离执行环境，由 Extensions 维护 |
 | [Spring Boot Starters](spring-boot-starters) | 内置图节点和图可观测性 |
 | [Extensions](https://github.com/agentic-spring-ai/agentic-spring-ai-extensions) | 模型与文档契约、A2A、Nacos、AgentScope、存储等可选扩展 |

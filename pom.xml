@@ -16,13 +16,13 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.github.agentic-spring-ai</groupId>
-    <artifactId>agentic-spring-ai</artifactId>
+    <groupId>io.github.agentic-ai</groupId>
+    <artifactId>agentic-ai</artifactId>
     <version>${revision}</version>
 
     <packaging>pom</packaging>
 
-    <name>Agentic Spring AI</name>
+    <name>Agentic AI</name>
     <description>Building AI applications with Spring Boot</description>
     <url>https://github.com/agentic-spring-ai/agentic-spring-ai</url>
 
@@ -47,14 +47,14 @@
     </developers>
 
     <modules>
-        <module>agentic-spring-ai-bom</module>
-        <module>agentic-spring-ai-graph-core</module>
-        <module>agentic-spring-ai-agent-framework</module>
-        <module>agentic-spring-ai-studio</module>
+        <module>agentic-ai-bom</module>
+        <module>agentic-ai-graph-core</module>
+        <module>agentic-ai-agent-framework</module>
+        <module>agentic-ai-studio</module>
 
-        <!-- Spring AI Alibaba Spring Boot Starters -->
-        <module>spring-boot-starters/agentic-spring-ai-starter-graph-observation</module>
-        <module>spring-boot-starters/agentic-spring-ai-starter-builtin-nodes</module>
+        <!-- Agentic AI Spring Boot Starters -->
+        <module>spring-boot-starters/agentic-ai-starter-graph-observation</module>
+        <module>spring-boot-starters/agentic-ai-starter-builtin-nodes</module>
     </modules>
 
     <scm>

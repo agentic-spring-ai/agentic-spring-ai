@@ -30,14 +30,14 @@
 "area/graph":
   - changed-files:
       - any-glob-to-any-file:
-          - "agentic-spring-ai-graph-core/**/*"
+          - "agentic-ai-graph-core/**/*"
 "area/core":
   - changed-files:
       - any-glob-to-any-file:
-          - "agentic-spring-ai-agent-framework/**/*"
-          - "agentic-spring-ai-bom/**/*"
+          - "agentic-ai-agent-framework/**/*"
+          - "agentic-ai-bom/**/*"
           - "spring-boot-starters/**/*"
 "area/studio":
   - changed-files:
       - any-glob-to-any-file:
-          - "agentic-spring-ai-studio/**/*"
+          - "agentic-ai-studio/**/*"
